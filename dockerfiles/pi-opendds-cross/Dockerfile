@@ -1,6 +1,14 @@
+#
+#   Provides a build environment for OpenDDS on Raspberry Pi with WiringPi to
+#   control the GPIO pins.
+#
+#
+
 FROM debian:stretch
 
 ARG BUILD_DIR=/home/pi
+ARG OPENDDS_BRANCH=master
+ARG OPENDDS_GIT_REPO=https://github.com/objectcomputing/OpenDDS.git
 ARG OPENDDS_MAKE_JOBS=4
 ARG OPENDDS_PREFIX=${BUILD_DIR}/pi-opendds
 
@@ -65,9 +73,7 @@ RUN cd xerces-c-3.2.2 && \
     -DCMAKE_INSTALL_PREFIX=${BUILD_ROOT}/pi-xerces .. && \
   make && make install
 
-RUN git clone -b master \
-      https://github.com/mmcparlane/OpenDDS.git \
-      pi-opendds
+RUN git clone -b ${OPENDDS_BRANCH} ${OPENDDS_GIT_REPO} pi-opendds
 
 RUN cd pi-opendds && \
   ./configure --prefix=${OPENDDS_PREFIX} \
@@ -80,9 +86,15 @@ RUN cd pi-opendds && \
 
 RUN tar cvzf pi-openssl.tar.gz pi-openssl
 RUN tar cvzf pi-xerces.tar.gz pi-xerces
-RUN tar -cvz --exclude='.obj*' --exclude='.shobj*' --exclude='.depend*' --exclude='tests' --exclude='build/host' --exclude='.git' -f pi-opendds.tar.gz pi-opendds
+RUN tar -cvz --exclude='.obj*' \
+            --exclude='.shobj*' \
+            --exclude='.depend*' \
+            --exclude='tests' \
+            --exclude='build/host' \
+            --exclude='.git' -f pi-opendds.tar.gz pi-opendds
 
-# Allow SSH to RPi simply by copying the id_rsa.pub into the authorized_keys file.
+# Allow SSH to RPi from this image simply by copying the generated
+# id_rsa.pub into the RPi authorized_keys file.
 # WARNING! this is not secure if the image is stored in docker hub or
 # anywhere public (the private keys are baked into the image); it should only be
 # used for development purposes.
@@ -98,13 +110,4 @@ RUN cd wiringPi/wiringPi && \
 
 ENV WIRING_PI ${BUILD_ROOT}/wiringPi/wiringPi
 
-# Copy the tarballs into local machine's working directory, assuming the image
-# was build with `docker build -t pi-opendds .`:
-#
-# Windows:
-# docker run --rm -v "%cd%":/home/pi/dst pi-opendds
-#
-# Linux:
-# docker run --rm -v "$(pwd)":/home/pi/dst pi-opendds
-#
-CMD ["cp", "pi-openssl.tar.gz", "pi-xerces.tar.gz", "pi-opendds.tar.gz", "/home/pi/dst"]
+CMD ["bash"]

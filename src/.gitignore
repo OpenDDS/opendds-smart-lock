@@ -1,5 +1,6 @@
 **/*TypeSupport*
 **/.obj
 **/.depend*
-**/GNUMakefile*
+**/*.so*
+**/GNUmakefile*
 smartlock
