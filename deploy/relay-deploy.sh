@@ -2,6 +2,11 @@
 
 sudo apt-get update -y
 
+install_coturn() {
+    sudo apt-get install -y coturn
+    sudo sed -i -e 's/#TURNSERVER_ENABLED/TURNSERVER_ENABLED/g' /etc/default/coturn
+}
+
 install_docker() {
     # See https://docs.docker.com/install/linux/docker-ce/debian/
 
@@ -37,29 +42,27 @@ ENV PATH="$PATH:/opt/OpenDDS/tools/rtpsrelay"
 DOCKERFILE
 }
 
-relay_run() {
-    docker run --rm -d -p 4444-4446:4444-4446/udp --name relay opendds/relay \
-        RtpsRelay -DCPSConfigFile /opt/OpenDDS/tools/rtpsrelay/rtps.ini
+make_relay_service() {
+    cat > /etc/systemd/system/rtps-relay.service <<SERVICE
+[Unit]
+Description=Relay for RTPS
+After=network.target
+[Service]
+ExecStart=/usr/bin/docker run --rm -p 4444-4446:4444-4446/udp --name rtps-relay opendds/relay RtpsRelay -DCPSConfigFile /opt/OpenDDS/tools/rtpsrelay/rtps.ini
+ExecStop=/usr/bin/docker stop rtps-relay
+[Install]
+WantedBy=multi-user.target
+SERVICE
+
+    chmod 0644 /etc/systemd/system/rtps-relay.service
+    systemctl daemon-reload
+    systemctl enable rtps-relay
 }
 
-relay_logs() {
-    docker logs relay
-}
+install_coturn
+install_docker
+make_relay_image
+make_relay_service
 
-case "${1}" in
-    install-docker)
-        install_docker
-        ;;
-    make-relay-image)
-        make_relay_image
-        ;;
-    run)
-        relay_run
-        ;;
-    logs)
-        relay_logs
-        ;;
-    -h|--help)
-        echo "Usage: relay-deploy.sh install-docker | make-relay-image | run-relay"
-        ;;
-esac
+sudo systemctl restart coturn
+sudo systemctl start rtps-relay

@@ -13,7 +13,7 @@ instance (see below) in order to bootstrap the base Debian packages.
 GCP_PROJECT=opendds-smartlock
 gcloud compute --project="$GCP_PROJECT" firewall-rules create rtps-relay \
     --direction=INGRESS --priority=1000 --network=default \
-    --action=ALLOW --rules=udp:4444-4446 \
+    --action=ALLOW --rules=tcp:3478-3479,udp:3478-3479,udp:4444-4446 \
     --source-ranges=0.0.0.0/0 --target-tags=rtps-relay
 ```
 
