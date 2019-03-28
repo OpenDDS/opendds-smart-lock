@@ -1,0 +1,10 @@
+
+project: dcps, wiring_pi {
+  requires += no_opendds_safety_profile
+
+  after += SmartLock_Idl
+  libs += SmartLock_Idl
+  libpaths += Idl
+
+  exename = smartlock
+}

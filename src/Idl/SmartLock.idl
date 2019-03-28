@@ -1,0 +1,32 @@
+
+module SmartLock {
+
+struct vec2 {
+  float x;
+  float y;
+};
+
+#pragma DCPS_DATA_TYPE "SmartLock::lock_t"
+#pragma DCPS_DATA_KEY "SmartLock::lock_t id"
+
+struct lock_t {
+  string id;
+  boolean locked;
+  vec2 position;
+};
+
+#pragma DCPS_DATA_TYPE "SmartLock::Status"
+#pragma DCPS_DATA_KEY "SmartLock::Status lock.id"
+
+struct Status {
+  lock_t lock;
+};
+
+#pragma DCPS_DATA_TYPE "SmartLock::Control"
+#pragma DCPS_DATA_KEY "SmartLock::Control lock.id"
+
+struct Control {
+  lock_t lock;
+};
+
+};

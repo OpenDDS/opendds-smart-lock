@@ -1,0 +1,104 @@
+MIME-Version: 1.0
+Content-Type: multipart/signed; protocol="application/x-pkcs7-signature"; micalg="sha-256"; boundary="----04FA502D6230458FEA083AA836D2E6F3"
+
+This is an S/MIME signed message
+
+------04FA502D6230458FEA083AA836D2E6F3
+Content-Type: text/plain
+
+<?xml version="1.0" encoding="UTF-8"?>
+<dds xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.omg.org/spec/DDS-SECURITY/20160303/omg_shared_ca_governance.xsd">
+  <domain_access_rules>
+    <domain_rule>
+      <domains>
+        <id>42</id>
+      </domains>
+
+      <allow_unauthenticated_participants>FALSE</allow_unauthenticated_participants>
+      <enable_join_access_control>TRUE</enable_join_access_control>
+      <discovery_protection_kind>ENCRYPT</discovery_protection_kind>
+      <liveliness_protection_kind>ENCRYPT</liveliness_protection_kind>
+      <rtps_protection_kind>NONE</rtps_protection_kind>
+
+      <topic_access_rules>
+        <topic_rule>
+          <topic_expression>SmartLock Status</topic_expression>
+          <enable_discovery_protection>TRUE</enable_discovery_protection>
+          <enable_liveliness_protection>TRUE</enable_liveliness_protection>
+          <enable_read_access_control>TRUE</enable_read_access_control>
+          <enable_write_access_control>TRUE</enable_write_access_control>
+          <metadata_protection_kind>ENCRYPT</metadata_protection_kind>
+          <data_protection_kind>NONE</data_protection_kind>
+        </topic_rule>
+
+        <topic_rule>
+          <topic_expression>SmartLock Control</topic_expression>
+          <enable_discovery_protection>TRUE</enable_discovery_protection>
+          <enable_liveliness_protection>TRUE</enable_liveliness_protection>
+          <enable_read_access_control>TRUE</enable_read_access_control>
+          <enable_write_access_control>TRUE</enable_write_access_control>
+          <metadata_protection_kind>ENCRYPT</metadata_protection_kind>
+          <data_protection_kind>NONE</data_protection_kind>
+        </topic_rule>
+        
+        <topic_rule>
+          <topic_expression>Force Participant Creation Hack</topic_expression>
+          <enable_discovery_protection>TRUE</enable_discovery_protection>
+          <enable_liveliness_protection>TRUE</enable_liveliness_protection>
+          <enable_read_access_control>FALSE</enable_read_access_control>
+          <enable_write_access_control>FALSE</enable_write_access_control>
+          <metadata_protection_kind>ENCRYPT</metadata_protection_kind>
+          <data_protection_kind>NONE</data_protection_kind>
+        </topic_rule>
+
+      </topic_access_rules>
+    </domain_rule>
+  </domain_access_rules>
+</dds>
+
+------04FA502D6230458FEA083AA836D2E6F3
+Content-Type: application/x-pkcs7-signature; name="smime.p7s"
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="smime.p7s"
+
+MIIHEAYJKoZIhvcNAQcCoIIHATCCBv0CAQExDzANBglghkgBZQMEAgEFADALBgkq
+hkiG9w0BBwGgggP4MIID9DCCAtwCCQD3ogFEETe8cjANBgkqhkiG9w0BAQsFADCB
+uzELMAkGA1UEBhMCVVMxCzAJBgNVBAgMAk1PMRQwEgYDVQQHDAtTYWludCBMb3Vp
+czEvMC0GA1UECgwmT2JqZWN0IENvbXB1dGluZyAoVGVzdCBQZXJtaXNzaW9ucyBD
+QSkxLzAtBgNVBAMMJk9iamVjdCBDb21wdXRpbmcgKFRlc3QgUGVybWlzc2lvbnMg
+Q0EpMScwJQYJKoZIhvcNAQkBFhhpbmZvQG9iamVjdGNvbXB1dGluZy5jb20wHhcN
+MTkwMzEzMjIwODIxWhcNMjkwMzEwMjIwODIxWjCBuzELMAkGA1UEBhMCVVMxCzAJ
+BgNVBAgMAk1PMRQwEgYDVQQHDAtTYWludCBMb3VpczEvMC0GA1UECgwmT2JqZWN0
+IENvbXB1dGluZyAoVGVzdCBQZXJtaXNzaW9ucyBDQSkxLzAtBgNVBAMMJk9iamVj
+dCBDb21wdXRpbmcgKFRlc3QgUGVybWlzc2lvbnMgQ0EpMScwJQYJKoZIhvcNAQkB
+FhhpbmZvQG9iamVjdGNvbXB1dGluZy5jb20wggEiMA0GCSqGSIb3DQEBAQUAA4IB
+DwAwggEKAoIBAQCi1uEP73eVQmBY4Ui70dpYtGa+bDrKVVb3dMK+9lbEXEx4GWCU
+zNqfApgWjplz9Ahc5O3Lfpmc+OCsWXrM6Kn00AccN89gWrRbvEXq9mel8hhAQH1g
+W6kkChtWBCrAlaPB5GWVrULmfErUeQ8EnRMzio+hRvj0/rNF1wj0lrI0Ogf3Wv2J
+wAViKXH0rkef8w8eRtj9DNbQWMd4400S9+ksbsv/W2rpsj0bYCf1vqiDMMrGwPmx
+cceR/es4BiET6401tRxp5pDxMOyDB5+zvixR5Axw5rqQ4oBwC2be1c+ysp22gGSV
+62tm+0iGRmyPVadM6c2k7zo+mdxC0DRlpigJAgMBAAEwDQYJKoZIhvcNAQELBQAD
+ggEBAAqxE47/VCaMxaWEyhLVItQC8I4TzD7JV8hVoy3gsCp7PR6EWomsvyCe9Frn
+IOHAJwIX1Eil7x6BacRrvTD4Gk7IXMuevOdIXRRpNUVdtQEBrgSwRavZcEBcs213
+W/wbQrJuk1FQaLcWqRiR1b0yP73JmbSxtuvgXqdTKnav9SUOGtbhPEcLo9OpHUia
+tLIBr7RbBrOcaedy39SOJT+VgD7v6vCNtJmKUkJI0fOXvnM0EfyeRXEZ5xZtDE/X
+xTIEN60Hd9iOlPl1XH5ZfEPhT9BVZ1ifmcbKxiEGsVLzPYV7Dpai+K2QzuH2Yf/9
+EQvK7P1fKgD1RsdqTyPXQGMRFN8xggLcMIIC2AIBATCByTCBuzELMAkGA1UEBhMC
+VVMxCzAJBgNVBAgMAk1PMRQwEgYDVQQHDAtTYWludCBMb3VpczEvMC0GA1UECgwm
+T2JqZWN0IENvbXB1dGluZyAoVGVzdCBQZXJtaXNzaW9ucyBDQSkxLzAtBgNVBAMM
+Jk9iamVjdCBDb21wdXRpbmcgKFRlc3QgUGVybWlzc2lvbnMgQ0EpMScwJQYJKoZI
+hvcNAQkBFhhpbmZvQG9iamVjdGNvbXB1dGluZy5jb20CCQD3ogFEETe8cjANBglg
+hkgBZQMEAgEFAKCB5DAYBgkqhkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3
+DQEJBTEPFw0xOTAzMTMyMjQ2MjNaMC8GCSqGSIb3DQEJBDEiBCAPvO4UbBFbhl4S
+OeSeh8r6JjnVzmjMRZ0UY82Sj+fPPzB5BgkqhkiG9w0BCQ8xbDBqMAsGCWCGSAFl
+AwQBKjALBglghkgBZQMEARYwCwYJYIZIAWUDBAECMAoGCCqGSIb3DQMHMA4GCCqG
+SIb3DQMCAgIAgDANBggqhkiG9w0DAgIBQDAHBgUrDgMCBzANBggqhkiG9w0DAgIB
+KDANBgkqhkiG9w0BAQEFAASCAQAbU4wdISKq2LF1K126uhYCicl1bfx+4MP1PcWF
+7/Bw0bJOUzXqGW8DzQqblQyx8rcM8Gp70fKxDfaj8cqBfm4nh23dcTrofYq7ku5a
+cmWD4/TBY0zYQLJLSbQAwYwVugSswK2zfCpJsryzeXNb/sc6ExChIdH73YEf0ywU
+jz2qGZ4i92TBEL+JJ8Fs+A8hHO5MsRXXEXwBlwrniwBufk5oT3U6XTZuxtyNDaIC
+zk26Sb41XWMqDeUuyky8/gKcSadnq/nQiEkUcNNwArGloFj+ntVB0guoXDyaqb0P
+fBrOmuHUzOmDXNAo/w0NjRKwqQmkpSDxoCsIB1HVKhbs2OmW
+
+------04FA502D6230458FEA083AA836D2E6F3--
+
