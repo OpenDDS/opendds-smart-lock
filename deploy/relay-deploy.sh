@@ -1,17 +1,21 @@
 #!/bin/bash
+#
+#   Deploy coturn and OpenDDS relay to Debian server. This script must be run
+#   with elevated permissions.
+#
 
-sudo apt-get update -y
+apt-get update -y
 
 install_coturn() {
-    sudo apt-get install -y coturn
-    sudo sed -i -e 's/#TURNSERVER_ENABLED/TURNSERVER_ENABLED/g' /etc/default/coturn
+     apt-get install -y coturn
+     sed -i -e 's/#TURNSERVER_ENABLED/TURNSERVER_ENABLED/g' /etc/default/coturn
 }
 
 install_docker() {
     # See https://docs.docker.com/install/linux/docker-ce/debian/
 
     # Allow apt to use repositories over HTTPS
-    sudo apt-get install -y \
+    apt-get install -y \
         apt-transport-https \
         ca-certificates \
         curl \
@@ -19,19 +23,19 @@ install_docker() {
         software-properties-common
 
     # Add Docker's official GPG key
-    curl -fsSL https://download.docker.com/linux/debian/gpg | sudo apt-key add -
+    curl -fsSL https://download.docker.com/linux/debian/gpg | apt-key add -
 
     # Add the stable docker repo
-    sudo add-apt-repository \
+    add-apt-repository \
             "deb [arch=amd64] https://download.docker.com/linux/debian \
             $(lsb_release -cs) \
             stable"
     
     # Refresh repo and install docker community edition
-    sudo apt-get update -y && sudo apt-get install -y docker-ce
+    apt-get update -y && apt-get install -y docker-ce
 
     # Add user to docker group
-    sudo usermod -aG docker $USER
+    usermod -aG docker $USER
 }
 
 make_relay_image() {
@@ -64,5 +68,5 @@ install_docker
 make_relay_image
 make_relay_service
 
-sudo systemctl restart coturn
-sudo systemctl start rtps-relay
+systemctl restart coturn
+systemctl start rtps-relay

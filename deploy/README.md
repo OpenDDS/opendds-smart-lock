@@ -9,9 +9,10 @@ instance (see below) in order to bootstrap the base Debian packages.
 
 ### Add firewall rules to allow relay traffic
 
+Prior to running the commands below, make sure the current project is 
+
 ```bash
-GCP_PROJECT=opendds-smartlock
-gcloud compute --project="$GCP_PROJECT" firewall-rules create rtps-relay \
+gcloud compute firewall-rules create rtps-relay \
     --direction=INGRESS --priority=1000 --network=default \
     --action=ALLOW --rules=tcp:3478-3479,udp:3478-3479,udp:4444-4446 \
     --source-ranges=0.0.0.0/0 --target-tags=rtps-relay
@@ -25,7 +26,6 @@ gcloud compute instances create relay-01 \
     --image-project=debian-cloud --boot-disk-size=10GB \
     --boot-disk-type=pd-standard --boot-disk-device-name=relay-01 \
     --tags=rtps-relay
-
 ```
 
 ### Copy and run the deployment script
@@ -34,28 +34,8 @@ gcloud compute instances create relay-01 \
 gcloud compute scp ./relay-deploy.sh relay-01:
 ```
 
-### Bootstrap the machine
+### Bootstrap the machine and run the relay
 
 ```bash
-gcloud compute ssh relay-01
-./relay-deploy.sh install-docker
-
-# Then exit and relogin to receive new docker group
-exit
-gcloud compute ssh relay-01
-./relay-deploy.sh make-relay-image
-```
-
-### Run the relay
-
-This will run the relay in the background.
-
-```bash
-./relay-deploy.sh run
-```
-
-### Query the relay logs
-
-```bash
-./relay-deploy.sh logs
+gcloud compute ssh relay-01 --command='sudo bash $HOME/relay-deploy.sh'
 ```
