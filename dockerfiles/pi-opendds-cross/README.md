@@ -50,17 +50,37 @@ PI_IP=xxx.xxx.xxx.xxx
 ```bash
 cd /home/pi
 tar -cvzf smartlock.tar.gz smartlock
-scp smartlock.tar.gz pi-opendds.tar.gz pi-openssl.tar.gz pi-xerces.tar.gz pi@${PI_IP}:
+scp smartlock.tar.gz pi-opendds.tar.gz pi-openssl.tar.gz pi-xerces.tar.gz ${PI_IP}:
 ```
 
 For quicker development turnover consider copying the dependencies as usual and then use `rsync` instead of a tarball for the SmartLock app.
 
 ```bash
-rsync -avz -e "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" /home/pi/smartlock pi@${PI_IP}:
+rsync -avz -e "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" /home/pi/smartlock {PI_IP}:
 ```
 
 ### Set up and run the smartlock service
 
+Copy the included service file and then SSH into the Raspberry Pi to install it.
+
+_Note: if security is desired, append the --security flag to the ExecStart command in the smartlock.service file prior to following these next steps_
+
 ```bash
-# TODO
+ssh ${PI_IP}
+sudo cp /home/pi/smartlock/systemd/smartlock.service /etc/systemd/system/smartlock.service
+sudo chmod 0644 /etc/systemd/system/smartlock.service
+sudo systemctl daemon-reload
+sudo systemctl enable smartlock
+```
+
+Create a _lock id_ file to identify this lock on the network.
+
+```bash
+echo "lock2" > /home/pi/smartlock.id
+```
+
+Then run the service if desired.
+
+```bash
+sudo systemctl start smartlock
 ```
