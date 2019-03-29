@@ -1,0 +1,21 @@
+project: dcps_java {
+  includes += ../../src/Idl
+  idlflags += -Sa -St -I../../src/Idl
+  idl2jniflags += -I../../src/Idl
+
+  specific {
+    jarname = SmartLock_Idl
+  }
+
+  TypeSupport_Files {
+    ../../src/Idl/SmartLock.idl
+  }
+
+  Idl2Jni_Files {
+    ../../src/Idl/SmartLock.idl
+  }
+
+  Idl_Files {
+    ../../src/Idl/SmartLock.idl
+  }
+}
