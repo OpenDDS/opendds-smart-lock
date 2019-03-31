@@ -110,4 +110,4 @@ RUN cd wiringPi/wiringPi && \
 
 ENV WIRING_PI ${BUILD_ROOT}/wiringPi/wiringPi
 
-CMD ["bash"]
+CMD ["/bin/bash"]
