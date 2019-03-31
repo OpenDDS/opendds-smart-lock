@@ -1,4 +1,12 @@
+**/*TypeSupport*
+**/.obj
+**/.depend*
+**/*.so*
+**/GNUmakefile*
+classes
+SmartLock
 SmartLockC*
 SmartLockJ*
 SmartLockS*
-*.jar
+**/*.jar
+GNUmakefile*

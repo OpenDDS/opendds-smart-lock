@@ -21,7 +21,7 @@ For example, launch the container from the SmartLock repository root directory
 on the host system:
 
 ```bash
-docker run --rm -ti -v "$PWD":/home/pi/smartlock android-opendds
+docker run --rm -ti -v "$PWD":/home/droid/smartlock android-opendds
 ```
 
 Inside the container build the app using the OpenDDS framework:
@@ -30,8 +30,8 @@ Inside the container build the app using the OpenDDS framework:
 APP_MPC_NAME=SmartLock_Idl_Java
 APP_NAME=SmartLock
 DDS_ROOT=/home/droid/droid-opendds
-source /home/droid/droid-opendds/build/target/setenv.sh
-cd /home/droid/smartlock/android/Idl
+source $DDS_ROOT/build/target/setenv.sh
+cd $HOME/smartlock/android/Idl
 mwc.pl -type gnuace
 make -f GNUmakefile.${APP_MPC_NAME} ${APP_NAME}TypeSupportJC.h && \
         make && \
@@ -44,11 +44,15 @@ make -f GNUmakefile.${APP_MPC_NAME} ${APP_NAME}TypeSupportJC.h && \
           -classpath $DDS_ROOT/lib/i2jrt.jar \
           -classpath $DDS_ROOT/lib/OpenDDS_DCPS.jar \
           ${APP_NAME}/*;
-make
 ```
 
-### Copy dependencies into Android Studio project
+### Copy dependencies into Android Studio and launch
 
 ```bash
-#TODO
+cp $HOME/libs/*.jar $HOME/smartlock/android/Idl/*.jar $HOME/smartlock/android/SmartLock/app/libs
+mkdir $HOME/smartlock/android/SmartLock/app/native_libs/arm64-v8a
+cp $HOME/libs/*.so $HOME/smartlock/android/Idl/*.so $HOME/smartlock/android/SmartLock/app/native_libs/arm64-v8a
 ```
+
+On the host system, launch Android Studio and open the SmartLock project within
+android/SmartLock.
