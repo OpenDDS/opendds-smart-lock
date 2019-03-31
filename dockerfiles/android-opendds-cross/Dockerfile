@@ -95,6 +95,8 @@ RUN ["/bin/bash", "-c", \
   "cd droid-opendds/build/target && \
     source setenv.sh && make -j${OPENDDS_MAKE_JOBS}"]
 
+RUN mkdir /home/droid/libs
+
 # Copy dependencies into libs folder.
 ENV RUNTIME_LIBS=/home/droid/ndk-toolchain/sysroot/usr/lib/aarch64-linux-android \
   XERCES_LIBS=/home/droid/droid-xerces/lib \
