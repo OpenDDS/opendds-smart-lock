@@ -1,0 +1,481 @@
+#!/usr/bin/env bash
+
+set -eufo pipefail
+IFS=$'\n\t'
+
+declare -r _SMART_LOCK_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+
+declare -r command="$0"
+
+declare -i arg_idx=0
+declare -ra args=( "$@" )
+
+function end-of-input? {
+    [[ ${arg_idx} == ${#args[@]} ]]
+}
+
+function peek {
+    if end-of-input?; then
+        echo '#END#'
+        return
+    fi
+
+    # When peeking at the completion word, return a special token.
+    if [[ $((${arg_idx}+1)) == "${COMP_CWORD:-}" ]]; then
+        echo '#COMPLETION#'
+        return
+    fi
+
+    echo "${args+${args[${arg_idx}]:-}}"
+}
+
+function consume {
+    if end-of-input?; then
+        return
+    fi
+    ((arg_idx++))
+    true
+}
+
+function command-prefix {
+    echo "${command} ${args+${args[@]:0:${arg_idx}}}"
+}
+
+function expected {
+    if [[ $((${arg_idx}+1)) == "${COMP_CWORD:-}" ]]; then
+        # Completion.
+        for x in "$@"; do
+            echo "${x}"
+        done | grep "^${args[$((${arg_idx}))]}"
+        exit
+    fi
+
+    if [[ "$(peek)" == 'help' ]]; then
+        echo "${_help_message}"
+        exit
+    fi
+
+    {
+        local -ra before=("${command}" "${args+${args[@]:0:${arg_idx}}}")
+        local -ra after=("${args+${args[@]:${arg_idx}}}")
+        echo "${before+${before[@]}} . ${after+${after[@]}}"
+        echo "Expected:"
+        for x in "$@"; do
+            echo "  ${x}"
+        done
+    } >&2
+    exit 1
+}
+
+function expected-keywords {
+    expected "$@" help
+}
+
+function match-keyword {
+    if end-of-input? || [[ "$(peek)" != "$1" ]]; then
+        expected-keywords "$1"
+    fi
+    consume
+}
+
+function expected-file {
+    if [[ $((${arg_idx}+1)) == "${COMP_CWORD:-}" ]]; then
+        # Completion.
+        compgen -f "${args[$((${arg_idx}))]}"
+        exit
+    fi
+
+    {
+        echo "${command} ${args+${args[@]:0:${arg_idx}}} . ${args+${args[@]:${arg_idx}}}"
+        echo "Expected:"
+        echo "  PATH"
+    } >&2
+    exit 1
+}
+
+function expected-end-of-input {
+    local -r token="$(peek)"
+    case "${token}" in
+        '#COMPLETION#')
+            # Offer help if completing at the end.
+            echo help
+            exit
+            ;;
+        '#END#')
+            # Great.
+            return
+            ;;
+        'help')
+            if [ -z "${COMP_CWORD:-}" ]; then
+                echo "${_help_message}"
+            fi
+            exit
+            ;;
+        *)
+            {
+                echo "${command} ${args+${args[@]:0:${arg_idx}}} . ${args+${args[@]:${arg_idx}}}"
+                echo "Expected:"
+                echo "  (end of arguments)"
+            } >&2
+            exit 1
+    esac
+}
+
+declare _help_message=
+function set-help {
+    _help_message="$1"
+}
+
+declare _no_config=yes
+declare config_path
+
+function config {
+    match-keyword 'config'
+
+    unset _no_config
+
+    config_path="$(peek)"
+    case "${config_path}" in
+        '#COMPLETION#')
+            expected-file
+            ;;
+        '#END#')
+            expected-file
+            ;;
+    esac
+    consume
+}
+
+function load-config {
+    if [[ "${_no_config:-}" == yes ]]; then
+        if [ -r 'smart-lock-conf.sh' ]; then
+            echo "Loading config from smart-lock-conf.sh"
+            source smart-lock-conf.sh
+        else
+            echo "No config"
+        fi
+        return
+    fi
+
+    echo "Loading config from ${config_path}"
+    source "${config_path}"
+}
+
+declare pi_name
+
+function to-pi {
+    pi_name="$(peek)"
+    case "${pi_name}" in
+        '#COMPLETION#')
+            load-config >/dev/null 2>&1
+            expected "${PI_NAMES[@]}"
+            ;;
+        '#END#')
+            expected 'NAME'
+            ;;
+    esac
+    consume
+}
+
+function pi-build-toolchain {
+    match-keyword 'build-toolchain'
+    expected-end-of-input
+
+    docker build "${_SMART_LOCK_DIR}/dockerfiles/pi-opendds-cross" -f "${_SMART_LOCK_DIR}/dockerfiles/pi-opendds-cross/Dockerfile" -t pi-opendds-cross
+}
+
+function pi-clean-toolchain {
+    match-keyword 'clean-toolchain'
+    expected-end-of-input
+
+    docker rmi pi-opendds-cross
+}
+
+function pi-install-dependencies {
+    match-keyword 'install-dependencies'
+    to-pi
+    expected-end-of-input
+
+    load-config
+    local -r ip_var="${pi_name}_ip"
+
+    # Copy the dependencies out of the docker image.
+    mkdir -p "${_SMART_LOCK_DIR}/libs"
+    docker run --rm -ti -v "${_SMART_LOCK_DIR}/libs:/home/pi/libs" -w "/home/pi" pi-opendds-cross bash -c "cp pi-opendds.tar.gz pi-openssl.tar.gz pi-xerces.tar.gz libs"
+    # Copy them to the pi.
+    scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "${_SMART_LOCK_DIR}/libs/pi-opendds.tar.gz" "${_SMART_LOCK_DIR}/libs/pi-openssl.tar.gz" "${_SMART_LOCK_DIR}/libs/pi-xerces.tar.gz" "pi@${!ip_var}:"
+    # Unzip them.
+    ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "pi@${!ip_var}" 'tar xzf pi-opendds.tar.gz; tar xzf pi-openssl.tar.gz; tar xzf pi-xerces.tar.gz'
+}
+
+function pi-compile {
+    match-keyword 'compile'
+    expected-end-of-input
+
+    docker run --rm -ti -v "${_SMART_LOCK_DIR}/src:/home/pi/smartlock" -w "/home/pi/smartlock" pi-opendds-cross bash -c "source /home/pi/pi-opendds/build/target/setenv.sh; mwc.pl -type gnuace -features 'no_wiring_pi=0'; make"
+}
+
+function pi-install {
+    match-keyword 'install'
+    to-pi
+    expected-end-of-input
+
+    load-config
+    local -r ip_var="${pi_name}_ip"
+    local -r lock_id_var="${pi_name}_lock_id"
+    rsync -avz -e 'ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null' "${_SMART_LOCK_DIR}/src/" "pi@${!ip_var}:~/smartlock"
+    ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "pi@${!ip_var}" "sudo cp /home/pi/smartlock/systemd/smartlock.service /etc/systemd/system/smartlock.service; sudo chmod 0644 /etc/systemd/system/smartlock.service; sudo systemctl daemon-reload; sudo systemctl enable smartlock; echo '${!lock_id_var}' > /home/pi/smartlock.id"
+}
+
+function pi-start {
+    match-keyword 'start'
+    to-pi
+    expected-end-of-input
+
+    load-config
+    local -r ip_var="${pi_name}_ip"
+    ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "pi@${!ip_var}" 'sudo systemctl start smartlock'
+ }
+
+function pi-stop {
+    match-keyword 'stop'
+    to-pi
+    expected-end-of-input
+
+    load-config
+    local -r ip_var="${pi_name}_ip"
+    ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "pi@${!ip_var}" 'sudo systemctl stop smartlock'
+}
+
+function pi-status {
+    match-keyword 'status'
+    to-pi
+    expected-end-of-input
+
+    load-config
+    local -r ip_var="${pi_name}_ip"
+    ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "pi@${!ip_var}" 'sudo systemctl status smartlock'
+}
+
+function pi-restart {
+    match-keyword 'restart'
+    to-pi
+    expected-end-of-input
+
+    load-config
+    local -r ip_var="${pi_name}_ip"
+    ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "pi@${!ip_var}" 'sudo systemctl restart smartlock'
+}
+
+function pi-logs {
+    match-keyword 'logs'
+    to-pi
+    declare follow=
+    local -r token="$(peek)"
+    case "${token}" in
+        follow)
+            match-keyword 'follow'
+            follow='-f'
+            ;;
+        '#COMPLETION#')
+            expected-keywords 'follow'
+            ;;
+        '#END#')
+            # Okay.
+            ;;
+    esac
+    expected-end-of-input
+
+    load-config
+    local -r ip_var="${pi_name}_ip"
+    ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "pi@${!ip_var}" "sudo journalctl ${follow} -u smartlock"
+}
+
+function pi-ssh {
+    match-keyword 'ssh'
+    to-pi
+    expected-end-of-input
+
+    load-config
+    local -r ip_var="${pi_name}_ip"
+    ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "pi@${!ip_var}"
+}
+
+function pi-copy-public-key {
+    match-keyword 'copy-public-key'
+    to-pi
+    local -r path="$(peek)"
+    case "${path}" in
+        '#COMPLETION#')
+            expected-file
+            ;;
+        '#END#')
+            expected-file
+            ;;
+    esac
+    consume
+    expected-end-of-input
+
+    local -r key=$(cat "${path}")
+
+    load-config
+    local -r ip_var="${pi_name}_ip"
+
+    ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "pi@${!ip_var}" "if ! [ -e /home/pi/.ssh/authorized_keys ] || ! grep -q '${key}' /home/pi/.ssh/authorized_keys; then echo '${key}' >> /home/pi/.ssh/authorized_keys; chmod 400 /home/pi/.ssh/authorized_keys; fi"
+}
+
+function pi {
+    match-keyword 'pi'
+    local -r h=$(cat <<EOF
+$(command-prefix) - Development tool for Raspberry Pis in the SmartLock Demo
+
+Usage: $(command-prefix) COMMAND [OPTION ...]
+
+Commands:
+        build-toolchain                 Build a Docker image containing a cross-compiler and cross-compiled dependencies
+        clean-toolchain                 Remove the Docker image containing a cross-compiler and cross-compiled dependencies
+        compile                         Cross-compile the SmartLock Demo application
+        install-dependencies NAME       Copy all dependencies to NAME
+        install NAME                    Copy the compiled SmartLock Demo application to NAME
+        start NAME                      Start the SmartLock Demo application on NAME
+        stop NAME                       Stop the SmartLock Demo application on NAME
+        status NAME                     Show the status of the SmartLock Demo application on NAME
+        restart NAME                    Restart the SmartLock the Demo application on NAME
+        ssh NAME                        ssh into NAME
+        logs NAME [follow]              Show the logs for NAME
+        copy-public-key PATH            Copy a public key to NAME
+        help                            Print this help
+EOF
+                 )
+    set-help "${h}"
+    set-help ''
+
+    local -r token="$(peek)"
+    case "${token}" in
+        build-toolchain)
+            pi-build-toolchain
+            ;;
+        clean-toolchain)
+            pi-clean-toolchain
+            ;;
+        compile)
+            pi-compile
+            ;;
+        install-dependencies)
+            pi-install-dependencies
+            ;;
+        install)
+            pi-install
+            ;;
+        start)
+            pi-start
+            ;;
+        stop)
+            pi-stop
+            ;;
+        status)
+            pi-status
+            ;;
+        restart)
+            pi-restart
+            ;;
+        ssh)
+            pi-ssh
+            ;;
+        logs)
+            pi-logs
+            ;;
+        copy-public-key)
+            pi-copy-public-key
+            ;;
+        *)
+            expected-keywords build-toolchain clean-toolchain compile install-dependencies install start stop status restart ssh logs copy-public-key
+            ;;
+    esac
+}
+
+function android-build-toolchain {
+    match-keyword 'build-toolchain'
+    expected-end-of-input
+
+    docker build "${_SMART_LOCK_DIR}/dockerfiles/android-opendds-cross" -f "${_SMART_LOCK_DIR}/dockerfiles/android-opendds-cross/Dockerfile" -t android-opendds-cross
+}
+
+function android {
+    match-keyword 'android'
+    local -r h=$(cat <<EOF
+$(command-prefix) - Development tool for Android in the SmartLock Demo
+
+Usage: $(command-prefix) COMMAND [OPTION ...]
+
+Commands:
+        build-toolchain         Build a Docker image containing a cross-compiler and cross-compiled dependencies
+        help                    Print this help
+EOF
+                 )
+    set-help "${h}"
+
+    local -r token="$(peek)"
+    case "${token}" in
+        build-toolchain)
+            android-build-toolchain
+            ;;
+        *)
+            expected-keywords build-toolchain
+            ;;
+    esac
+}
+
+function top-level-command {
+    local -r h=$(cat <<EOF
+$(command-prefix) - Development tool for the SmartLock Demo
+
+Usage: $(command-prefix) [OPTION...] COMMAND ...
+
+Options:
+        config PATH     Set the configuration file
+
+Commands:
+        pi              Work with the Raspberry Pi
+        android         Work with the Android
+        help            Print this help
+EOF
+                   )
+    set-help "${h}"
+    local -r token="$(peek)"
+    case "${token}" in
+        config)
+            config
+            ;;
+        pi)
+            pi
+            return
+            ;;
+        android)
+            android
+            return
+            ;;
+        *)
+            expected-keywords ${_no_config+config} pi android
+            ;;
+    esac
+
+    top-level-command
+}
+
+
+function top {
+    top-level-command
+    expected-end-of-input
+}
+
+top
+
+
+# 1. Tab completion should work.
+#    a) should offer 'help' after every keyword
+#    b) should offer 'help' at the end
+# 2. Command line errors should be reported showing where the error is and what was expected.
+# 3. A longer help blurb should be allowed
+#    a) anywhere a keyword is allowed
+#    b) at the end of the line

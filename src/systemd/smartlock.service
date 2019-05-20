@@ -4,11 +4,9 @@ Description=OpenDDS SmartLock
 After=network.target
 
 [Service]
-Type=forking
+Type=simple
 User=pi
-ExecStart=/home/pi/smartlock/smartlock.sh start
-ExecStop=/home/pi/smartlock/smartlock.sh stop
-PIDFile=/home/pi/smartlock.pid
+ExecStart=/home/pi/smartlock/smartlock.sh start-system
 
 [Install]
 WantedBy=multi-user.target
