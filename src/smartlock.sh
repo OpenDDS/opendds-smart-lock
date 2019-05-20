@@ -2,10 +2,11 @@
 #
 # Usage: ./smartlock.sh lock1
 
-source /home/pi/pi-opendds/build/target/setenv.sh
+LD_LIBRARY_PATH+="${LD_LIBRARY_PATH+:}/home/pi/pi-opendds/build/target/ACE_TAO/ACE/lib"
+LD_LIBRARY_PATH+=":/home/pi/pi-opendds/build/target/lib"
 LD_LIBRARY_PATH+=":/home/pi/pi-openssl/usr/local/lib"
 LD_LIBRARY_PATH+=":/home/pi/pi-xerces/lib"
-LD_LIBRARY_PATH+=":/home/pi/SmartLock/Idl"
+LD_LIBRARY_PATH+=":/home/pi/smartlock/Idl"
 cert_dir=/home/pi/certs
 
 SECURITY=0
@@ -18,7 +19,7 @@ while (( $# > 0 )); do
             shift
             ;;
         -h|--help)
-            echo "Usage: smartlock.sh [--security] [--lock LOCK_ID] start | stop | restart"
+            echo "Usage: smartlock.sh [--security] [--lock LOCK_ID] start | stop | restart | start-system"
             exit
             ;;
         --lock)
@@ -35,6 +36,10 @@ while (( $# > 0 )); do
             ;;
         restart)
             CMD=restart
+            shift
+            ;;
+        start-system)
+            CMD=start-system
             shift
             ;;
         *)
@@ -69,8 +74,8 @@ echo "CMD: '$CMD', SECURITY: '$SECURITY', LOCK_ID: '$LOCK', SECURITY_ARGS: '$SEC
 
 PID_FILE=/home/pi/smartlock.pid
 start() {
-    /home/pi/SmartLock/smartlock \
-        -DCPSConfigFile /home/pi/SmartLock/rtps.ini \
+    /home/pi/smartlock/smartlock \
+        -DCPSConfigFile /home/pi/smartlock/rtps.ini \
         -DCPSDebugLevel 5 \
         -DCPSTransportDebugLevel 5 \
         -lock ${LOCK} \
@@ -87,6 +92,17 @@ stop() {
     fi
 }
 
+start-system() {
+    export LD_LIBRARY_PATH
+    exec /home/pi/smartlock/smartlock \
+        -DCPSConfigFile /home/pi/smartlock/rtps.ini \
+        -DCPSDebugLevel 5 \
+        -DCPSTransportDebugLevel 5 \
+        -lock ${LOCK} \
+        -groups house1 \
+        ${SECURITY_ARGS}
+}
+
 case "$CMD" in
     start)
         start
@@ -97,6 +113,9 @@ case "$CMD" in
     restart)
         stop
         start
+        ;;
+    start-system)
+        start-system
         ;;
     *)
         echo "ERROR: invalid command '$CMD'"

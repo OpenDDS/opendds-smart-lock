@@ -1,0 +1,9 @@
+#!/bin/bash
+
+PI_NAMES=(pi_1 pi_2)
+
+pi_1_ip=1.2.3.4
+pi_1_lock_id='lock1'
+
+pi_2_ip=172.16.10.65
+pi_2_lock_id='lock2'

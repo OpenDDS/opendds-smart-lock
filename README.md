@@ -1,7 +1,7 @@
 
-## OpenDDS-Based SmartLock demo
+# OpenDDS-Based SmartLock demo
 
-### About
+## About
 
 The sources in this folder showcase OpenDDS P2P features using ICE/Stun and the RTPS Relay with a demo SmartLock application.
 
@@ -15,8 +15,45 @@ Some notes on the directory structure:
 * _dockerfiles_: Build environments for Android and Raspberry Pi.
 * _src_: Source files for SmartLock application on Raspberry Pi and the core IDL files used by Android as well.
 
-### Plugging in the pins
+## Plugging in the pins
 
 On the Raspberry Pi, the smart lock app uses the below (highlighted in yellow) traffic light pin assignments. Simply plug in the light so that the first pin is the 19th pin and the lights are facing outside of the case (away from the circuit board). The yellow box below shows which ones. Additionally, on the traffic light board it shows which lights are expected in GPIO pin 10, 9, 11, GND (actual pins 19, 21, 23, 25) in the order to match them up if needed.
 
 ![Raspberry Pi Pin assignments](docs/pi-traffic-light-pins.png)
+
+## Getting Started
+
+The `smart-lock` script contains a number of commands for building and deploying.
+
+1. Create a `smart-lock-conf.sh` file.  `smart-lock-conf.sh.template` may be used as a template.
+   This file defines the name, IP address, and lock id for the Raspberry Pis.
+
+2. Enable tab completion.
+
+    source smart-lock.inc
+
+3. `./smart-lock [TAB][TAB]` to show the various commands.
+
+    `./smart-lock help` to show the usage.
+
+## Typical Use for Raspberry Pi
+
+1. Build the cross-compiler and dependencies
+
+        smart-lock pi build-toolchain
+
+2. Install the dependencies
+
+        smart-lock pi install-dependencies pi_1
+
+3. Compile the SmartLock Demo application
+
+        smart-lock pi compile
+
+4. Install the SmartLock Demo application
+
+        smart-lock pi install pi_1
+
+5. Check the status of the SmartLock Demo application
+
+        smart-lock pi status pi_1

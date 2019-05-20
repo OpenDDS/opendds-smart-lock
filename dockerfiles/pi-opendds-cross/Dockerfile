@@ -86,20 +86,7 @@ RUN cd pi-opendds && \
 
 RUN tar cvzf pi-openssl.tar.gz pi-openssl
 RUN tar cvzf pi-xerces.tar.gz pi-xerces
-RUN tar -cvz --exclude='.obj*' \
-            --exclude='.shobj*' \
-            --exclude='.depend*' \
-            --exclude='tests' \
-            --exclude='build/host' \
-            --exclude='.git' -f pi-opendds.tar.gz pi-opendds
-
-# Allow SSH to RPi from this image simply by copying the generated
-# id_rsa.pub into the RPi authorized_keys file.
-# WARNING! this is not secure if the image is stored in docker hub or
-# anywhere public (the private keys are baked into the image); it should only be
-# used for development purposes.
-RUN ssh-keygen -f ~/.ssh/id_rsa -q -P "" && \
-  printf "Public Key: '$(cat ~/.ssh/id_rsa.pub)'\n"
+RUN tar cvzhf pi-opendds.tar.gz pi-opendds/build/target/ACE_TAO/ACE/lib pi-opendds/build/target/lib
 
 RUN git clone git://git.drogon.net/wiringPi
 RUN cd wiringPi/wiringPi && \
