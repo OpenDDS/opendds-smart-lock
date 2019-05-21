@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <bool name="init_opendds">true</bool>
-    <bool name="secure_opendds">true</bool>
+    <bool name="secure_opendds">false</bool>
     <bool name="add_fake_locks">false</bool>
     <string-array name="locks">
         <item>lock1</item>

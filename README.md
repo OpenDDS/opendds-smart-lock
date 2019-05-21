@@ -27,6 +27,7 @@ The `smart-lock` script contains a number of commands for building and deploying
 
 1. Create a `smart-lock-conf.sh` file.  `smart-lock-conf.sh.template` may be used as a template.
    This file defines the name, IP address, and lock id for the Raspberry Pis.
+   If you want to work with the Android, you must download the Android SDK, accept the licenses, and set `ANDROID_HOME` variable.
 
 2. Enable tab completion.
 
@@ -54,6 +55,36 @@ The `smart-lock` script contains a number of commands for building and deploying
 
         smart-lock pi install pi_1
 
-5. Check the status of the SmartLock Demo application
+5. Restart the SmartLock Demo application
+
+        smart-lock pi restart pi_1
+
+6. Check the status of the SmartLock Demo application
 
         smart-lock pi status pi_1
+
+## Typical Use for Android
+
+1. Build the cross-compiler and dependencies
+
+        smart-lock android build-toolchain
+
+2. Compile the SmartLock Demo application
+
+        smart-lock android compile
+
+3. Install the SmartLock Demo application
+
+        smart-lock android install
+
+4. Start the SmartLock Demo application
+
+        smart-lock android start
+
+5. Check the logs for the SmartLock Demo application
+
+        smart-lock android logs
+
+6. Stop the SmartLock Demo application
+
+        smart-lock android stop

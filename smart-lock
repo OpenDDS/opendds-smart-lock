@@ -401,6 +401,110 @@ function android-build-toolchain {
     docker build "${_SMART_LOCK_DIR}/dockerfiles/android-opendds-cross" -f "${_SMART_LOCK_DIR}/dockerfiles/android-opendds-cross/Dockerfile" -t android-opendds-cross
 }
 
+function android-clean-toolchain {
+    match-keyword 'clean-toolchain'
+    expected-end-of-input
+
+    docker rmi android-opendds-cross
+}
+
+function android-compile {
+    match-keyword 'compile'
+    expected-end-of-input
+
+    docker run --rm -ti -v "${_SMART_LOCK_DIR}:/home/droid/smartlock" -w '/home/droid' android-opendds-cross bash -c '
+APP_MPC_NAME=SmartLock_Idl_Java;
+APP_NAME=SmartLock;
+DDS_ROOT=/home/droid/droid-opendds;
+source $DDS_ROOT/build/target/setenv.sh;
+cd $HOME/smartlock/android/Idl;
+mwc.pl -type gnuace;
+make -f GNUmakefile.${APP_MPC_NAME} ${APP_NAME}TypeSupportJC.h && \
+        make && \
+        $DDS_ROOT/java/build_scripts/javac_wrapper.pl \
+          -sourcepath . \
+          -d classes \
+          -classpath . \
+          -implicit:none \
+          -classpath $DDS_ROOT/lib/i2jrt_compact.jar \
+          -classpath $DDS_ROOT/lib/i2jrt.jar \
+          -classpath $DDS_ROOT/lib/OpenDDS_DCPS.jar \
+          ${APP_NAME}/*;
+cp $HOME/libs/*.jar $HOME/smartlock/android/Idl/*.jar $HOME/smartlock/android/SmartLock/app/libs;
+mkdir -p $HOME/smartlock/android/SmartLock/app/native_libs/arm64-v8a;
+cp $HOME/libs/*.so $HOME/smartlock/android/Idl/*.so $HOME/smartlock/android/SmartLock/app/native_libs/arm64-v8a;'
+
+    (
+        load-config
+        cd "${_SMART_LOCK_DIR}/android/SmartLock"
+        ./gradlew assemble
+    )
+}
+
+function android-install {
+    match-keyword 'install'
+    expected-end-of-input
+
+    (
+        load-config
+        cd "${_SMART_LOCK_DIR}/android/SmartLock"
+        "${ANDROID_HOME}/platform-tools/adb" -r -d install ./app/build/outputs/apk/debug/app-debug.apk
+    )
+}
+
+function android-ssh {
+    match-keyword 'ssh'
+    expected-end-of-input
+
+    load-config
+    "${ANDROID_HOME}/platform-tools/adb" shell
+}
+
+function android-start {
+    match-keyword 'start'
+    expected-end-of-input
+
+    load-config
+    "${ANDROID_HOME}/platform-tools/adb" shell am start -n org.opendds.smartlock/org.opendds.smartlock.MainActivity
+}
+
+function android-stop {
+    match-keyword 'stop'
+    expected-end-of-input
+
+    load-config
+    "${ANDROID_HOME}/platform-tools/adb" shell am force-stop org.opendds.smartlock
+}
+
+function android-logs {
+    local dump_flags='-d'
+
+    match-keyword 'logs'
+    local -r token="$(peek)"
+    case "${token}" in
+        follow)
+            match-keyword 'follow'
+            dump_flags=''
+            ;;
+        '#COMPLETION#')
+            expected-keywords 'follow'
+            ;;
+        '#END#')
+            # Okay.
+            ;;
+    esac
+    expected-end-of-input
+
+    load-config
+    local -r pid=$("${ANDROID_HOME}/platform-tools/adb" shell 'ps -A -o PID,ARGS | grep smartlock | grep -v grep' | awk '{print $1}')
+    if [[ -z ${pid} ]]; then
+        echo "Smartlock Demo application is not running" >&2
+        return 1
+    fi
+    "${ANDROID_HOME}/platform-tools/adb" logcat --pid="${pid}" "${dump_flags}"
+}
+
+
 function android {
     match-keyword 'android'
     local -r h=$(cat <<EOF
@@ -410,6 +514,13 @@ Usage: $(command-prefix) COMMAND [OPTION ...]
 
 Commands:
         build-toolchain         Build a Docker image containing a cross-compiler and cross-compiled dependencies
+        clean-toolchain         Remove the Docker image containing a cross-compiler and cross-compiled dependencies
+        compile                 Cross-compile the SmartLock Demo application
+        install                 Install the SmartLock Demo application
+        ssh                     SSH into the Android
+        start                   Start the SmartLock Demo application
+        stop                    Stop the SmartLock  Demo application
+        logs [follow]           Show logs from the SmartLock Demo application
         help                    Print this help
 EOF
                  )
@@ -420,8 +531,29 @@ EOF
         build-toolchain)
             android-build-toolchain
             ;;
+        clean-toolchain)
+            android-clean-toolchain
+            ;;
+        compile)
+            android-compile
+            ;;
+        install)
+            android-install
+            ;;
+        start)
+            android-start
+            ;;
+        stop)
+            android-stop
+            ;;
+        ssh)
+            android-ssh
+            ;;
+        logs)
+            android-logs
+            ;;
         *)
-            expected-keywords build-toolchain
+            expected-keywords build-toolchain clean-toolchain compile install start stop ssh logs
             ;;
     esac
 }
