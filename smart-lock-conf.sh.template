@@ -1,5 +1,7 @@
 #!/bin/bash
 
+export ANDROID_HOME=path to Android SDK
+
 PI_NAMES=(pi_1 pi_2)
 
 pi_1_ip=1.2.3.4
