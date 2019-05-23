@@ -9,3 +9,5 @@ pi_1_lock_id='lock1'
 
 pi_2_ip=172.16.10.65
 pi_2_lock_id='lock2'
+
+RTPS_RELAY_IP=35.227.46.107

@@ -223,6 +223,12 @@ function pi-install {
     load-config
     local -r ip_var="${pi_name}_ip"
     local -r lock_id_var="${pi_name}_lock_id"
+
+    cp "${_SMART_LOCK_DIR}/src/rtps.ini.template" "${_SMART_LOCK_DIR}/src/rtps.ini"
+    if [ -n "${RTPS_RELAY_IP:-}" ]; then
+        sed -e "s/#SPDP_RTPS_RELAY_ADDRESS_LINE/SpdpRtpsRelayAddress=${RTPS_RELAY_IP}:4444/g" -e "s/#SEDP_RTPS_RELAY_ADDRESS_LINE/SedpRtpsRelayAddress=${RTPS_RELAY_IP}:4445/g" -e "s/#DATA_RTPS_RELAY_ADDRESS_LINE/DataRtpsRelayAddress=${RTPS_RELAY_IP}:4446/g" -i '' "${_SMART_LOCK_DIR}/src/rtps.ini"
+    fi
+
     rsync -avz -e 'ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null' "${_SMART_LOCK_DIR}/src/" "pi@${!ip_var}:~/smartlock"
     ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "pi@${!ip_var}" "sudo cp /home/pi/smartlock/systemd/smartlock.service /etc/systemd/system/smartlock.service; sudo chmod 0644 /etc/systemd/system/smartlock.service; sudo systemctl daemon-reload; sudo systemctl enable smartlock; echo '${!lock_id_var}' > /home/pi/smartlock.id"
 }
@@ -412,6 +418,13 @@ function android-compile {
     match-keyword 'compile'
     expected-end-of-input
 
+    load-config
+
+    cp "${_SMART_LOCK_DIR}/android/SmartLock/app/src/main/assets/opendds_config.ini.template"  "${_SMART_LOCK_DIR}/android/SmartLock/app/src/main/assets/opendds_config.ini"
+    if [ -n "${RTPS_RELAY_IP:-}" ]; then
+        sed -e "s/#SPDP_RTPS_RELAY_ADDRESS_LINE/SpdpRtpsRelayAddress=${RTPS_RELAY_IP}:4444/g" -e "s/#SEDP_RTPS_RELAY_ADDRESS_LINE/SedpRtpsRelayAddress=${RTPS_RELAY_IP}:4445/g" -e "s/#DATA_RTPS_RELAY_ADDRESS_LINE/DataRtpsRelayAddress=${RTPS_RELAY_IP}:4446/g" -i '' "${_SMART_LOCK_DIR}/android/SmartLock/app/src/main/assets/opendds_config.ini"
+    fi
+
     docker run --rm -ti -v "${_SMART_LOCK_DIR}:/home/droid/smartlock" -w '/home/droid' android-opendds-cross bash -c '
 APP_MPC_NAME=SmartLock_Idl_Java;
 APP_NAME=SmartLock;
@@ -435,7 +448,6 @@ mkdir -p $HOME/smartlock/android/SmartLock/app/native_libs/arm64-v8a;
 cp $HOME/libs/*.so $HOME/smartlock/android/Idl/*.so $HOME/smartlock/android/SmartLock/app/native_libs/arm64-v8a;'
 
     (
-        load-config
         cd "${_SMART_LOCK_DIR}/android/SmartLock"
         ./gradlew assemble
     )
@@ -448,7 +460,7 @@ function android-install {
     (
         load-config
         cd "${_SMART_LOCK_DIR}/android/SmartLock"
-        "${ANDROID_HOME}/platform-tools/adb" -r -d install ./app/build/outputs/apk/debug/app-debug.apk
+        "${ANDROID_HOME}/platform-tools/adb" -d install ./app/build/outputs/apk/debug/app-debug.apk
     )
 }
 

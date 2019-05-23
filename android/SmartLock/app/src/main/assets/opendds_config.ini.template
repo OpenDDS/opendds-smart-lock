@@ -1,0 +1,15 @@
+[common]
+DCPSGlobalTransportConfig=$file
+DCPSDefaultDiscovery=DEFAULT_RTPS
+
+[transport/the_rtps_transport]
+transport_type=rtps_udp
+
+#DATA_RTPS_RELAY_ADDRESS_LINE
+
+[domain/42]
+DiscoveryConfig=DiscoveryConfig1
+
+[rtps_discovery/DiscoveryConfig1]
+#SPDP_RTPS_RELAY_ADDRESS_LINE
+#SEDP_RTPS_RELAY_ADDRESS_LINE

@@ -27,7 +27,7 @@ The `smart-lock` script contains a number of commands for building and deploying
 
 1. Create a `smart-lock-conf.sh` file.  `smart-lock-conf.sh.template` may be used as a template.
    This file defines the name, IP address, and lock id for the Raspberry Pis.
-   If you want to work with the Android, you must download the Android SDK, accept the licenses, and set `ANDROID_HOME` variable.
+   If you want to work with the Android, you must download the Android SDK, accept the licenses (`tools/bin/sdkmanager --licenses`), and set `ANDROID_HOME` variable.
 
 2. Enable tab completion.
 
