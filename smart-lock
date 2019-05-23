@@ -420,6 +420,22 @@ function android-compile {
 
     load-config
 
+    local -r locks=$(
+        echo -n '<string-array name="locks">';
+        for pi_name in "${PI_NAMES[@]}"; do
+            local lock_id_var="${pi_name}_lock_id";
+            if [ -n "${!lock_id_var:-}" ]; then
+                echo -n "<item>${!lock_id_var}<\/item>";
+            else
+                echo "WARNING: ${pi_name} has no lock id and will not be accessible" >&2;
+            fi
+        done
+        echo -n '<\/string-array>';
+          )
+
+    cp "${_SMART_LOCK_DIR}/android/SmartLock/general_config.xml.template" "${_SMART_LOCK_DIR}/android/SmartLock/app/src/main/res/values/general_config.xml"
+    sed -e "s/{LOCKS}/${locks}/g" -i '' "${_SMART_LOCK_DIR}/android/SmartLock/app/src/main/res/values/general_config.xml"
+
     cp "${_SMART_LOCK_DIR}/android/SmartLock/app/src/main/assets/opendds_config.ini.template"  "${_SMART_LOCK_DIR}/android/SmartLock/app/src/main/assets/opendds_config.ini"
     if [ -n "${RTPS_RELAY_IP:-}" ]; then
         sed -e "s/#SPDP_RTPS_RELAY_ADDRESS_LINE/SpdpRtpsRelayAddress=${RTPS_RELAY_IP}:4444/g" -e "s/#SEDP_RTPS_RELAY_ADDRESS_LINE/SedpRtpsRelayAddress=${RTPS_RELAY_IP}:4445/g" -e "s/#DATA_RTPS_RELAY_ADDRESS_LINE/DataRtpsRelayAddress=${RTPS_RELAY_IP}:4446/g" -i '' "${_SMART_LOCK_DIR}/android/SmartLock/app/src/main/assets/opendds_config.ini"
