@@ -38,21 +38,13 @@ install_docker() {
     usermod -aG docker $USER
 }
 
-make_relay_image() {
-docker build -t opendds/relay - <<'DOCKERFILE'
-from objectcomputing/opendds:master
-RUN cd /opt/OpenDDS/tools/rtpsrelay && mwc.pl -type gnuace && make
-ENV PATH="$PATH:/opt/OpenDDS/tools/rtpsrelay"
-DOCKERFILE
-}
-
 make_relay_service() {
     cat > /etc/systemd/system/rtps-relay.service <<SERVICE
 [Unit]
 Description=Relay for RTPS
 After=network.target
 [Service]
-ExecStart=/usr/bin/docker run --rm -p 4444-4446:4444-4446/udp --name rtps-relay opendds/relay RtpsRelay -DCPSConfigFile /opt/OpenDDS/tools/rtpsrelay/rtps.ini
+ExecStart=/usr/bin/docker run --log-driver none --rm -p 4444-4446:4444-4446/udp --name relay objectcomputing/opendds:master /opt/OpenDDS/tools/rtpsrelay/RtpsRelay -DCPSConfigFile /opt/OpenDDS/tools/rtpsrelay/rtps.ini
 ExecStop=/usr/bin/docker stop rtps-relay
 [Install]
 WantedBy=multi-user.target
@@ -65,7 +57,6 @@ SERVICE
 
 install_coturn
 install_docker
-make_relay_image
 make_relay_service
 
 systemctl restart coturn
