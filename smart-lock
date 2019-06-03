@@ -33,7 +33,7 @@ function consume {
     if end-of-input?; then
         return
     fi
-    ((arg_idx++))
+    arg_idx=$((arg_idx+1))
     true
 }
 
