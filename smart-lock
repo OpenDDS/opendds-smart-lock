@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -eufo pipefail
+set -xeufo pipefail
 IFS=$'\n\t'
 
 declare -r _SMART_LOCK_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
@@ -200,9 +200,16 @@ function pi-install-dependencies {
     local -r ip_var="${pi_name}_ip"
 
     # Copy the dependencies out of the docker image.
+    rm -rf "${_SMART_LOCK_DIR}/libs"
     mkdir -p "${_SMART_LOCK_DIR}/libs"
-    docker run --rm -ti -v "${_SMART_LOCK_DIR}/libs:/home/pi/libs" -w "/home/pi" pi-opendds-cross bash -c "cp pi-opendds.tar.gz pi-openssl.tar.gz pi-xerces.tar.gz libs"
-    # Copy them to the pi.
+    docker run -d --name piopendds pi-opendds-cross
+    docker cp piopendds:/home/pi/pi-opendds.tar.gz  libs
+    docker cp piopendds:/home/pi/pi-openssl.tar.gz  libs 
+    docker cp piopendds:/home/pi/pi-xerces.tar.gz libs
+    docker stop piopendds
+    docker rm piopendds
+
+    #docker run --rm -ti -v "${_SMART_LOCK_DIR}:/home/pi/outer" -w "/home/pi" pi-opendds-cross bash -c "mkdir -p outer/libs; cp pi-opendds.tar.gz pi-openssl.tar.gz pi-xerces.tar.gz outer/libs"    # Copy them to the pi.
     scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "${_SMART_LOCK_DIR}/libs/pi-opendds.tar.gz" "${_SMART_LOCK_DIR}/libs/pi-openssl.tar.gz" "${_SMART_LOCK_DIR}/libs/pi-xerces.tar.gz" "pi@${!ip_var}:"
     # Unzip them.
     ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "pi@${!ip_var}" 'tar xzf pi-opendds.tar.gz; tar xzf pi-openssl.tar.gz; tar xzf pi-xerces.tar.gz'
@@ -212,7 +219,7 @@ function pi-compile {
     match-keyword 'compile'
     expected-end-of-input
 
-    docker run --rm -ti -v "${_SMART_LOCK_DIR}/src:/home/pi/smartlock" -w "/home/pi/smartlock" pi-opendds-cross bash -c "source /home/pi/pi-opendds/build/target/setenv.sh; mwc.pl -type gnuace -features 'no_wiring_pi=0'; make"
+    docker run --rm -it -v "${_SMART_LOCK_DIR}/src:/home/pi/smartlock" -w "/home/pi/smartlock" pi-opendds-cross bash -c "source /home/pi/pi-opendds/build/target/setenv.sh; mwc.pl -type gnuace -features 'no_wiring_pi=0'; make"
 }
 
 function pi-install {
