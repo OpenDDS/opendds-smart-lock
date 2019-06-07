@@ -30,15 +30,26 @@ RUN useradd --shell /bin/bash --password "" --groups sudo --create-home pi
 USER pi
 
 WORKDIR /home/pi
+RUN sudo apt-get install -y bsdtar \
+    && sudo cp $(which tar) $(which tar)~ \
+    && sudo ln -sf $(which bsdtar) $(which tar)
 
-RUN wget -O cross-gcc-8.3.0-pi_2-3.tar.gz \
-      https://sourceforge.net/projects/raspberry-pi-cross-compilers/files/Raspberry%20Pi%20GCC%20Cross-Compiler%20Toolchains/GCC%208.3.0/Raspberry%20Pi%202%2C%203/cross-gcc-8.3.0-pi_2-3.tar.gz/download
-RUN tar -xvzf cross-gcc-8.3.0-pi_2-3.tar.gz
+#RUN wget -O cross-gcc-8.3.0-pi_2-3.tar.gz \
+#      https://sourceforge.net/projects/raspberry-pi-cross-compilers/files/Raspberry%20Pi%20GCC%20Cross-Compiler%20Toolchains/GCC%208.3.0/Raspberry%20Pi%202%2C%203/cross-gcc-8.3.0-pi_2-3.tar.gz/download
+#RUN tar -xvzf cross-gcc-8.3.0-pi_2-3.tar.gz
 
-RUN sudo ln -s /home/pi/cross-pi-gcc-8.3.0-1 /opt/cross-pi-gcc
-RUN sudo ln -s /home/pi/cross-pi-gcc-8.3.0-1 /opt/cross-pi-gcc-8.3.0-1
+RUN wget --no-check-certificate -O gcc-8.2.0-rpi.tar.bz2 \
+      http://download.objectcomputing.com/OpenDDS/resources/gcc-8.2.0-rpi.tar.bz2
+RUN tar -xvzf gcc-8.2.0-rpi.tar.bz2
 
-ENV PATH=${PATH}:/opt/cross-pi-gcc-8.3.0-1/bin
+RUN sudo mv $(which tar)~ $(which tar)
+
+#RUN mv /home/pi/cross-pi-gcc-8.2.0 /home/pi/opt/cross-pi-gcc
+
+RUN sudo ln -s /home/pi/cross-pi-gcc-8.2.0 /opt/cross-pi-gcc
+RUN sudo ln -s /home/pi/cross-pi-gcc-8.2.0 /opt/cross-pi-gcc-8.2.0-1
+
+ENV PATH=${PATH}:/opt/cross-pi-gcc/bin
 
 RUN wget -O openssl-1.1.1a.tar.gz \
       https://www.openssl.org/source/openssl-1.1.1a.tar.gz && \
