@@ -47,7 +47,7 @@ RUN sudo mv $(which tar)~ $(which tar)
 #RUN mv /home/pi/cross-pi-gcc-8.2.0 /home/pi/opt/cross-pi-gcc
 
 RUN sudo ln -s /home/pi/cross-pi-gcc-8.2.0 /opt/cross-pi-gcc
-RUN sudo ln -s /home/pi/cross-pi-gcc-8.2.0 /opt/cross-pi-gcc-8.2.0-1
+RUN sudo ln -s /home/pi/cross-pi-gcc-8.2.0 /opt/cross-pi-gcc-8.2.0
 
 ENV PATH=${PATH}:/opt/cross-pi-gcc/bin
 
