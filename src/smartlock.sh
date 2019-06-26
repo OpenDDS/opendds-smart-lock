@@ -7,7 +7,7 @@ LD_LIBRARY_PATH+=":/home/pi/pi-opendds/build/target/lib"
 LD_LIBRARY_PATH+=":/home/pi/pi-openssl/usr/local/lib"
 LD_LIBRARY_PATH+=":/home/pi/pi-xerces/lib"
 LD_LIBRARY_PATH+=":/home/pi/smartlock/Idl"
-cert_dir=/home/pi/certs
+cert_dir=/home/pi/smartlock/certs
 
 SECURITY=0
 CMD=start
@@ -60,13 +60,14 @@ fi
 
 if (( $SECURITY )); then
     SECURITY_ARGS=" \
+    -DCPSSecurityDebug bookkeeping \
     -DCPSSecurity 1 \
-	-ID_CA ${cert_dir}/identity_ca_cert.pem \
+	-ID_CA ${cert_dir}/id_ca/identity_ca_cert.pem \
 	-ID_CERT ${cert_dir}/${LOCK}/${LOCK}_cert.pem \
 	-ID_PKEY ${cert_dir}/${LOCK}/private_key.pem \
-	-PERM_CA ${cert_dir}/permissions_ca_cert.pem \
+	-PERM_CA ${cert_dir}/perm_ca/permissions_ca_cert.pem \
 	-PERM_GOV ${cert_dir}/gov_signed.p7s \
-	-PERM_PERMS ${cert_dir}/${LOCK}/house1_signed.p7s
+	-PERM_PERMS ${cert_dir}/${LOCK}/house1_signed.p7s \
     "
 fi
 

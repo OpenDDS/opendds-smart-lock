@@ -12,3 +12,4 @@ pi_2_lock_id='lock2'
 
 RTPS_RELAY_IP=35.227.46.107
 
+ENABLE_SECURITY=1
