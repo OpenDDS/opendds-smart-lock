@@ -235,9 +235,13 @@ function pi-install {
     if [ -n "${RTPS_RELAY_IP:-}" ]; then
         sed -e "s/#SPDP_RTPS_RELAY_ADDRESS_LINE/SpdpRtpsRelayAddress=${RTPS_RELAY_IP}:4444/g" -e "s/#SEDP_RTPS_RELAY_ADDRESS_LINE/SedpRtpsRelayAddress=${RTPS_RELAY_IP}:4445/g" -e "s/#DATA_RTPS_RELAY_ADDRESS_LINE/DataRtpsRelayAddress=${RTPS_RELAY_IP}:4446/g" -i'' "${_SMART_LOCK_DIR}/src/rtps.ini"
     fi
+
+    rm -f "${_SMART_LOCK_DIR}/src/smartlock_env"
     if [ ${ENABLE_SECURITY:-} == 1 ]; then
-        sed "s/DCPSSecurity=0/DCPSSecurity=1/" -i'' "${_SMART_LOCK_DIR}/src/rtps.ini"
-    fi    
+      echo "SMARTLOCK_SECURE=1" > "${_SMART_LOCK_DIR}/src/smartlock_env"
+    else
+      echo "SMARTLOCK_SECURE=0" > "${_SMART_LOCK_DIR}/src/smartlock_env"
+    fi
 
     rsync -avz -e 'ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null' "${_SMART_LOCK_DIR}/src/" "pi@${!ip_var}:~/smartlock"
     if [ ${ENABLE_SECURITY:-} == 1 ]; then

@@ -9,7 +9,7 @@ LD_LIBRARY_PATH+=":/home/pi/pi-xerces/lib"
 LD_LIBRARY_PATH+=":/home/pi/smartlock/Idl"
 cert_dir=/home/pi/smartlock/certs
 
-SECURITY=0
+SECURITY=${SMARTLOCK_SECURE:-0}
 CMD=start
 LOCK=
 while (( $# > 0 )); do

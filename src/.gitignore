@@ -4,3 +4,4 @@
 **/*.so*
 **/GNUmakefile*
 smartlock
+smartlock_env

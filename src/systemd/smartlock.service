@@ -6,6 +6,7 @@ After=network.target
 [Service]
 Type=simple
 User=pi
+EnvironmentFile=/home/pi/smartlock/smartlock_env
 ExecStart=/home/pi/smartlock/smartlock.sh start-system
 
 [Install]
