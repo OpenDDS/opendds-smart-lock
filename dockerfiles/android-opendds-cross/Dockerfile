@@ -80,6 +80,7 @@ RUN cd droid-opendds && \
       --ace-github-latest \
       --target=android \
       --macros='ANDROID_ABI=arm64-v8a' \
+      --macros='no_hidden_visibility = 1' \
       --openssl=/home/droid/droid-openssl \
       --xerces3=/home/droid/droid-xerces \
       --security \
