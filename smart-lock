@@ -490,6 +490,28 @@ cp $HOME/libs/*.so $HOME/smartlock/android/Idl/*.so $HOME/smartlock/android/Smar
     )
 }
 
+function android-clean {
+    match-keyword 'clean'
+    expected-end-of-input
+
+    load-config
+    
+    docker run --rm -ti -v "${_SMART_LOCK_DIR}:/home/droid/smartlock" -w '/home/droid' android-opendds-cross bash -c '
+APP_MPC_NAME=SmartLock_Idl_Java;
+APP_NAME=SmartLock;
+DDS_ROOT=/home/droid/droid-opendds;
+source $DDS_ROOT/build/target/setenv.sh;
+echo $HOME
+cd $HOME/smartlock/android/Idl;
+make clean
+rm $HOME/smartlock/android/SmartLock/app/native_libs/arm64-v8a/*.so;'
+
+    (
+        cd "${_SMART_LOCK_DIR}/android/SmartLock"
+        ./gradlew clean
+    )
+}
+
 function android-install {
     match-keyword 'install'
     expected-end-of-input
@@ -562,15 +584,16 @@ $(command-prefix) - Development tool for Android in the SmartLock Demo
 Usage: $(command-prefix) COMMAND [OPTION ...]
 
 Commands:
-        build-toolchain         Build a Docker image containing a cross-compiler and cross-compiled dependencies
-        clean-toolchain         Remove the Docker image containing a cross-compiler and cross-compiled dependencies
-        compile                 Cross-compile the SmartLock Demo application
-        install                 Install the SmartLock Demo application
-        ssh                     SSH into the Android
-        start                   Start the SmartLock Demo application
-        stop                    Stop the SmartLock  Demo application
-        logs [follow]           Show logs from the SmartLock Demo application
-        help                    Print this help
+        build-toolchain [commit]  Build a Docker image containing a cross-compiler and cross-compiled dependencies
+        clean-toolchain           Remove the Docker image containing a cross-compiler and cross-compiled dependencies
+        compile                   Cross-compile the SmartLock Demo application
+        clean                     Remove the compiled application
+        install                   Install the SmartLock Demo application
+        ssh                       SSH into the Android
+        start                     Start the SmartLock Demo application
+        stop                      Stop the SmartLock  Demo application
+        logs [follow]             Show logs from the SmartLock Demo application
+        help                      Print this help
 EOF
                  )
     set-help "${h}"
@@ -586,6 +609,9 @@ EOF
         compile)
             android-compile
             ;;
+	clean)
+            android-clean
+	    ;;
         install)
             android-install
             ;;
@@ -602,7 +628,7 @@ EOF
             android-logs
             ;;
         *)
-            expected-keywords build-toolchain clean-toolchain compile install start stop ssh logs
+            expected-keywords build-toolchain clean-toolchain compile clean install start stop ssh logs
             ;;
     esac
 }
