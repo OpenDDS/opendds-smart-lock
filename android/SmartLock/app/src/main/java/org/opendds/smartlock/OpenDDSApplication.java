@@ -146,7 +146,7 @@ public class OpenDDSApplication extends Application {
         // Initialize OpenDDS by getting the Participant Factory
         ArrayList<String> args = new ArrayList<String>();
         args.add("-DCPSTransportDebugLevel");
-        args.add("5");
+        args.add("3");
         args.add("-DCPSDebugLevel");
         args.add("10");
         args.add("-DCPSConfigFile");
