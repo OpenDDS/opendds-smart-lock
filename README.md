@@ -57,7 +57,7 @@ The `smart-lock` script contains a number of commands for building and deploying
 
 5. Restart the SmartLock Demo application
 
-        smart-lock pi restart pi_1
+        smart-lock pi restart pi_1 (or on pi: sudo systemctl restart smartlock)
 
 6. Check the status of the SmartLock Demo application
 
@@ -67,7 +67,7 @@ The `smart-lock` script contains a number of commands for building and deploying
 
 1. Build the cross-compiler and dependencies
 
-        smart-lock android build-toolchain
+        smart-lock android build-toolchain [git tag or branch] // optional parameter - defaults to master branch
 
 2. Compile the SmartLock Demo application
 
