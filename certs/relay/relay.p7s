@@ -1,0 +1,78 @@
+MIME-Version: 1.0
+Content-Type: multipart/signed; protocol="application/x-pkcs7-signature"; micalg="sha-256"; boundary="----042F59A80544D236F1C3F2146C7F3BB3"
+
+This is an S/MIME signed message
+
+------042F59A80544D236F1C3F2146C7F3BB3
+Content-Type: text/plain
+
+<?xml version="1.0"?>
+<dds xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.omg.org/spec/DDS-SECURITY/20160303/omg_shared_ca_permissions.xsd">
+  <permissions>
+    <grant name="lock1_house1_domain_42">
+      <subject_name>C = US, ST = Missouri, O = Object Computing, CN = Relay</subject_name>
+
+      <validity>
+        <!-- Format is CCYY-MM-DDThh:mm:ss[Z|(+|-)hh:mm] in GMT -->
+        <not_before>2015-09-15T01:00:00</not_before>
+        <not_after>2025-09-15T01:00:00</not_after>
+      </validity>
+
+      <allow_rule>
+        <domains>
+          <id>42</id>
+        </domains>
+      </allow_rule>
+
+      <default>DENY</default>
+
+    </grant>
+  </permissions>
+</dds>
+
+------042F59A80544D236F1C3F2146C7F3BB3
+Content-Type: application/x-pkcs7-signature; name="smime.p7s"
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="smime.p7s"
+
+MIIHEAYJKoZIhvcNAQcCoIIHATCCBv0CAQExDzANBglghkgBZQMEAgEFADALBgkq
+hkiG9w0BBwGgggP4MIID9DCCAtwCCQD3ogFEETe8cjANBgkqhkiG9w0BAQsFADCB
+uzELMAkGA1UEBhMCVVMxCzAJBgNVBAgMAk1PMRQwEgYDVQQHDAtTYWludCBMb3Vp
+czEvMC0GA1UECgwmT2JqZWN0IENvbXB1dGluZyAoVGVzdCBQZXJtaXNzaW9ucyBD
+QSkxLzAtBgNVBAMMJk9iamVjdCBDb21wdXRpbmcgKFRlc3QgUGVybWlzc2lvbnMg
+Q0EpMScwJQYJKoZIhvcNAQkBFhhpbmZvQG9iamVjdGNvbXB1dGluZy5jb20wHhcN
+MTkwMzEzMjIwODIxWhcNMjkwMzEwMjIwODIxWjCBuzELMAkGA1UEBhMCVVMxCzAJ
+BgNVBAgMAk1PMRQwEgYDVQQHDAtTYWludCBMb3VpczEvMC0GA1UECgwmT2JqZWN0
+IENvbXB1dGluZyAoVGVzdCBQZXJtaXNzaW9ucyBDQSkxLzAtBgNVBAMMJk9iamVj
+dCBDb21wdXRpbmcgKFRlc3QgUGVybWlzc2lvbnMgQ0EpMScwJQYJKoZIhvcNAQkB
+FhhpbmZvQG9iamVjdGNvbXB1dGluZy5jb20wggEiMA0GCSqGSIb3DQEBAQUAA4IB
+DwAwggEKAoIBAQCi1uEP73eVQmBY4Ui70dpYtGa+bDrKVVb3dMK+9lbEXEx4GWCU
+zNqfApgWjplz9Ahc5O3Lfpmc+OCsWXrM6Kn00AccN89gWrRbvEXq9mel8hhAQH1g
+W6kkChtWBCrAlaPB5GWVrULmfErUeQ8EnRMzio+hRvj0/rNF1wj0lrI0Ogf3Wv2J
+wAViKXH0rkef8w8eRtj9DNbQWMd4400S9+ksbsv/W2rpsj0bYCf1vqiDMMrGwPmx
+cceR/es4BiET6401tRxp5pDxMOyDB5+zvixR5Axw5rqQ4oBwC2be1c+ysp22gGSV
+62tm+0iGRmyPVadM6c2k7zo+mdxC0DRlpigJAgMBAAEwDQYJKoZIhvcNAQELBQAD
+ggEBAAqxE47/VCaMxaWEyhLVItQC8I4TzD7JV8hVoy3gsCp7PR6EWomsvyCe9Frn
+IOHAJwIX1Eil7x6BacRrvTD4Gk7IXMuevOdIXRRpNUVdtQEBrgSwRavZcEBcs213
+W/wbQrJuk1FQaLcWqRiR1b0yP73JmbSxtuvgXqdTKnav9SUOGtbhPEcLo9OpHUia
+tLIBr7RbBrOcaedy39SOJT+VgD7v6vCNtJmKUkJI0fOXvnM0EfyeRXEZ5xZtDE/X
+xTIEN60Hd9iOlPl1XH5ZfEPhT9BVZ1ifmcbKxiEGsVLzPYV7Dpai+K2QzuH2Yf/9
+EQvK7P1fKgD1RsdqTyPXQGMRFN8xggLcMIIC2AIBATCByTCBuzELMAkGA1UEBhMC
+VVMxCzAJBgNVBAgMAk1PMRQwEgYDVQQHDAtTYWludCBMb3VpczEvMC0GA1UECgwm
+T2JqZWN0IENvbXB1dGluZyAoVGVzdCBQZXJtaXNzaW9ucyBDQSkxLzAtBgNVBAMM
+Jk9iamVjdCBDb21wdXRpbmcgKFRlc3QgUGVybWlzc2lvbnMgQ0EpMScwJQYJKoZI
+hvcNAQkBFhhpbmZvQG9iamVjdGNvbXB1dGluZy5jb20CCQD3ogFEETe8cjANBglg
+hkgBZQMEAgEFAKCB5DAYBgkqhkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3
+DQEJBTEPFw0xOTEwMjUxODExMzdaMC8GCSqGSIb3DQEJBDEiBCDuw4CGSZXqvKJE
+gnwb02OKiCoXK2KNJQZ+LEqEQ9jATzB5BgkqhkiG9w0BCQ8xbDBqMAsGCWCGSAFl
+AwQBKjALBglghkgBZQMEARYwCwYJYIZIAWUDBAECMAoGCCqGSIb3DQMHMA4GCCqG
+SIb3DQMCAgIAgDANBggqhkiG9w0DAgIBQDAHBgUrDgMCBzANBggqhkiG9w0DAgIB
+KDANBgkqhkiG9w0BAQEFAASCAQCT3xh9CHuSxzVOL4qxjAqPISH17Sdz6duCETIa
+frThrWuzEl4FPIr1SZtH7E6GEHlPwz606qamlAfJHd87tGMOzHqLumlaPj20o+l+
+I2l57UaqdmIufG48OXMWi2+VhUV3zO0AbnDH1A+ZqQuDAcQf+zPxlQxzIK/FhH/S
+UdBnAYxNAgUgOHiPTtHGD8urTjtqBmwCFzJHHF+J1Jf/7uoE5dR3V+og3wLTJKBk
+UTGImoNHwiHbzGjSz0Kz6Qexv85xACYy1ukQZyD9krhhEU7Qj3OOiFrmidSEQcV8
+PRIqa1iCp/ShMUwjUfv4AJFtB41JKqh6HscmV0XxU+FHjmJf
+
+------042F59A80544D236F1C3F2146C7F3BB3--
+
