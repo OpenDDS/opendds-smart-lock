@@ -2,6 +2,8 @@ package org.opendds.smartlock;
 
 import android.content.Intent;
 import android.content.Context;
+import android.net.ConnectivityManager;
+import android.net.Network;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -23,11 +25,15 @@ import SmartLock.*;
 public class MainActivity extends AppCompatActivity {
     public static final String EXTRA_MESSAGE = "org.opendds.smartlock.MESSAGE";
 
-    final String LOG_TAG = "SmartLock_Main_Activity";
+    private final String LOG_TAG = "SmartLock_Main_Activity";
+    private final int DOMAIN = 42;
 
     public DomainParticipant participant;
     private DataWriter dw;
     private HashMap<String, SmartLockFragment> locks = new HashMap<String, SmartLockFragment>();
+
+    // flag for network changes.
+    private boolean networkLost = false;
 
     final private ReentrantLock locksLock = new ReentrantLock();
 
@@ -123,11 +129,44 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(getApplicationContext(), error_message, Toast.LENGTH_LONG).show();
             }
         }
+
+        // install network change listener
+        ConnectivityManager cm = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
+        cm.registerDefaultNetworkCallback(new ConnectivityManager.NetworkCallback() {
+
+            @Override
+            public void onAvailable(Network network) {
+                super.onAvailable(network);
+                Log.i(LOG_TAG, "Network Connection Available " + network.getNetworkHandle());
+
+                if (networkLost) {
+                    Log.i(LOG_TAG, "Network Connection Restored " + network.getNetworkHandle());
+                }
+
+                networkLost = false;
+
+            }
+
+            @Override
+            public void onLost(Network network) {
+                super.onLost(network);
+                Log.i(LOG_TAG, "Network Connection Lost " + network.getNetworkHandle());
+
+                networkLost = true;
+            }
+        });
+
         super.onStart();
     }
 
     @Override
     protected void onStop() {
+        // backgrounded app
+        super.onStop();
+    }
+
+    @Override
+    public void onDestroy() {
         // Delete DDS Entities
         if (getResources().getBoolean(R.bool.init_opendds)) {
             deleteParticipant();
@@ -138,11 +177,6 @@ public class MainActivity extends AppCompatActivity {
             item.getValue().disable();
             item.getValue().dw = null;
         }
-        super.onStop();
-    }
-
-    @Override
-    public void onDestroy() {
         super.onDestroy();
     }
 
@@ -155,7 +189,7 @@ public class MainActivity extends AppCompatActivity {
         DomainParticipantQos participantQos = getApp().participantQos;
 
         participant = participantFactory.create_participant(
-                42, participantQos, null, DEFAULT_STATUS_MASK.value);
+                DOMAIN, participantQos, null, DEFAULT_STATUS_MASK.value);
 
         if (participant == null) {
             throw new InitOpenDDSException("ERROR: Domain participant creation failed");
@@ -199,6 +233,25 @@ public class MainActivity extends AppCompatActivity {
         if (reader == null) {
             throw new InitOpenDDSException("ERROR: DataReader creation failed");
         }
+
+        // location BIT subscriber
+        Subscriber builtinSubscriber = participant.get_builtin_subscriber();
+        if (builtinSubscriber == null) {
+            System.err.println("ERROR: could not get built-in subscriber");
+            return;
+        }
+
+        DataReader bitDr = builtinSubscriber.lookup_datareader(BuiltinTopicUtils.BUILT_IN_PARTICIPANT_LOCATION_TOPIC);
+        if (bitDr == null) {
+            System.err.println("ERROR: could not lookup datareader");
+            return;
+        }
+
+        ParticipantLocationListener locationListener = new ParticipantLocationListener(this);
+        assert (locationListener != null);
+
+        int ret = bitDr.set_listener(locationListener, OpenDDS.DCPS.DEFAULT_STATUS_MASK.value);
+        assert (ret == DDS.RETCODE_OK.value);
 
         // Create DDS Entities That Write Control
 
