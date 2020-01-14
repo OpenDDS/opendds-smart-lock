@@ -116,7 +116,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onStart() {
-        // (Re-)Create DDS Entities
+        // create DDS Entities
         if (getResources().getBoolean(R.bool.init_opendds)) {
             try {
                 initParticipant();
@@ -144,14 +144,12 @@ public class MainActivity extends AppCompatActivity {
                 }
 
                 networkLost = false;
-
             }
 
             @Override
             public void onLost(Network network) {
                 super.onLost(network);
                 Log.i(LOG_TAG, "Network Connection Lost " + network.getNetworkHandle());
-
                 networkLost = true;
             }
         });
@@ -169,15 +167,33 @@ public class MainActivity extends AppCompatActivity {
     public void onDestroy() {
         // Delete DDS Entities
         if (getResources().getBoolean(R.bool.init_opendds)) {
+            Log.i(LOG_TAG, "calling onDestroy shutting down DDS");
             deleteParticipant();
         }
 
-        // Disable GUI
+        //Disable GUI
         for (Map.Entry<String, SmartLockFragment> item : locks.entrySet()) {
             item.getValue().disable();
             item.getValue().dw = null;
         }
+
         super.onDestroy();
+        Log.i(LOG_TAG, "calling onDestroy");
+    }
+
+    // screen orientation change handling
+    @Override
+    protected void onSaveInstanceState(final Bundle outState) {
+        super.onSaveInstanceState(outState);
+
+        Log.i(LOG_TAG, "calling onSaveInstanceState");
+    }
+
+    @Override
+    protected void onRestoreInstanceState(final Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+
+        Log.i(LOG_TAG, "calling onRestoreInstanceState");
     }
 
     public void initParticipant() throws InitOpenDDSException {
@@ -212,7 +228,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         SubscriberQosHolder subscriberQos = new SubscriberQosHolder(
-                                                    getApp().newDefaultSubscriberQos(participant));
+                getApp().newDefaultSubscriberQos(participant));
         getApp().copyPartitionQos(subscriberQos.value.partition);
         Subscriber sub = participant.create_subscriber(subscriberQos.value,
                 null, DEFAULT_STATUS_MASK.value);
@@ -270,7 +286,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         PublisherQosHolder publisherQos = new PublisherQosHolder(
-                                                getApp().newDefaultPublisherQos(participant));
+                getApp().newDefaultPublisherQos(participant));
         getApp().copyPartitionQos(publisherQos.value.partition);
         Publisher pub = participant.create_publisher(publisherQos.value,
                 null, DEFAULT_STATUS_MASK.value);

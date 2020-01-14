@@ -33,12 +33,21 @@ public class SmartLockFragment extends Fragment {
     private SmartLockStatus set_status = null;
     public DataWriter dw;
 
+    // use a local copy of view since calls to getView()
+    // after a screen orientation change can be null
+    private View mView;
+
     public static SmartLockFragment newInstance() {
         return new SmartLockFragment();
     }
 
     public void disable() {
         mViewModel.value.enabled = false;
+        updateView();
+    }
+
+    public void enable() {
+        mViewModel.value.enabled = true;
         updateView();
     }
 
@@ -58,11 +67,11 @@ public class SmartLockFragment extends Fragment {
                         .show(this)
                         .commit();
             }
-            TextView lock_id_tv = (TextView) getView().findViewById(R.id.lock_id);
+            TextView lock_id_tv = (TextView) mView.findViewById(R.id.lock_id);
             lock_id_tv.setText(mViewModel.value.id);
 
-            ImageView lock_status_img = getView().findViewById(R.id.lock_status);
-            Switch lock_sw = (Switch) getView().findViewById(R.id.lock_switch);
+            ImageView lock_status_img = mView.findViewById(R.id.lock_status);
+            Switch lock_sw = (Switch) mView.findViewById(R.id.lock_switch);
 
             if (mViewModel.value.state == SmartLockStatus.State.LOCKED) {
                 lock_status_img.setImageResource(R.drawable.fa_lock_closed);
@@ -81,11 +90,11 @@ public class SmartLockFragment extends Fragment {
 
         } else {
             if (! isHidden()) {
-                FragmentManager fm =getFragmentManager();
+                FragmentManager fm = getFragmentManager();
                 fm.beginTransaction()
                         .setCustomAnimations(android.R.animator.fade_in, android.R.animator.fade_out)
                         .hide(this)
-                        .commit();
+                        .commitAllowingStateLoss ();
             }
         }
     }
@@ -130,7 +139,8 @@ public class SmartLockFragment extends Fragment {
                              @Nullable Bundle savedInstanceState) {
         id_int = count++;
         id_string = "smart_lock_fragment_".concat(String.valueOf(id_int));
-        return inflater.inflate(R.layout.smart_lock_fragment, container, false);
+        mView = inflater.inflate(R.layout.smart_lock_fragment, container, false);
+        return mView;
     }
 
     @Override
@@ -146,7 +156,7 @@ public class SmartLockFragment extends Fragment {
 
         final SmartLockFragment fragment = this;
 
-        Switch sw = (Switch) getView().findViewById(R.id.lock_switch);
+        Switch sw = (Switch) mView.findViewById(R.id.lock_switch);
 
         sw.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
