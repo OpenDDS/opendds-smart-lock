@@ -1,15 +1,21 @@
 package org.opendds.smartlock;
 
-import android.content.Intent;
+import android.arch.lifecycle.MutableLiveData;
+import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.ServiceConnection;
 import android.net.ConnectivityManager;
 import android.net.Network;
+import android.os.IBinder;
 import android.support.v4.app.FragmentTransaction;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
-import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.Toast;
 
@@ -26,10 +32,7 @@ public class MainActivity extends AppCompatActivity {
     public static final String EXTRA_MESSAGE = "org.opendds.smartlock.MESSAGE";
 
     private final String LOG_TAG = "SmartLock_Main_Activity";
-    private final int DOMAIN = 42;
 
-    public DomainParticipant participant;
-    private DataWriter dw;
     private HashMap<String, SmartLockFragment> locks = new HashMap<String, SmartLockFragment>();
 
     // flag for network changes.
@@ -37,9 +40,34 @@ public class MainActivity extends AppCompatActivity {
 
     final private ReentrantLock locksLock = new ReentrantLock();
 
-    private OpenDDSApplication getApp() {
-        return (OpenDDSApplication) getApplication();
-    }
+    private OpenDdsService dds = null;
+
+    private ServiceConnection ddsServiceConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+
+            Log.i(LOG_TAG, "calling onServiceConnected");
+
+            OpenDdsService.OpenDdsBinder binder = (OpenDdsService.OpenDdsBinder) service ;
+            dds = binder.getService();
+
+            Log.i(LOG_TAG, "dds = " + dds.toString());
+            Log.i(LOG_TAG, "dw = " + dds.getDataWriter().toString());
+
+
+            // update lock models dw refs
+            for (Map.Entry<String, SmartLockFragment> item : locks.entrySet()) {
+                if (dds != null) {
+                    item.getValue().dw = dds.getDataWriter();
+                }
+            }
+        }
+
+            @Override
+        public void onServiceDisconnected(ComponentName name) {
+            Log.i(LOG_TAG, "calling onServiceDisconnected");
+        }
+    };
 
     private SmartLockFragment addLock (Context context) {
         LinearLayout list = (LinearLayout) findViewById(R.id.list);
@@ -48,7 +76,9 @@ public class MainActivity extends AppCompatActivity {
         container.setId(container_id);
         FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
         SmartLockFragment frag = new SmartLockFragment();
-        frag.dw = dw;
+        if (dds != null) {
+            frag.dw = dds.getDataWriter();
+        }
         ft.add(container_id, frag, frag.id_string);
         ft.commit();
         list.addView(container);
@@ -90,11 +120,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    // Used to load the 'native-lib' library on application startup.
-    static {
-        System.loadLibrary("native-lib");
-    }
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -114,20 +139,33 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private BroadcastReceiver lockUpdateReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            // Get extra data included in the Intent
+            SmartLockStatus status = (SmartLockStatus) intent.getSerializableExtra(OpenDdsService.LOCK_STATUS_DATA);
+
+            tryToUpdateLock(status);
+        }
+    };
+
     @Override
     protected void onStart() {
+        super.onStart();
+
+        Log.i(LOG_TAG, "calling onStart");
+
         // create DDS Entities
         if (getResources().getBoolean(R.bool.init_opendds)) {
-            try {
-                initParticipant();
-                for (Map.Entry<String, SmartLockFragment> item : locks.entrySet()) {
-                    item.getValue().dw = dw;
-                }
-            } catch (InitOpenDDSException exception) {
-                final String error_message = "Error Initializing OpenDDS Participant";
-                Log.e(LOG_TAG, error_message, exception);
-                Toast.makeText(getApplicationContext(), error_message, Toast.LENGTH_LONG).show();
-            }
+
+            Intent i = new Intent(getApplicationContext(), OpenDdsService.class);
+            bindService(i, ddsServiceConnection, Context.BIND_AUTO_CREATE);
+
+            // register for lock status messages
+            // use Android LocalBroadcastManager
+            LocalBroadcastManager.getInstance(this).registerReceiver(lockUpdateReceiver,
+                    new IntentFilter(OpenDdsService.LOCK_UPDATE_MESSAGE));
+
         }
 
         // install network change listener
@@ -154,161 +192,47 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        super.onStart();
     }
 
     @Override
     protected void onStop() {
-        // backgrounded app
+        Log.i(LOG_TAG, "onStop()");
+
+        Log.i(LOG_TAG, "calling unbindService()");
+        unbindService(ddsServiceConnection);
+
         super.onStop();
     }
 
     @Override
     public void onDestroy() {
-        // Delete DDS Entities
-        if (getResources().getBoolean(R.bool.init_opendds)) {
-            Log.i(LOG_TAG, "calling onDestroy shutting down DDS");
-            deleteParticipant();
-        }
-
         //Disable GUI
-        for (Map.Entry<String, SmartLockFragment> item : locks.entrySet()) {
-            item.getValue().disable();
-            item.getValue().dw = null;
-        }
+        //for (Map.Entry<String, SmartLockFragment> item : locks.entrySet()) {
+        //    item.getValue().disable();
+        //    item.getValue().dw = null;
+        //}
+
+        Log.i(LOG_TAG, "onDestroy()");
+
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(lockUpdateReceiver);
 
         super.onDestroy();
-        Log.i(LOG_TAG, "calling onDestroy");
+
     }
 
-    // screen orientation change handling
+    // screen orientation change handling if needed
     @Override
     protected void onSaveInstanceState(final Bundle outState) {
         super.onSaveInstanceState(outState);
 
-        Log.i(LOG_TAG, "calling onSaveInstanceState");
+        Log.i(LOG_TAG, "onSaveInstanceState()");
     }
 
     @Override
     protected void onRestoreInstanceState(final Bundle savedInstanceState) {
         super.onRestoreInstanceState(savedInstanceState);
 
-        Log.i(LOG_TAG, "calling onRestoreInstanceState");
-    }
-
-    public void initParticipant() throws InitOpenDDSException {
-        if (participant != null) {
-            return;
-        }
-
-        DomainParticipantFactory participantFactory = getApp().participantFactory;
-        DomainParticipantQos participantQos = getApp().participantQos;
-
-        participant = participantFactory.create_participant(
-                DOMAIN, participantQos, null, DEFAULT_STATUS_MASK.value);
-
-        if (participant == null) {
-            throw new InitOpenDDSException("ERROR: Domain participant creation failed");
-        }
-
-        // Create DDS Entities That Read Status
-
-        StatusTypeSupportImpl status_servant = new StatusTypeSupportImpl();
-        if (status_servant.register_type(participant, "") != RETCODE_OK.value) {
-            throw new InitOpenDDSException("ERROR: Status register_type failed");
-        }
-
-        Topic status_topic = participant.create_topic("SmartLock Status",
-                status_servant.get_type_name(),
-                TOPIC_QOS_DEFAULT.get(),
-                null,
-                DEFAULT_STATUS_MASK.value);
-        if (status_topic == null) {
-            throw new InitOpenDDSException("ERROR: Status Topic creation failed");
-        }
-
-        SubscriberQosHolder subscriberQos = new SubscriberQosHolder(
-                getApp().newDefaultSubscriberQos(participant));
-        getApp().copyPartitionQos(subscriberQos.value.partition);
-        Subscriber sub = participant.create_subscriber(subscriberQos.value,
-                null, DEFAULT_STATUS_MASK.value);
-        if (sub == null) {
-            throw new InitOpenDDSException("ERROR: Subscriber creation failed");
-        }
-
-        DataReaderQosHolder qosh = new DataReaderQosHolder(getApp().newDefaultDataReaderQos(sub));
-        sub.get_default_datareader_qos(qosh);
-        qosh.value.reliability.kind = ReliabilityQosPolicyKind.RELIABLE_RELIABILITY_QOS;
-        qosh.value.history.kind = HistoryQosPolicyKind.KEEP_ALL_HISTORY_QOS;
-        DataReaderListenerImpl listener = new DataReaderListenerImpl(this);
-        DataReader reader = sub.create_datareader(status_topic,
-                qosh.value,
-                listener,
-                DEFAULT_STATUS_MASK.value);
-
-        if (reader == null) {
-            throw new InitOpenDDSException("ERROR: DataReader creation failed");
-        }
-
-        // location BIT subscriber
-        Subscriber builtinSubscriber = participant.get_builtin_subscriber();
-        if (builtinSubscriber == null) {
-            System.err.println("ERROR: could not get built-in subscriber");
-            return;
-        }
-
-        DataReader bitDr = builtinSubscriber.lookup_datareader(BuiltinTopicUtils.BUILT_IN_PARTICIPANT_LOCATION_TOPIC);
-        if (bitDr == null) {
-            System.err.println("ERROR: could not lookup datareader");
-            return;
-        }
-
-        ParticipantLocationListener locationListener = new ParticipantLocationListener(this);
-        assert (locationListener != null);
-
-        int ret = bitDr.set_listener(locationListener, OpenDDS.DCPS.DEFAULT_STATUS_MASK.value);
-        assert (ret == DDS.RETCODE_OK.value);
-
-        // Create DDS Entities That Write Control
-
-        ControlTypeSupportImpl control_servant = new ControlTypeSupportImpl();
-        if (control_servant.register_type(participant, "") != RETCODE_OK.value) {
-            throw new InitOpenDDSException("ERROR: Control register_type failed");
-        }
-        Topic control_topic = participant.create_topic("SmartLock Control",
-                control_servant.get_type_name(),
-                TOPIC_QOS_DEFAULT.get(),
-                null,
-                DEFAULT_STATUS_MASK.value);
-
-        if (control_topic == null) {
-            throw new InitOpenDDSException("ERROR: Control Topic creation failed");
-        }
-
-        PublisherQosHolder publisherQos = new PublisherQosHolder(
-                getApp().newDefaultPublisherQos(participant));
-        getApp().copyPartitionQos(publisherQos.value.partition);
-        Publisher pub = participant.create_publisher(publisherQos.value,
-                null, DEFAULT_STATUS_MASK.value);
-        if (pub == null) {
-            throw new InitOpenDDSException("ERROR: Publisher creation failed");
-        }
-        dw = pub.create_datawriter(control_topic,
-                DATAWRITER_QOS_DEFAULT.get(),
-                null,
-                DEFAULT_STATUS_MASK.value);
-
-        if (dw == null) {
-            throw new InitOpenDDSException("ERROR: DataWriter creation failed");
-        }
-    }
-
-    public void deleteParticipant() {
-        if (participant != null) {
-            participant.delete_contained_entities();
-            getApp().participantFactory.delete_participant(participant);
-            participant = null;
-        }
+        Log.i(LOG_TAG, "onRestoreInstanceState()");
     }
 
     private void addFakeLocks () {

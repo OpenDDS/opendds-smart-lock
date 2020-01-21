@@ -18,8 +18,6 @@ public class ParticipantLocationListener extends _DataReaderListenerLocalBase {
 
     private static final String LOGTAG = "SmartLock_LocationListenerImpl";
 
-    private MainActivity context;
-
     private String guidFormatter(byte[] guid) {
         StringBuilder g = new StringBuilder();
         for (int ctr = 0; ctr < guid.length; ++ctr) {
@@ -48,9 +46,8 @@ public class ParticipantLocationListener extends _DataReaderListenerLocalBase {
         return location;
     }
 
-    public ParticipantLocationListener(MainActivity context) {
+    public ParticipantLocationListener() {
         super();
-        this.context = context;
     }
     
     @Override

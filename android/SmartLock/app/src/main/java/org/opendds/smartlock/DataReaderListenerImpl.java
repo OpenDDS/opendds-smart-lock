@@ -17,18 +17,22 @@ import DDS._DataReaderListenerLocalBase;
 
 import SmartLock.*;
 
+import android.app.Application;
+import android.content.Context;
+import android.content.Intent;
 import android.os.Handler;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 public class DataReaderListenerImpl extends _DataReaderListenerLocalBase {
 
     private static final String LOGTAG = "SmartLock_DataReaderListenerImpl";
-    
-    private MainActivity context;
-    
-    public DataReaderListenerImpl(MainActivity context) {
+
+    private Context context;
+
+    public DataReaderListenerImpl(OpenDdsService svc) {
         super();
-        this.context = context;
+        this.context = svc.getApplicationContext();
     }
     
     @Override
@@ -99,13 +103,10 @@ public class DataReaderListenerImpl extends _DataReaderListenerLocalBase {
                         + sih.value.instance_state);
             }
 
-            Handler handler = new Handler(context.getMainLooper());
-            handler.post(new Runnable() {
-                @Override
-                public void run() {
-                    context.tryToUpdateLock(lock_status);
-                }
-            });
+            // use local broadcast to communicate between service and UI
+            Intent intent = new Intent(OpenDdsService.LOCK_UPDATE_MESSAGE);
+            intent.putExtra(OpenDdsService.LOCK_STATUS_DATA, lock_status);
+            LocalBroadcastManager.getInstance(context).sendBroadcast(intent);
 
         } else if (status == RETCODE_NO_DATA.value) {
             Log.e(LOGTAG, "ERROR: reader received DDS::RETCODE_NO_DATA!");
