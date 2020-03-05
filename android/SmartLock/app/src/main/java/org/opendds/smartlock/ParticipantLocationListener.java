@@ -49,7 +49,7 @@ public class ParticipantLocationListener extends _DataReaderListenerLocalBase {
     public ParticipantLocationListener() {
         super();
     }
-    
+
     @Override
     public void on_requested_deadline_missed(DataReader dataReader, RequestedDeadlineMissedStatus requestedDeadlineMissedStatus) {
         Log.i(LOGTAG, "ParticipantLocationListener.on_requested_deadline_missed");

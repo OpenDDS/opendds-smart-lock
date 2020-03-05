@@ -123,4 +123,3 @@ case "$CMD" in
         exit 1
         ;;
 esac
-

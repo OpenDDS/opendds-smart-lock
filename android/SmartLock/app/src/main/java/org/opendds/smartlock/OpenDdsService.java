@@ -1,14 +1,12 @@
 package org.opendds.smartlock;
 
 import android.app.Service;
-import android.content.Context;
 import android.content.Intent;
 import android.content.res.AssetManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Binder;
 import android.os.IBinder;
-import android.support.annotation.Nullable;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -26,10 +24,13 @@ import DDS.*;
 import OpenDDS.DCPS.BuiltinTopicUtils;
 import OpenDDS.DCPS.DEFAULT_STATUS_MASK;
 import OpenDDS.DCPS.TheParticipantFactory;
-import OpenDDS.DCPS.TheServiceParticipant;
-import OpenDDS.DCPS.transport.TheTransportRegistry;
+import SmartLock.Control;
+import SmartLock.ControlDataWriter;
+import SmartLock.ControlDataWriterHelper;
 import SmartLock.ControlTypeSupportImpl;
 import SmartLock.StatusTypeSupportImpl;
+import SmartLock.lock_t;
+import SmartLock.vec2;
 
 public class OpenDdsService extends Service {
 
@@ -37,7 +38,6 @@ public class OpenDdsService extends Service {
 
     final static String LOCK_UPDATE_MESSAGE = "LockUpdateMessage";
     final static String LOCK_STATUS_DATA = "LockStatus";
-
 
     public boolean secure = false;
 
@@ -50,11 +50,52 @@ public class OpenDdsService extends Service {
 
     private static DomainParticipant participant = null;
 
+    private MainActivity activity = null;
+
+    protected MainActivity getActivity() {
+        return activity;
+    }
+
+    protected void setActivity(MainActivity activity) {
+        Log.i(LOG_TAG, "Activity is " + activity.toString());
+        this.activity = activity;
+    }
+
     // need a persistent reference to datawriter to avoid GC
     private static DataWriter dw = null;
 
-    protected static DataWriter getDataWriter() {
-        return dw;
+    public boolean updateLockState (SmartLockStatus lockState)
+    {
+        boolean ret = false;
+        if (dw != null) {
+            Log.e("SmartLockFragment", "Writing Control Update " +
+                    lockState.toString());
+            ControlDataWriter control_dw = ControlDataWriterHelper.narrow(dw);
+
+            Control control_message = new Control();
+            control_message.lock = new lock_t();
+            control_message.lock.id = lockState.id;
+            boolean lockthis = lockState.state == SmartLockStatus.State.PENDING_LOCK ||
+                    lockState.state == SmartLockStatus.State.LOCKED;
+
+            control_message.lock.locked = lockthis;
+            control_message.lock.position = new vec2();
+
+            int return_code = control_dw.write(control_message,
+                    control_dw.register_instance(control_message));
+            if (return_code != RETCODE_OK.value) {
+                Log.e(LOG_TAG,
+                        "Error writing control update, return code was" + String.valueOf(return_code));
+            }
+            else {
+                ret = true;
+            }
+
+        } else {
+            Log.e(LOG_TAG, "Cant Send Control Update because Datawriter is null");
+        }
+
+        return ret;
     }
 
     private String[] groups;
