@@ -9,7 +9,7 @@ instance (see below) in order to bootstrap the base Debian packages.
 
 ### Add firewall rules to allow relay traffic
 
-Prior to running the commands below, make sure the current project is 
+Prior to running the commands below, make sure the current project is
 
 ```bash
 gcloud compute firewall-rules create rtps-relay \

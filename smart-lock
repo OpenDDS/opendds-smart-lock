@@ -181,7 +181,7 @@ function pi-build-toolchain {
     match-keyword 'build-toolchain'
     expected-end-of-input
 
-    #add --no-cache if needed: "docker build --no-cache ..."    
+    #add --no-cache if needed: "docker build --no-cache ..."
     docker build "${_SMART_LOCK_DIR}/dockerfiles/pi-opendds-cross" -f "${_SMART_LOCK_DIR}/dockerfiles/pi-opendds-cross/Dockerfile" -t pi-opendds-cross
 }
 
@@ -205,7 +205,7 @@ function pi-install-dependencies {
     mkdir -p "${_SMART_LOCK_DIR}/libs"
     docker run -d --name piopendds pi-opendds-cross
     docker cp piopendds:/home/pi/pi-opendds.tar.gz  libs
-    docker cp piopendds:/home/pi/pi-openssl.tar.gz  libs 
+    docker cp piopendds:/home/pi/pi-openssl.tar.gz  libs
     docker cp piopendds:/home/pi/pi-xerces.tar.gz libs
     docker stop piopendds
     docker rm piopendds
@@ -432,7 +432,7 @@ function android-build-toolchain {
 
     expected-end-of-input
 
-    #add --no-cache if needed: "docker build --no-cache ..."  
+    #add --no-cache if needed: "docker build --no-cache ..."
     docker build --build-arg "OPENDDS_BRANCH=${commit}" "${_SMART_LOCK_DIR}/dockerfiles/android-opendds-cross" -f "${_SMART_LOCK_DIR}/dockerfiles/android-opendds-cross/Dockerfile" -t android-opendds-cross
 }
 
@@ -478,7 +478,7 @@ function android-compile {
     #    sed -e "s/#SPDP_RTPS_RELAY_ADDRESS_LINE/SpdpRtpsRelayAddress=${RTPS_RELAY_IP}:4444/g" -e "s/#SEDP_RTPS_RELAY_ADDRESS_LINE/SedpRtpsRelayAddress=${RTPS_RELAY_IP}:4445/g" -e "s/#DATA_RTPS_RELAY_ADDRESS_LINE/DataRtpsRelayAddress=${RTPS_RELAY_IP}:4446/g" -i'' "${_SMART_LOCK_DIR}/android/SmartLock/app/src/main/assets/opendds_config.ini"
     #fi
 
-    
+
     docker run --rm -ti -v "${_SMART_LOCK_DIR}:/home/droid/smartlock" -w '/home/droid' android-opendds-cross bash -c '
 APP_MPC_NAME=SmartLock_Idl_Java;
 APP_NAME=SmartLock;
@@ -513,7 +513,7 @@ function android-clean {
     expected-end-of-input
 
     load-config
-    
+
     docker run --rm -ti -v "${_SMART_LOCK_DIR}:/home/droid/smartlock" -w '/home/droid' android-opendds-cross bash -c '
 APP_MPC_NAME=SmartLock_Idl_Java;
 APP_NAME=SmartLock;

@@ -30,7 +30,7 @@ install_docker() {
             "deb [arch=amd64] https://download.docker.com/linux/debian \
             $(lsb_release -cs) \
             stable"
-    
+
     # Refresh repo and install docker community edition
     apt-get update -y && apt-get install -y docker-ce
 

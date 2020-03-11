@@ -1,6 +1,8 @@
 package org.opendds.smartlock;
 
-public class SmartLockStatus {
+import java.io.Serializable;
+
+public class SmartLockStatus implements Serializable {
     public String id = "Unknown";
 
     public enum State {
@@ -15,4 +17,6 @@ public class SmartLockStatus {
     public String toString() {
         return "SmartLockStatus: id: " + id + ", state: " + state;
     }
+
+    private static final long serialVersionUID = 17L;
 }
