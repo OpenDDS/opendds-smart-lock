@@ -448,7 +448,7 @@ struct ControlWriter : private PartitionedPublisher {
                                 SmartLock::vec2(20.0f, 10.0f)));
 
     for (;;) {
- 
+
       DDS::ReturnCode_t error = message_writer->write(message, DDS::HANDLE_NIL);
       if (error != DDS::RETCODE_OK) {
         ACE_ERROR((LM_ERROR,

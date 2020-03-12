@@ -23,14 +23,14 @@ import android.util.Log;
 public class DataReaderListenerImpl extends _DataReaderListenerLocalBase {
 
     private static final String LOGTAG = "SmartLock_DataReaderListenerImpl";
-    
-    private MainActivity context;
-    
-    public DataReaderListenerImpl(MainActivity context) {
+
+    private OpenDdsService svc;
+
+    public DataReaderListenerImpl(OpenDdsService svc) {
         super();
-        this.context = context;
+        this.svc = svc;
     }
-    
+
     @Override
     public void on_requested_deadline_missed(DataReader dataReader, RequestedDeadlineMissedStatus requestedDeadlineMissedStatus) {
         Log.i(LOGTAG, "DataReaderListenerImpl.on_requested_deadline_missed");
@@ -99,13 +99,22 @@ public class DataReaderListenerImpl extends _DataReaderListenerLocalBase {
                         + sih.value.instance_state);
             }
 
-            Handler handler = new Handler(context.getMainLooper());
-            handler.post(new Runnable() {
-                @Override
-                public void run() {
-                    context.tryToUpdateLock(lock_status);
-                }
-            });
+            final MainActivity act = svc.getActivity();
+
+            if (act != null) {
+                Handler handler = new Handler(act.getMainLooper());
+                handler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        Log.i(LOGTAG, "DataReader tryToUpdateLock");
+                        act.tryToUpdateLock(lock_status);
+                    }
+                });
+            }
+            else {
+                Log.i(LOGTAG, "did not update lock state since activity ref is null.");
+            }
+
 
         } else if (status == RETCODE_NO_DATA.value) {
             Log.e(LOGTAG, "ERROR: reader received DDS::RETCODE_NO_DATA!");

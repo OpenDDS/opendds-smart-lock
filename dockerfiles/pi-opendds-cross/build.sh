@@ -57,4 +57,3 @@ git clone git://git.drogon.net/wiringPi
 (cd wiringPi/wiringPi && make CC=arm-linux-gnueabihf-gcc)
 
 (cd wiringPi/wiringPi && mv libwiringPi.so.2.50 libwiringPi.so)
-
