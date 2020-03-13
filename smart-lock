@@ -178,14 +178,19 @@ function to-pi {
 }
 
 function pi-build-toolchain {
+    #Build a Docker image containing a cross-compiler and cross-compiled dependencies
+    #Must be run first before other pi commands can be executed
+    #ex: ./smart-lock pi build-toolchain
     match-keyword 'build-toolchain'
     expected-end-of-input
 
-    #add --no-cache if needed: "docker build --no-cache ..."
+    #add --no-cache if needed: "docker build --no-cache ..."    
     docker build "${_SMART_LOCK_DIR}/dockerfiles/pi-opendds-cross" -f "${_SMART_LOCK_DIR}/dockerfiles/pi-opendds-cross/Dockerfile" -t pi-opendds-cross
 }
 
 function pi-clean-toolchain {
+    #Remove the Docker image containing a cross-compiler and cross-compiled dependencies
+    #ex: ./smart-lock pi clean-toolchain
     match-keyword 'clean-toolchain'
     expected-end-of-input
 
@@ -193,6 +198,8 @@ function pi-clean-toolchain {
 }
 
 function pi-install-dependencies {
+    # Copies all dependencies to target pi from docker image
+    # ex: ./smart-lock pi install-dependencies pi_1
     match-keyword 'install-dependencies'
     to-pi
     expected-end-of-input
@@ -205,11 +212,11 @@ function pi-install-dependencies {
     mkdir -p "${_SMART_LOCK_DIR}/libs"
     docker run -d --name piopendds pi-opendds-cross
     docker cp piopendds:/home/pi/pi-opendds.tar.gz  libs
-    docker cp piopendds:/home/pi/pi-openssl.tar.gz  libs
+    docker cp piopendds:/home/pi/pi-openssl.tar.gz  libs 
     docker cp piopendds:/home/pi/pi-xerces.tar.gz libs
     docker stop piopendds
     docker rm piopendds
-
+    echo "test"
     #docker run --rm -ti -v "${_SMART_LOCK_DIR}:/home/pi/outer" -w "/home/pi" pi-opendds-cross bash -c "mkdir -p outer/libs; cp pi-opendds.tar.gz pi-openssl.tar.gz pi-xerces.tar.gz outer/libs"    # Copy them to the pi.
     scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "${_SMART_LOCK_DIR}/libs/pi-opendds.tar.gz" "${_SMART_LOCK_DIR}/libs/pi-openssl.tar.gz" "${_SMART_LOCK_DIR}/libs/pi-xerces.tar.gz" "pi@${!ip_var}:"
     # Unzip them.
@@ -217,6 +224,8 @@ function pi-install-dependencies {
 }
 
 function pi-compile {
+    #Cross-compile the SmartLock Demo application
+    #ex: ./smart-lock pi compile
     match-keyword 'compile'
     expected-end-of-input
 
@@ -224,6 +233,9 @@ function pi-compile {
 }
 
 function pi-install {
+    #Copy the compiled SmartLock Demo to target pi
+    #ex: ./smart-lock pi install pi_1
+    #To be used after build-toolchain, install-dependencies, and compile
     match-keyword 'install'
     to-pi
     expected-end-of-input
@@ -255,6 +267,8 @@ function pi-install {
 }
 
 function pi-start {
+    # Start the SmartLock Demo on target pi
+    # ex: ./smart-lock pi start pi_1
     match-keyword 'start'
     to-pi
     expected-end-of-input
@@ -265,6 +279,8 @@ function pi-start {
  }
 
 function pi-stop {
+    #Stop the SmartLock Demo on target pi
+    # ex: ./smart-lock pi stop pi_1
     match-keyword 'stop'
     to-pi
     expected-end-of-input
@@ -275,6 +291,8 @@ function pi-stop {
 }
 
 function pi-status {
+    #Show the status of the SmartLock on target pi
+    #ex: ./smart-lock pi status pi_1
     match-keyword 'status'
     to-pi
     expected-end-of-input
@@ -285,6 +303,8 @@ function pi-status {
 }
 
 function pi-restart {
+    #Restart the SmartLock the Demo on the target pi
+    #ex: ./smart-lock pi restart pi_1
     match-keyword 'restart'
     to-pi
     expected-end-of-input
@@ -295,6 +315,9 @@ function pi-restart {
 }
 
 function pi-logs {
+    # Show the logs for target pi
+    #ex: ./smart-lock pi logs pi_1
+    #Can be augmented with "follow"
     match-keyword 'logs'
     to-pi
     declare follow=
@@ -319,6 +342,8 @@ function pi-logs {
 }
 
 function pi-ssh {
+    #ssh into target pi
+    #ex: ./smart-lock pi ssh pi_1
     match-keyword 'ssh'
     to-pi
     expected-end-of-input
@@ -329,6 +354,8 @@ function pi-ssh {
 }
 
 function pi-copy-public-key {
+    #Copy a public key to target pi
+    #ex: ./smart-lock copy-public-key ~/your/path/here
     match-keyword 'copy-public-key'
     to-pi
     local -r path="$(peek)"
@@ -352,30 +379,31 @@ function pi-copy-public-key {
 }
 
 function pi {
+    #Maps commands to a pi version
+    #ex: ./smart-lock pi help
     match-keyword 'pi'
     local -r h=$(cat <<EOF
 $(command-prefix) - Development tool for Raspberry Pis in the SmartLock Demo
 
 Usage: $(command-prefix) COMMAND [OPTION ...]
 
-Commands:
-        build-toolchain                 Build a Docker image containing a cross-compiler and cross-compiled dependencies
-        clean-toolchain                 Remove the Docker image containing a cross-compiler and cross-compiled dependencies
-        compile                         Cross-compile the SmartLock Demo application
-        install-dependencies NAME       Copy all dependencies to NAME
-        install NAME                    Copy the compiled SmartLock Demo application to NAME
-        start NAME                      Start the SmartLock Demo application on NAME
-        stop NAME                       Stop the SmartLock Demo application on NAME
-        status NAME                     Show the status of the SmartLock Demo application on NAME
-        restart NAME                    Restart the SmartLock the Demo application on NAME
-        ssh NAME                        ssh into NAME
-        logs NAME [follow]              Show the logs for NAME
-        copy-public-key PATH            Copy a public key to NAME
-        help                            Print this help
+    Commands:
+            build-toolchain                 Build a Docker image containing a cross-compiler and cross-compiled dependencies
+            clean-toolchain                 Remove the Docker image containing a cross-compiler and cross-compiled dependencies
+            compile                         Cross-compile the SmartLock Demo application
+            install-dependencies NAME       Copy all dependencies to NAME
+            install NAME                    Copy the compiled SmartLock Demo application to NAME
+            start NAME                      Start the SmartLock Demo application on NAME
+            stop NAME                       Stop the SmartLock Demo application on NAME
+            status NAME                     Show the status of the SmartLock Demo application on NAME
+            restart NAME                    Restart the SmartLock the Demo application on NAME
+            ssh NAME                        ssh into NAME
+            logs NAME [follow]              Show the logs for NAME
+            copy-public-key PATH            Copy a public key to NAME
+            help                            Print this help
 EOF
                  )
     set-help "${h}"
-    set-help ''
 
     local -r token="$(peek)"
     case "${token}" in
@@ -422,6 +450,8 @@ EOF
 }
 
 function android-build-toolchain {
+    #Build a Docker image containing a cross-compiler and cross-compiled dependencies
+    #ex: ./smart-lock android build-toolchain
     local commit='master'
     match-keyword 'build-toolchain'
 
@@ -432,11 +462,13 @@ function android-build-toolchain {
 
     expected-end-of-input
 
-    #add --no-cache if needed: "docker build --no-cache ..."
+    #add --no-cache if needed: "docker build --no-cache ..."  
     docker build --build-arg "OPENDDS_BRANCH=${commit}" "${_SMART_LOCK_DIR}/dockerfiles/android-opendds-cross" -f "${_SMART_LOCK_DIR}/dockerfiles/android-opendds-cross/Dockerfile" -t android-opendds-cross
 }
 
 function android-clean-toolchain {
+    #Remove the Docker image containing a cross-compiler and cross-compiled dependencies
+    #ex: ./smart-lock android clean-toolchain
     match-keyword 'clean-toolchain'
     expected-end-of-input
 
@@ -444,6 +476,8 @@ function android-clean-toolchain {
 }
 
 function android-compile {
+    # Cross-compile the SmartLock Demo for android
+    #ex: ./smart-lock android compile
     match-keyword 'compile'
     expected-end-of-input
 
@@ -478,7 +512,7 @@ function android-compile {
     #    sed -e "s/#SPDP_RTPS_RELAY_ADDRESS_LINE/SpdpRtpsRelayAddress=${RTPS_RELAY_IP}:4444/g" -e "s/#SEDP_RTPS_RELAY_ADDRESS_LINE/SedpRtpsRelayAddress=${RTPS_RELAY_IP}:4445/g" -e "s/#DATA_RTPS_RELAY_ADDRESS_LINE/DataRtpsRelayAddress=${RTPS_RELAY_IP}:4446/g" -i'' "${_SMART_LOCK_DIR}/android/SmartLock/app/src/main/assets/opendds_config.ini"
     #fi
 
-
+    
     docker run --rm -ti -v "${_SMART_LOCK_DIR}:/home/droid/smartlock" -w '/home/droid' android-opendds-cross bash -c '
 APP_MPC_NAME=SmartLock_Idl_Java;
 APP_NAME=SmartLock;
@@ -509,11 +543,13 @@ cp $HOME/libs/*.so $HOME/smartlock/android/Idl/*.so $HOME/smartlock/android/Smar
 }
 
 function android-clean {
+    #Remove the compiled application
+    #ex: ./smart-lock android clean 
     match-keyword 'clean'
     expected-end-of-input
 
     load-config
-
+    
     docker run --rm -ti -v "${_SMART_LOCK_DIR}:/home/droid/smartlock" -w '/home/droid' android-opendds-cross bash -c '
 APP_MPC_NAME=SmartLock_Idl_Java;
 APP_NAME=SmartLock;
@@ -531,6 +567,8 @@ rm $HOME/smartlock/android/SmartLock/app/native_libs/arm64-v8a/*.so;'
 }
 
 function android-install {
+    #Install the SmartLock Demo application
+    #ex: ./smart-lock android install
     match-keyword 'install'
     expected-end-of-input
 
@@ -542,6 +580,8 @@ function android-install {
 }
 
 function android-ssh {
+    #SSH into the Android
+    #ex: ./smart-lock android ssh
     match-keyword 'ssh'
     expected-end-of-input
 
@@ -550,6 +590,8 @@ function android-ssh {
 }
 
 function android-start {
+    #Start the SmartLock Demo application
+    #ex: ./smart-lock android start
     match-keyword 'start'
     expected-end-of-input
 
@@ -558,6 +600,8 @@ function android-start {
 }
 
 function android-stop {
+    #Stop the SmartLock  Demo application
+    #ex: //smart-lock android stop
     match-keyword 'stop'
     expected-end-of-input
 
@@ -566,6 +610,8 @@ function android-stop {
 }
 
 function android-logs {
+    # Show logs from the SmartLock Demo 
+    #ex: //smart-lock android logs
     local dump_flags='-d'
 
     match-keyword 'logs'
@@ -595,6 +641,8 @@ function android-logs {
 
 
 function android {
+    #Maps commands to a android version
+    #ex: ./smart-lock android help
     match-keyword 'android'
     local -r h=$(cat <<EOF
 $(command-prefix) - Development tool for Android in the SmartLock Demo
@@ -627,7 +675,7 @@ EOF
         compile)
             android-compile
             ;;
-	clean)
+	    clean)
             android-clean
 	    ;;
         install)
@@ -652,6 +700,8 @@ EOF
 }
 
 function top-level-command {
+    #sets up the command tree 
+    # first branches are pi / android / help / config
     local -r h=$(cat <<EOF
 $(command-prefix) - Development tool for the SmartLock Demo
 
