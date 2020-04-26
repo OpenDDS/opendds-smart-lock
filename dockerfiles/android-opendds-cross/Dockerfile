@@ -47,9 +47,9 @@ RUN cd openssl-1.1.1a && \
   make -j4 && make install
 
 # Build Xerces
-RUN wget -O xerces-c-3.2.2.tar.gz \
-        apache.cs.utah.edu//xerces/c/3/sources/xerces-c-3.2.2.tar.gz && \
-        tar xvzf xerces-c-3.2.2.tar.gz
+RUN wget -O xerces-c-3.2.3.tar.gz \
+        apache.cs.utah.edu//xerces/c/3/sources/xerces-c-3.2.3.tar.gz && \
+        tar xvzf xerces-c-3.2.3.tar.gz
 
 RUN printf "\
 set(CMAKE_SYSTEM_NAME Linux)\n \
@@ -64,7 +64,7 @@ set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)\n \
 set(THREADS_PTHREAD_ARG 2)\n \
 " > /home/droid/AndroidToolchain.cmake
 
-RUN cd xerces-c-3.2.2 && \
+RUN cd xerces-c-3.2.3 && \
   mkdir build && cd build && \
   cmake -DCMAKE_TOOLCHAIN_FILE=/home/droid/AndroidToolchain.cmake \
         -DCMAKE_INSTALL_PREFIX=/home/droid/droid-xerces .. && \
