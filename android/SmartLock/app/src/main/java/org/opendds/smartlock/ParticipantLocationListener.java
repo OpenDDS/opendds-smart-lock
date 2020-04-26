@@ -11,6 +11,7 @@ import DDS.SampleInfoHolder;
 import DDS.SampleLostStatus;
 import DDS.SampleRejectedStatus;
 import DDS.SubscriptionMatchedStatus;
+import DDS.Time_t;
 import DDS._DataReaderListenerLocalBase;
 import OpenDDS.DCPS.*;
 
@@ -85,7 +86,9 @@ public class ParticipantLocationListener extends _DataReaderListenerLocalBase {
 
         ParticipantLocationBuiltinTopicDataHolder participant =
                 new ParticipantLocationBuiltinTopicDataHolder(
-                        new ParticipantLocationBuiltinTopicData(new byte[16], 0, 0, "", 0, "", 0, "", 0));
+                        new ParticipantLocationBuiltinTopicData(new byte[16],0,0,"",
+                                new Time_t(),"",new Time_t(), "", new Time_t(), "",
+                                new Time_t(), "", new Time_t(), "", new Time_t()));
         SampleInfoHolder si = new SampleInfoHolder(new SampleInfo(0, 0, 0,
                 new DDS.Time_t(), 0, 0, 0, 0, 0, 0, 0, false, 0));
 
