@@ -184,7 +184,7 @@ function pi-build-toolchain {
     match-keyword 'build-toolchain'
     expected-end-of-input
 
-    #add --no-cache if needed: "docker build --no-cache ..."    
+    #add --no-cache if needed: "docker build --no-cache ..."
     docker build "${_SMART_LOCK_DIR}/dockerfiles/pi-opendds-cross" -f "${_SMART_LOCK_DIR}/dockerfiles/pi-opendds-cross/Dockerfile" -t pi-opendds-cross
 }
 
