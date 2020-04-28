@@ -548,7 +548,6 @@ function android-clean {
     expected-end-of-input
 
     load-config
-    
     docker run --rm -ti -v "${_SMART_LOCK_DIR}:/home/droid/smartlock" -w '/home/droid' android-opendds-cross bash -c '
 APP_MPC_NAME=SmartLock_Idl_Java;
 APP_NAME=SmartLock;
