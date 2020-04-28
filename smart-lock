@@ -461,7 +461,7 @@ function android-build-toolchain {
 
     expected-end-of-input
 
-    #add --no-cache if needed: "docker build --no-cache ..."  
+    #add --no-cache if needed: "docker build --no-cache ..."
     docker build --build-arg "OPENDDS_BRANCH=${commit}" "${_SMART_LOCK_DIR}/dockerfiles/android-opendds-cross" -f "${_SMART_LOCK_DIR}/dockerfiles/android-opendds-cross/Dockerfile" -t android-opendds-cross
 }
 
