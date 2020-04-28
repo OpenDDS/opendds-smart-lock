@@ -674,7 +674,7 @@ EOF
         compile)
             android-compile
             ;;
-	    clean)
+        clean)
             android-clean
 	    ;;
         install)
