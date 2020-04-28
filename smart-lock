@@ -216,7 +216,6 @@ function pi-install-dependencies {
     docker cp piopendds:/home/pi/pi-xerces.tar.gz libs
     docker stop piopendds
     docker rm piopendds
-    echo "test"
     #docker run --rm -ti -v "${_SMART_LOCK_DIR}:/home/pi/outer" -w "/home/pi" pi-opendds-cross bash -c "mkdir -p outer/libs; cp pi-opendds.tar.gz pi-openssl.tar.gz pi-xerces.tar.gz outer/libs"    # Copy them to the pi.
     scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "${_SMART_LOCK_DIR}/libs/pi-opendds.tar.gz" "${_SMART_LOCK_DIR}/libs/pi-openssl.tar.gz" "${_SMART_LOCK_DIR}/libs/pi-xerces.tar.gz" "pi@${!ip_var}:"
     # Unzip them.
