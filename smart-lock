@@ -212,7 +212,7 @@ function pi-install-dependencies {
     mkdir -p "${_SMART_LOCK_DIR}/libs"
     docker run -d --name piopendds pi-opendds-cross
     docker cp piopendds:/home/pi/pi-opendds.tar.gz  libs
-    docker cp piopendds:/home/pi/pi-openssl.tar.gz  libs 
+    docker cp piopendds:/home/pi/pi-openssl.tar.gz  libs
     docker cp piopendds:/home/pi/pi-xerces.tar.gz libs
     docker stop piopendds
     docker rm piopendds
