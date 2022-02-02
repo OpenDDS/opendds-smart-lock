@@ -1,4 +1,4 @@
-FROM debian:stretch
+FROM debian:bullseye
 
 ARG OPENDDS_BRANCH=master
 ARG OPENDDS_GIT_REPO=https://github.com/objectcomputing/OpenDDS.git
@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install -y \
   gdbserver \
   make \
   cmake \
-  openjdk-8-jdk-headless \
+  openjdk-11-jdk-headless \
   perl-base \
   perl-modules \
   wget \
@@ -28,34 +28,32 @@ USER droid
 
 WORKDIR /home/droid
 
-RUN wget -O android-ndk-r19-linux-x86_64.zip \
-      https://dl.google.com/android/repository/android-ndk-r19-linux-x86_64.zip && \
-    unzip android-ndk-r19-linux-x86_64.zip
+RUN wget -O android-ndk-r23b-linux.zip \
+      https://dl.google.com/android/repository/android-ndk-r23b-linux.zip && \
+    unzip android-ndk-r23b-linux.zip
 
-RUN ./android-ndk-r19/build/tools/make_standalone_toolchain.py --arch arm64 --api 28 --install-dir ndk-toolchain
-
-ENV ANDROID_NDK=/home/droid/android-ndk-r19
+ENV ANDROID_NDK=/home/droid/android-ndk-r23b
 ENV PATH=$ANDROID_NDK/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH
 
 # Build OpenSSL
-RUN wget -O openssl-1.1.1a.tar.gz \
-        https://www.openssl.org/source/openssl-1.1.1a.tar.gz && \
-    tar xvzf openssl-1.1.1a.tar.gz
+RUN wget -O openssl-1.1.1m.tar.gz \
+        https://www.openssl.org/source/openssl-1.1.1m.tar.gz && \
+    tar xvzf openssl-1.1.1m.tar.gz
 
-RUN cd openssl-1.1.1a && \
-  ./Configure android-arm64 -D__ANDROID_API__=28 no-shared --prefix=/home/droid/droid-openssl && \
+RUN cd openssl-1.1.1m && \
+  ./Configure android-arm64 -D__ANDROID_API__=30 no-shared -Wno-macro-redefined --prefix=/home/droid/droid-openssl && \
   make -j4 && make install
 
 # Build Xerces
-RUN wget -O xerces-c-3.2.2.tar.gz \
-        apache.cs.utah.edu//xerces/c/3/sources/xerces-c-3.2.2.tar.gz && \
-        tar xvzf xerces-c-3.2.2.tar.gz
+RUN wget -O xerces-c-3.2.3.tar.gz \
+        https://dlcdn.apache.org//xerces/c/3/sources/xerces-c-3.2.3.tar.gz && \
+        tar xvzf xerces-c-3.2.3.tar.gz
 
 RUN printf "\
 set(CMAKE_SYSTEM_NAME Linux)\n \
 set(CMAKE_SYSTEM_PROCESSOR arm)\n \
-set(CMAKE_C_COMPILER aarch64-linux-android28-clang)\n \
-set(CMAKE_CXX_COMPILER aarch64-linux-android28-clang++)\n \
+set(CMAKE_C_COMPILER aarch64-linux-android30-clang)\n \
+set(CMAKE_CXX_COMPILER aarch64-linux-android30-clang++)\n \
 set(CMAKE_FIND_ROOT_PATH /home/droid/toolchains/llvm/prebuilt/linux-x86_64)\n \
 set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)\n \
 set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)\n \
@@ -64,7 +62,7 @@ set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)\n \
 set(THREADS_PTHREAD_ARG 2)\n \
 " > /home/droid/AndroidToolchain.cmake
 
-RUN cd xerces-c-3.2.2 && \
+RUN cd xerces-c-3.2.3 && \
   mkdir build && cd build && \
   cmake -DCMAKE_TOOLCHAIN_FILE=/home/droid/AndroidToolchain.cmake \
         -DCMAKE_INSTALL_PREFIX=/home/droid/droid-xerces .. && \
@@ -80,6 +78,8 @@ RUN cd droid-opendds && \
       --ace-github-latest \
       --target=android \
       --macros='ANDROID_ABI=arm64-v8a' \
+      --macros=android_api=30 \
+      --macros=android_ndk=$ANDROID_NDK \
       --macros='no_hidden_visibility = 1' \
       --openssl=/home/droid/droid-openssl \
       --xerces3=/home/droid/droid-xerces \
@@ -99,7 +99,7 @@ RUN ["/bin/bash", "-c", \
 RUN mkdir /home/droid/libs
 
 # Copy dependencies into libs folder.
-ENV RUNTIME_LIBS=/home/droid/ndk-toolchain/sysroot/usr/lib/aarch64-linux-android \
+ENV RUNTIME_LIBS=${ANDROID_NDK}/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android \
   XERCES_LIBS=/home/droid/droid-xerces/lib \
   DDS_LIBS=/home/droid/droid-opendds/build/target/lib \
   ACE_LIBS=/home/droid/droid-opendds/build/target/ACE_TAO/ACE/lib
