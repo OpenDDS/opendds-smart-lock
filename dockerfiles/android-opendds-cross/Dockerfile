@@ -41,12 +41,24 @@ USER droid
 
 WORKDIR /home/droid
 
+
+# download ndk
 RUN wget -O android-ndk-r23b-linux.zip \
       https://dl.google.com/android/repository/android-ndk-r23b-linux.zip && \
     unzip android-ndk-r23b-linux.zip
 
 ENV ANDROID_NDK=/home/droid/android-ndk-r23b
 ENV PATH=$ANDROID_NDK/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH
+
+# download sdk commandline tools
+RUN wget -O commandlinetools-linux-8092744_latest.zip \
+      https://dl.google.com/android/repository/commandlinetools-linux-8092744_latest.zip && \
+    unzip commandlinetools-linux-8092744_latest.zip
+
+ENV ANDROID_SDK=/home/droid/android_sdk
+
+RUN yes | /home/droid/cmdline-tools/bin/sdkmanager --sdk_root=${ANDROID_SDK} "platforms;android-30"
+
 
 # Build OpenSSL
 RUN wget -O openssl-1.1.1m.tar.gz \
@@ -93,6 +105,8 @@ RUN cd droid-opendds && \
       --macros=android_abi=${ANDROID_ABI} \
       --macros=android_api=${ANDROID_API} \
       --macros=android_ndk=${ANDROID_NDK} \
+      --macros=android_sdk=${ANDROID_SDK} \
+      --macros=android_target_api=${ANDROID_API} \
       --macros=no_hidden_visibility=1 \
       --openssl=/home/droid/droid-openssl \
       --xerces3=/home/droid/droid-xerces \
