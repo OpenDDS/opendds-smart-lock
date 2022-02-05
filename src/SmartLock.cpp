@@ -30,32 +30,36 @@ std::ostream& operator<< (std::ostream& lhs, const SmartLock::lock_t& rhs) {
   return lhs;
 }
 
-#if defined(HAS_WIRING_PI)
+#if defined(HAS_PIGPIO)
 
-#include <wiringPi.h>
+#include <pigpio.h>
 
-const unsigned UNLOCKED_LIGHT = 14;
-const unsigned LOCKED_LIGHT = 13;
+const unsigned UNLOCKED_LIGHT = 11;
+const unsigned LOCKED_LIGHT = 10;
 
 void pi_unlock() {
-  digitalWrite(LOCKED_LIGHT, LOW);
-  digitalWrite(UNLOCKED_LIGHT, HIGH);
+  gpioWrite(LOCKED_LIGHT, PI_LOW);
+  gpioWrite(UNLOCKED_LIGHT, PI_HIGH);
 }
 
 void pi_lock() {
-  digitalWrite(UNLOCKED_LIGHT, LOW);
-  digitalWrite(LOCKED_LIGHT, HIGH);
+  gpioWrite(UNLOCKED_LIGHT, PI_LOW);
+  gpioWrite(LOCKED_LIGHT, PI_HIGH);
 }
 
 void pi_clear() {
-  digitalWrite(UNLOCKED_LIGHT, LOW);
-  digitalWrite(LOCKED_LIGHT, LOW);
+  gpioWrite(UNLOCKED_LIGHT, PI_LOW);
+  gpioWrite(LOCKED_LIGHT, PI_LOW);
 }
 
 void pi_init() {
-  wiringPiSetup();
-  pinMode(LOCKED_LIGHT, OUTPUT);
-  pinMode(UNLOCKED_LIGHT, OUTPUT);
+  if (gpioInitialise() < 0) {
+    ACE_ERROR((LM_ERROR, "ERROR: pigpio initialisation failed\n"));
+    return;
+  }
+
+  gpioSetMode(LOCKED_LIGHT, PI_OUTPUT);
+  gpioSetMode(UNLOCKED_LIGHT, PI_OUTPUT);
 }
 
 void pi_lock_when_locked(const SmartLock::lock_t& lock) {
@@ -77,16 +81,6 @@ enum Role {
   kDealer
 
 } role = kUnknown;
-
-namespace {
-  template <typename T>
-  size_t size_of(const T& data) {
-    size_t size = 0, padding = 0;
-    DCPS::find_size_ulong(size, padding);
-    DCPS::gen_find_size(data, size, padding);
-    return size;
-  }
-}
 
 void groups_to_partitions(const std::vector<std::string>& src, DDS::PartitionQosPolicy& dest) {
   dest.name.length(src.size());
@@ -219,7 +213,7 @@ struct ControlReader : private PartitionedSubscriber {
 
             message.lock(control_message.lock());
 
-#if defined(HAS_WIRING_PI)
+#if defined(HAS_PIGPIO)
             pi_lock_when_locked(message.lock());
 #endif
 
@@ -304,7 +298,7 @@ int run_smartlock(const SmartLock::lock_t& start,
                   DDS::Topic_ptr control_topic) {
   SmartLock::Status message(start);
 
-#if defined(HAS_WIRING_PI)
+#if defined(HAS_PIGPIO)
   pi_lock_when_locked(message.lock());
 #endif
 
@@ -566,7 +560,7 @@ DDS::DomainParticipantFactory_var dpf = nullptr;
 DDS::DomainParticipant_var participant = nullptr;
 
 void cleanup() {
-#if defined(HAS_WIRING_PI)
+#if defined(HAS_PIGPIO)
   if (role == kSmartLock) pi_clear();
 #endif
 
@@ -796,7 +790,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[])
     case kUnknown:
       break;
     case kSmartLock:
-#if defined(HAS_WIRING_PI)
+#if defined(HAS_PIGPIO)
       pi_init();
       pi_clear();
 #endif
