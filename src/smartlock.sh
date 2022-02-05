@@ -6,6 +6,7 @@ LD_LIBRARY_PATH+="${LD_LIBRARY_PATH+:}/home/pi/pi-opendds/build/target/ACE_TAO/A
 LD_LIBRARY_PATH+=":/home/pi/pi-opendds/build/target/lib"
 LD_LIBRARY_PATH+=":/home/pi/pi-openssl/usr/local/lib"
 LD_LIBRARY_PATH+=":/home/pi/pi-xerces/lib"
+LD_LIBRARY_PATH+=":/home/pi/pigpio/lib"
 LD_LIBRARY_PATH+=":/home/pi/smartlock/Idl"
 cert_dir=/home/pi/smartlock/certs
 
