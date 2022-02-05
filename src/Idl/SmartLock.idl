@@ -6,27 +6,21 @@ struct vec2 {
   float y;
 };
 
-#pragma DCPS_DATA_TYPE "SmartLock::lock_t"
-#pragma DCPS_DATA_KEY "SmartLock::lock_t id"
-
+@topic
 struct lock_t {
-  string id;
+  @key string id;
   boolean locked;
   vec2 position;
 };
 
-#pragma DCPS_DATA_TYPE "SmartLock::Status"
-#pragma DCPS_DATA_KEY "SmartLock::Status lock.id"
-
+@topic
 struct Status {
-  lock_t lock;
+  @key lock_t lock;
 };
 
-#pragma DCPS_DATA_TYPE "SmartLock::Control"
-#pragma DCPS_DATA_KEY "SmartLock::Control lock.id"
-
+@topic
 struct Control {
-  lock_t lock;
+  @key lock_t lock;
 };
 
 };
