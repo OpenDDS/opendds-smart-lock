@@ -76,7 +76,7 @@ RUN git clone -b ${OPENDDS_BRANCH} ${OPENDDS_GIT_REPO} pi-opendds
 RUN cd pi-opendds && \
   ./configure --prefix=${OPENDDS_PREFIX} \
     --ace-github-latest \
-    --security --no-tests --target=linux-cross \
+    --security --target=linux-cross \
     --target-compiler=arm-none-linux-gnueabihf-g++ \
     --openssl=${BUILD_ROOT}/pi-openssl/usr/local \
     --xerces3=${BUILD_ROOT}/pi-xerces && \
