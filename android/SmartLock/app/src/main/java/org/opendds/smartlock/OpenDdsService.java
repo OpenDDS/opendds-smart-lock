@@ -100,11 +100,6 @@ public class OpenDdsService extends Service {
 
     private String[] groups;
 
-    // Used to load the 'native-lib' library on application startup.
-    static {
-        System.loadLibrary("native-lib");
-    }
-
     public class OpenDdsBinder extends Binder {
         OpenDdsService getService() {
             return OpenDdsService.this;
@@ -143,6 +138,12 @@ public class OpenDdsService extends Service {
         dr_qos.reader_data_lifecycle = new ReaderDataLifecycleQosPolicy();
         dr_qos.reader_data_lifecycle.autopurge_nowriter_samples_delay = new Duration_t();
         dr_qos.reader_data_lifecycle.autopurge_disposed_samples_delay = new Duration_t();
+        dr_qos.representation = new DataRepresentationQosPolicy();
+        dr_qos.representation.value = new short[0];
+        dr_qos.type_consistency = new TypeConsistencyEnforcementQosPolicy();
+        dr_qos.type_consistency.kind = 2;
+        dr_qos.type_consistency.ignore_member_names = false;
+        dr_qos.type_consistency.force_type_validation = false;
 
         DataReaderQosHolder holder = new DataReaderQosHolder(dr_qos);
         subscriber.get_default_datareader_qos(holder);
@@ -226,7 +227,7 @@ public class OpenDdsService extends Service {
         // Initialize OpenDDS by getting the Participant Factory
         ArrayList<String> args = new ArrayList<String>();
         args.add("-DCPSTransportDebugLevel");
-        args.add("3");
+        args.add("10");
         args.add("-DCPSDebugLevel");
         args.add("10");
         args.add("-DCPSConfigFile");
