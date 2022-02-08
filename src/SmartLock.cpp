@@ -52,6 +52,10 @@ void pi_clear() {
   gpioWrite(LOCKED_LIGHT, PI_LOW);
 }
 
+void pi_shutdown() {
+  gpioTerminate();
+}
+
 void pi_init() {
   if (gpioInitialise() < 0) {
     ACE_ERROR((LM_ERROR, "ERROR: pigpio initialisation failed\n"));
@@ -562,6 +566,7 @@ DDS::DomainParticipant_var participant = nullptr;
 void cleanup() {
 #if defined(HAS_PIGPIO)
   if (role == kSmartLock) pi_clear();
+  pi_shutdown();
 #endif
 
   if (dpf) {
