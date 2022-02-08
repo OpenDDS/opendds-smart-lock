@@ -1,26 +1,25 @@
-
 module SmartLock {
 
-struct vec2 {
-  float x;
-  float y;
-};
+  struct vec2 {
+    float x;
+    float y;
+  };
 
-@topic
-struct lock_t {
-  @key string id;
-  boolean locked;
-  vec2 position;
-};
+  @topic
+  struct lock_t {
+    @key string id;
+    boolean locked;
+    vec2 position;
+  };
 
-@topic
-struct Status {
-  @key lock_t lock;
-};
+  @topic
+  struct Status {
+    @key lock_t lock;
+  };
 
-@topic
-struct Control {
-  @key lock_t lock;
-};
+  @topic
+  struct Control {
+    @key lock_t lock;
+  };
 
 };
