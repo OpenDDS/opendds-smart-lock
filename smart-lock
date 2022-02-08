@@ -464,6 +464,21 @@ function android-build-toolchain-arm64 {
     docker build --build-arg "OPENDDS_BRANCH=${commit}" "${_SMART_LOCK_DIR}/dockerfiles/android-opendds-cross" -f "${_SMART_LOCK_DIR}/dockerfiles/android-opendds-cross/Dockerfile" -t android-opendds-cross
 }
 
+function android-build-toolchain-arm {
+    local commit='master'
+    match-keyword 'build-toolchain-arm'
+
+    if ! end-of-input?; then
+	    commit="$(peek)"
+      consume
+    fi
+
+    expected-end-of-input
+
+    #add --no-cache if needed: "docker build --no-cache ..."
+    docker build --build-arg ABI=armeabi-v7a --build-arg ABI_PREFIX=armv7a-linux-androideabi --build-arg RUNTIME_ROOT=arm-linux-androideabi --build-arg PLATFORM=android-arm --build-arg "OPENDDS_BRANCH=${commit}" "${_SMART_LOCK_DIR}/dockerfiles/android-opendds-cross" -f "${_SMART_LOCK_DIR}/dockerfiles/android-opendds-cross/Dockerfile" -t android-opendds-cross
+}
+
 function android-build-toolchain-x86 {
     local commit='master'
     match-keyword 'build-toolchain-x86'
@@ -586,7 +601,7 @@ function android-install {
     (
         load-config
         cd "${_SMART_LOCK_DIR}/android/SmartLock"
-        "${ANDROID_HOME}/platform-tools/adb" -d install ./app/build/outputs/apk/debug/app-debug.apk
+        "${ANDROID_SDK_ROOT}/platform-tools/adb" -d install ./app/build/outputs/apk/debug/app-debug.apk
     )
 }
 
@@ -597,7 +612,7 @@ function android-ssh {
     expected-end-of-input
 
     load-config
-    "${ANDROID_HOME}/platform-tools/adb" shell
+    "${ANDROID_SDK_ROOT}/platform-tools/adb" shell
 }
 
 function android-start {
@@ -607,7 +622,7 @@ function android-start {
     expected-end-of-input
 
     load-config
-    "${ANDROID_HOME}/platform-tools/adb" shell am start -n org.opendds.smartlock/org.opendds.smartlock.MainActivity
+    "${ANDROID_SDK_ROOT}/platform-tools/adb" shell am start -n org.opendds.smartlock/org.opendds.smartlock.MainActivity
 }
 
 function android-stop {
@@ -617,7 +632,7 @@ function android-stop {
     expected-end-of-input
 
     load-config
-    "${ANDROID_HOME}/platform-tools/adb" shell am force-stop org.opendds.smartlock
+    "${ANDROID_SDK_ROOT}/platform-tools/adb" shell am force-stop org.opendds.smartlock
 }
 
 function android-logs {
@@ -642,12 +657,12 @@ function android-logs {
     expected-end-of-input
 
     load-config
-    local -r pid=$("${ANDROID_HOME}/platform-tools/adb" shell 'ps -A -o PID,ARGS | grep smartlock | grep -v grep' | awk '{print $1}')
+    local -r pid=$("${ANDROID_SDK_ROOT}/platform-tools/adb" shell 'ps -A -o PID,ARGS | grep smartlock | grep -v grep' | awk '{print $1}')
     if [[ -z ${pid} ]]; then
         echo "Smartlock Demo application is not running" >&2
         return 1
     fi
-    "${ANDROID_HOME}/platform-tools/adb" logcat --pid="${pid}" "${dump_flags}"
+    "${ANDROID_SDK_ROOT}/platform-tools/adb" logcat --pid="${pid}" "${dump_flags}"
 }
 
 
@@ -662,7 +677,8 @@ Usage: $(command-prefix) COMMAND [OPTION ...]
 
 Commands:
         build-toolchain-arm64 [commit]  Build a Docker image containing arm64-v8a cross-compiler and cross-compiled dependencies
-        build-toolchain-x86   [commit]  Build a Docker image containing arm64-v8a cross-compiler and cross-compiled dependencies
+        build-toolchain-arm   [commit]  Build a Docker image containing arm cross-compiler and cross-compiled dependencies
+        build-toolchain-x86   [commit]  Build a Docker image containing x86 cross-compiler and cross-compiled dependencies
         clean-toolchain                 Remove the Docker image containing a cross-compiler and cross-compiled dependencies
         compile                         Cross-compile the SmartLock Demo application
         clean                           Remove the compiled application
@@ -680,6 +696,9 @@ EOF
     case "${token}" in
         build-toolchain-arm64)
             android-build-toolchain-arm64
+            ;;
+        build-toolchain-arm)
+            android-build-toolchain-arm
             ;;
         build-toolchain-x86)
             android-build-toolchain-x86
@@ -709,7 +728,7 @@ EOF
             android-logs
             ;;
         *)
-            expected-keywords build-toolchain-arm64 build-toolchain-x86 clean-toolchain compile clean install start stop ssh logs
+            expected-keywords build-toolchain-arm64 build-toolchain-arm build-toolchain-x86 clean-toolchain compile clean install start stop ssh logs
             ;;
     esac
 }

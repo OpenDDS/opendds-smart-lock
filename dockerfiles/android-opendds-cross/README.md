@@ -11,6 +11,10 @@ For arm64-v8a Android 11 run
 
 `docker build -t android-opendds .`
 
+For arm Android 11 run
+
+`docker build --build-arg ABI=armeabi-v7a --build-arg ABI_PREFIX=armv7a-linux-androideabi --build-arg RUNTIME_ROOT=arm-linux-androideabi --build-arg PLATFORM=android-arm -t android-opendds .`
+
 For x86 Android 11 run
 
 `docker build --build-arg ABI=x86 --build-arg ABI_PREFIX=i686-linux-android --build-arg PLATFORM=android-x86 -t android-opendds .`

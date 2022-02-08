@@ -8,11 +8,13 @@ ARG OPENDDS_MAKE_JOBS=4
 ARG API=30
 ARG ABI=arm64-v8a
 ARG ABI_PREFIX=aarch64-linux-android
+ARG RUNTIME_ROOT=$ABI_PREFIX
 ARG PLATFORM=android-arm64
 
 ENV ANDROID_API=$API
 ENV ANDROID_ABI=$ABI
 ENV ANDROID_ABI_PREFIX=$ABI_PREFIX
+ENV ANDROID_RUNTIME_ROOT=$RUNTIME_ROOT
 ENV ANDROID_ARCH=$PLATFORM
 ENV ANDROID_CC="${ABI_PREFIX}${API}-clang"
 ENV ANDROID_CXX="${ABI_PREFIX}${API}-clang++"
@@ -99,7 +101,6 @@ RUN git clone -b ${OPENDDS_BRANCH} ${OPENDDS_GIT_REPO} droid-opendds
 
 RUN cd droid-opendds && \
     ./configure \
-      --no-tests \
       --ace-github-latest \
       --target=android \
       --macros=android_abi=${ANDROID_ABI} \
@@ -124,7 +125,7 @@ RUN cd droid-opendds/build/target && \
 RUN mkdir /home/droid/libs
 
 # Copy dependencies into libs folder.
-ENV RUNTIME_LIBS=${ANDROID_NDK}/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/${ABI_PREFIX} \
+ENV RUNTIME_LIBS=${ANDROID_NDK}/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/${ANDROID_RUNTIME_ROOT} \
   XERCES_LIBS=/home/droid/droid-xerces/lib \
   DDS_LIBS=/home/droid/droid-opendds/build/target/lib \
   ACE_LIBS=/home/droid/droid-opendds/build/target/ACE_TAO/ACE/lib
