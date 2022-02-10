@@ -2,6 +2,7 @@
 <android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/theConstraintLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:minWidth="@android:dimen/app_icon_size"
@@ -12,28 +13,15 @@
         android:id="@+id/divider"
         android:layout_width="736dp"
         android:layout_height="2dp"
-        android:layout_marginTop="170dp"
+        android:layout_marginTop="250dp"
         android:layout_marginBottom="8dp"
         android:background="?android:attr/listDivider"
         app:layout_constraintBottom_toTopOf="@+id/list"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <ImageView
-        android:id="@+id/imageView"
-        android:layout_width="198dp"
-        android:layout_height="168dp"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="16dp"
-        android:adjustViewBounds="true"
-        android:cropToPadding="true"
-        android:scaleType="fitCenter"
-        app:layout_constraintEnd_toStartOf="@+id/textView"
-        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintHorizontal_bias="0.15"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:srcCompat="@drawable/ic_opendds_logo" />
+        app:layout_constraintVertical_bias=".50" />
 
     <LinearLayout
         android:id="@+id/list"
@@ -49,21 +37,17 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/divider"></LinearLayout>
 
-    <TextView
-        android:id="@+id/textView"
+    <ImageView
+        android:id="@+id/openDDSLogo"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="60dp"
-        android:layout_marginEnd="324dp"
-        android:layout_marginBottom="8dp"
-        android:text="@string/logo_name"
-        android:textSize="36sp"
-        android:textStyle="bold"
-        app:layout_constraintBottom_toTopOf="@+id/divider"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.5"
-        app:layout_constraintStart_toEndOf="@+id/imageView"
+        android:contentDescription="@string/logo_name"
+        app:layout_constraintBottom_toBottomOf="@+id/theConstraintLayout"
+        app:layout_constraintEnd_toEndOf="@+id/theConstraintLayout"
+        app:layout_constraintHorizontal_bias="0.07"
+        app:layout_constraintStart_toStartOf="@+id/theConstraintLayout"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.222"
-        tools:text="@string/logo_name" />
+        app:layout_constraintVertical_bias="0.100000024"
+        app:srcCompat="@drawable/opendds_smart_lock_logo" />
+
 </android.support.constraint.ConstraintLayout>
