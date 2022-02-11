@@ -53,7 +53,7 @@ set(CMAKE_SYSTEM_NAME Linux)\n \
 set(CMAKE_SYSTEM_PROCESSOR arm)\n \
 set(CMAKE_C_COMPILER arm-none-linux-gnueabihf-gcc)\n \
 set(CMAKE_CXX_COMPILER arm-none-linux-gnueabihf-g++)\n \
-set(CMAKE_FIND_ROOT_PATH /opt/cross-pi-gcc/arm-none-linux-gnueabihf)\n \
+set(CMAKE_FIND_ROOT_PATH ${CROSS_PI_GCC}/arm-none-linux-gnueabihf)\n \
 set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)\n \
 set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)\n \
 set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)\n \
