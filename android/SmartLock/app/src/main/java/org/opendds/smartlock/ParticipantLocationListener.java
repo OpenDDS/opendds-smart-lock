@@ -87,6 +87,7 @@ public class ParticipantLocationListener extends _DataReaderListenerLocalBase {
                 new ParticipantLocationBuiltinTopicDataHolder(
                         new ParticipantLocationBuiltinTopicData(new byte[16], 0, 0, "", new DDS.Time_t(), "", new DDS.Time_t(), "",
                         new DDS.Time_t(), "", new DDS.Time_t(), "", new DDS.Time_t(), "", new DDS.Time_t()));
+
         SampleInfoHolder si = new SampleInfoHolder(new SampleInfo(0, 0, 0,
                 new DDS.Time_t(), 0, 0, 0, 0, 0, 0, 0, false, 0));
 

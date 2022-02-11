@@ -4,11 +4,9 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
-import android.net.ConnectivityManager;
-import android.net.Network;
 import android.os.IBinder;
-import android.support.v4.app.FragmentTransaction;
-import android.support.v7.app.AppCompatActivity;
+import androidx.fragment.app.FragmentTransaction;
+import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -19,23 +17,19 @@ import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class MainActivity extends AppCompatActivity {
-    public static final String EXTRA_MESSAGE = "org.opendds.smartlock.MESSAGE";
-
     private final String LOG_TAG = "SmartLock_Main_Activity";
 
     private HashMap<String, SmartLockFragment> locks = new HashMap<String, SmartLockFragment>();
+    final private ReentrantLock locksLock = new ReentrantLock();
 
     // flag for network changes.
     private boolean networkLost = false;
-
-    final private ReentrantLock locksLock = new ReentrantLock();
 
     private OpenDdsService svc = null;
 
     private ServiceConnection ddsServiceConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
-
             Log.i(LOG_TAG, "calling onServiceConnected");
 
             OpenDdsService.OpenDdsBinder binder = (OpenDdsService.OpenDdsBinder) service ;
@@ -45,15 +39,12 @@ public class MainActivity extends AppCompatActivity {
                 Log.e(LOG_TAG, "onServiceConnected() DDS reference is null");
             }
             else {
-
                 // update lock models refs to service
                 for (Map.Entry<String, SmartLockFragment> item : locks.entrySet()) {
                     item.getValue().svc = svc;
                 }
-
                 // update reference
                 svc.setActivity(MainActivity.this);
-
             }
         }
 
@@ -68,6 +59,7 @@ public class MainActivity extends AppCompatActivity {
         LinearLayout container = new LinearLayout(context);
         int container_id = View.generateViewId();
         container.setId(container_id);
+
         FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
         SmartLockFragment frag = new SmartLockFragment();
 
@@ -75,7 +67,6 @@ public class MainActivity extends AppCompatActivity {
         if (svc != null) {
             frag.svc = svc;
         }
-
 
         ft.add(container_id, frag, frag.id_string);
         ft.commit();
@@ -87,9 +78,7 @@ public class MainActivity extends AppCompatActivity {
     private SmartLockFragment addLock (Context context, SmartLockStatus status) {
         SmartLockFragment frag = addLock(context);
         frag.setStatus(status);
-
         locks.put(status.id, frag);
-
         return frag;
     }
 
@@ -99,7 +88,6 @@ public class MainActivity extends AppCompatActivity {
 
     public SmartLockFragment updateLock (SmartLockStatus status) {
         SmartLockFragment frag = null;
-
         locksLock.lock();
 
         try {
@@ -140,6 +128,8 @@ public class MainActivity extends AppCompatActivity {
                 status.enabled = false;
                 addLock(status);
             }
+        } else {
+
         }
     }
 
@@ -152,14 +142,16 @@ public class MainActivity extends AppCompatActivity {
         // create DDS Entities
         if (getResources().getBoolean(R.bool.init_opendds)) {
 
-            Intent i = new Intent(getApplicationContext(), OpenDdsService.class);
-            bindService(i, ddsServiceConnection, Context.BIND_AUTO_CREATE);
-        }
+            Intent intent = new Intent(getApplicationContext(), OpenDdsService.class);
 
+            if (!bindService(intent, ddsServiceConnection, Context.BIND_AUTO_CREATE)) {
+                Log.e(LOG_TAG, "FAILED to bind to OpenDdsService.");
+            }
+        }
+/*
         // install network change listener
         ConnectivityManager cm = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
         cm.registerDefaultNetworkCallback(new ConnectivityManager.NetworkCallback() {
-
             @Override
             public void onAvailable(Network network) {
                 super.onAvailable(network);
@@ -179,7 +171,7 @@ public class MainActivity extends AppCompatActivity {
                 networkLost = true;
             }
         });
-
+ */
     }
 
     @Override

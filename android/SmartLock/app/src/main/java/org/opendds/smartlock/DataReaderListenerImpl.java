@@ -24,7 +24,7 @@ public class DataReaderListenerImpl extends _DataReaderListenerLocalBase {
 
     private static final String LOGTAG = "SmartLock_DataReaderListenerImpl";
 
-    private OpenDdsService svc;
+    private final OpenDdsService svc;
 
     public DataReaderListenerImpl(OpenDdsService svc) {
         super();
@@ -79,7 +79,7 @@ public class DataReaderListenerImpl extends _DataReaderListenerLocalBase {
                                         SmartLockStatus.State.UNLOCKED;
                 lock_status.enabled = true;
 
-                Log.d(LOGTAG, "Got: " + lock_status.toString());
+                Log.d(LOGTAG, "Got: " + lock_status);
             }
             else if (sih.value.instance_state ==
                     NOT_ALIVE_DISPOSED_INSTANCE_STATE.value) {

@@ -1,6 +1,6 @@
 package org.opendds.smartlock;
 
-import android.arch.lifecycle.ViewModel;
+import androidx.lifecycle.ViewModel;
 
 public class SmartLockViewModel extends ViewModel {
     public SmartLockStatus value = new SmartLockStatus();

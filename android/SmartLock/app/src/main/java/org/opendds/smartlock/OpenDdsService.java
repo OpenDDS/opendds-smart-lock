@@ -33,24 +33,19 @@ import SmartLock.lock_t;
 import SmartLock.vec2;
 
 public class OpenDdsService extends Service {
+    private final static String LOG_TAG = "SmartLock_OpenDDS_Service";
 
-    final static String LOG_TAG = "SmartLock_OpenDDS_Service";
-
-    final static String LOCK_UPDATE_MESSAGE = "LockUpdateMessage";
-    final static String LOCK_STATUS_DATA = "LockStatus";
-
-    public boolean secure = false;
-
+    private final IBinder binder = new OpenDdsBinder();
+    private MainActivity activity = null;
+    private static DomainParticipant participant = null;
     public DomainParticipantFactory participantFactory;
     public DomainParticipantQos participantQos;
 
+    // need a persistent reference to datawriter to avoid GC
+    private static DataWriter dw = null;
+
+    public boolean secure = false;
     private final int DOMAIN = 42;
-
-    private final IBinder binder = new OpenDdsBinder();
-
-    private static DomainParticipant participant = null;
-
-    private MainActivity activity = null;
 
     protected MainActivity getActivity() {
         return activity;
@@ -60,9 +55,6 @@ public class OpenDdsService extends Service {
         Log.i(LOG_TAG, "Activity is " + activity.toString());
         this.activity = activity;
     }
-
-    // need a persistent reference to datawriter to avoid GC
-    private static DataWriter dw = null;
 
     public boolean updateLockState (SmartLockStatus lockState)
     {
@@ -227,9 +219,9 @@ public class OpenDdsService extends Service {
         // Initialize OpenDDS by getting the Participant Factory
         ArrayList<String> args = new ArrayList<String>();
         args.add("-DCPSTransportDebugLevel");
-        args.add("10");
+        args.add("5");
         args.add("-DCPSDebugLevel");
-        args.add("10");
+        args.add("5");
         args.add("-DCPSConfigFile");
         args.add(config_file);
 
@@ -237,6 +229,7 @@ public class OpenDdsService extends Service {
             args.add("-DCPSSecurity");
             args.add("1");
         }
+
         StringSeqHolder argsHolder = new StringSeqHolder(args.toArray(new String[args.size()]));
         participantFactory = TheParticipantFactory.WithArgs(argsHolder);
         if (participantFactory == null) {
@@ -258,6 +251,7 @@ public class OpenDdsService extends Service {
             properties_list.add(new Property_t("dds.sec.access.governance", f + gov_file, false));
             properties_list.add(new Property_t("dds.sec.access.permissions", f + user_perm_file, false));
         }
+
         participantQos = new DomainParticipantQos(
                 PARTICIPANT_QOS_DEFAULT.get().user_data,
                 PARTICIPANT_QOS_DEFAULT.get().entity_factory,
@@ -267,33 +261,32 @@ public class OpenDdsService extends Service {
     }
 
     private void startDds() {
-        // Start OpenDDS
-        String error_message = null;
-        Throwable exception = null;
-        if (getResources().getBoolean(R.bool.init_opendds)) {
-            ConnectivityManager cm = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
-            NetworkInfo network = cm.getActiveNetworkInfo();
-            boolean has_network = network != null && network.isConnectedOrConnecting();
-            if (has_network) {
-                try {
-                    initParticipantFactory();
-                } catch (InitOpenDDSException e) {
-                    error_message = "Error Initializing OpenDDS";
-                    exception = e;
+        if (participant == null) {
+            // Start OpenDDS
+            String error_message = null;
+            Throwable exception = null;
+            if (getResources().getBoolean(R.bool.init_opendds)) {
+                ConnectivityManager cm = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
+                if (cm.getActiveNetwork() != null) {
+                    try {
+                        initParticipantFactory();
+                    } catch (InitOpenDDSException e) {
+                        error_message = "Error Initializing OpenDDS";
+                        exception = e;
+                    }
+                } else {
+                    error_message = "No Network Connection, could not start OpenDDS, restart this app when connected to a network";
                 }
-            } else {
-                error_message = "No Network Connection, could not start OpenDDS, restart this app when connected to a network";
+            }
+            if (error_message != null) {
+                Toast.makeText(getApplicationContext(), error_message, Toast.LENGTH_LONG).show();
+                if (exception != null) {
+                    Log.e(LOG_TAG, error_message, exception);
+                } else {
+                    Log.e(LOG_TAG, error_message);
+                }
             }
         }
-        if (error_message != null) {
-            Toast.makeText(getApplicationContext(), error_message, Toast.LENGTH_LONG).show();
-            if (exception != null) {
-                Log.e(LOG_TAG, error_message, exception);
-            } else {
-                Log.e(LOG_TAG, error_message);
-            }
-        }
-
     }
 
     private void initParticipant() throws InitOpenDDSException {
@@ -440,7 +433,8 @@ public class OpenDdsService extends Service {
     @Override
     public void onRebind(Intent intent) {
         Log.i(LOG_TAG, "onRebind()");
-        super.onRebind(intent); }
+        super.onRebind(intent);
+    }
 
 
     @Override
