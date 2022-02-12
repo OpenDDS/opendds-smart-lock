@@ -1,7 +1,5 @@
 <resources>
     <string name="app_name">SmartLock</string>
-    <string name="edit_message">Enter a message</string>
-    <string name="button_send">Send</string>
     <string name="lock_id">Lock ID</string>
     <string name="lock_unlock">Lock/Unlock</string>
     <string name="logo_name">OpenDDS</string>
