@@ -5,13 +5,15 @@ ARG OPENDDS_GIT_REPO=https://github.com/objectcomputing/OpenDDS.git
 ARG OPENDDS_MAKE_JOBS=4
 
 # these can be overridden with --build-args
-ARG API=30
+ARG API=31
+ARG MIN_API=26
 ARG ABI=arm64-v8a
 ARG ABI_PREFIX=aarch64-linux-android
 ARG RUNTIME_ROOT=$ABI_PREFIX
 ARG PLATFORM=android-arm64
 
 ENV ANDROID_API=$API
+ENV ANDROID_MIN_API=$MIN_API
 ENV ANDROID_ABI=$ABI
 ENV ANDROID_ABI_PREFIX=$ABI_PREFIX
 ENV ANDROID_RUNTIME_ROOT=$RUNTIME_ROOT
@@ -59,7 +61,7 @@ RUN wget -O commandlinetools-linux-8092744_latest.zip \
 
 ENV ANDROID_SDK=/home/droid/android_sdk
 
-RUN yes | /home/droid/cmdline-tools/bin/sdkmanager --sdk_root=${ANDROID_SDK} "platforms;android-30"
+RUN yes | /home/droid/cmdline-tools/bin/sdkmanager --sdk_root=${ANDROID_SDK} "platforms;android-${ANDROID_API}"
 
 
 # Build OpenSSL
@@ -68,7 +70,7 @@ RUN wget -O openssl-1.1.1m.tar.gz \
     tar xvzf openssl-1.1.1m.tar.gz
 
 RUN cd openssl-1.1.1m && \
-  ./Configure ${ANDROID_ARCH} -D__ANDROID_API__=${ANDROID_API} no-shared -Wno-macro-redefined --prefix=/home/droid/droid-openssl && \
+  ./Configure ${ANDROID_ARCH} -D__ANDROID_API__=${ANDROID_MIN_API} no-shared -Wno-macro-redefined --prefix=/home/droid/droid-openssl && \
   make -j4 && make install
 
 # Build Xerces
@@ -104,7 +106,7 @@ RUN cd droid-opendds && \
       --ace-github-latest \
       --target=android \
       --macros=android_abi=${ANDROID_ABI} \
-      --macros=android_api=${ANDROID_API} \
+      --macros=android_api=${ANDROID_MIN_API} \
       --macros=android_ndk=${ANDROID_NDK} \
       --macros=android_sdk=${ANDROID_SDK} \
       --macros=android_target_api=${ANDROID_API} \
