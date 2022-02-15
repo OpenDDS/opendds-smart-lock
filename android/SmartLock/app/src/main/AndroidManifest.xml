@@ -2,28 +2,43 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="org.opendds.smartlock">
 
-    <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <supports-screens
+        android:compatibleWidthLimitDp="1080"
+        android:requiresSmallestWidthDp="320"
+        android:normalScreens="true"
+        android:largeScreens="true"
+        android:smallScreens="false"
+        android:xlargeScreens="true"/>
+
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
 
     <application
         android:allowBackup="true"
+        android:fitsSystemWindows="true"
+
         android:icon="@drawable/ic_opendds_logo"
         android:label="@string/app_name"
         android:roundIcon="@drawable/ic_opendds_logo"
         android:supportsRtl="true"
+        android:largeHeap="true"
+        android:requestLegacyExternalStorage="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".MainActivity"
-            android:configChanges="orientation|screenSize">
+
+        <activity android:name="org.opendds.smartlock.MainActivity"
+            android:configChanges="orientation|screenSize"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <service
-            android:name=".OpenDdsService"
-            android:enabled="true"
-            android:exported="false"
-            android:stopWithTask="false" />
     </application>
 
 </manifest>

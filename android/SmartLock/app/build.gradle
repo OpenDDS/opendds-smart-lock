@@ -1,14 +1,14 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdk 29
+    compileSdkVersion 29
     defaultConfig {
         applicationId "org.opendds.smartlock"
-        minSdkVersion 29
+        minSdkVersion 26
         //noinspection ExpiredTargetSdkVersion
         targetSdkVersion 29
         versionCode 1
-        versionName "1.0"
+        versionName "1"
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
     }
     buildTypes {
@@ -18,6 +18,7 @@ android {
         }
         debug {
             minifyEnabled false
+            jniDebuggable true
         }
     }
 
@@ -26,6 +27,8 @@ android {
             jniLibs.srcDirs 'native_libs'
         }
     }
+    buildToolsVersion '31.0.0'
+    ndkVersion '21.4.7075529'
     // Uncomment this to add debug symbols to the respective shared objects.
     //
     // packagingOptions{
