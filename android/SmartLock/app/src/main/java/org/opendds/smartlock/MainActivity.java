@@ -1,10 +1,8 @@
 package org.opendds.smartlock;
 
-import android.content.ComponentName;
 import android.content.Context;
-import android.content.Intent;
-import android.content.ServiceConnection;
-import android.os.IBinder;
+import android.net.ConnectivityManager;
+import android.net.Network;
 import androidx.fragment.app.FragmentTransaction;
 import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
@@ -13,60 +11,29 @@ import android.view.View;
 import android.widget.LinearLayout;
 
 import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class MainActivity extends AppCompatActivity {
     private final String LOG_TAG = "SmartLock_Main_Activity";
 
-    private HashMap<String, SmartLockFragment> locks = new HashMap<String, SmartLockFragment>();
+    private final HashMap<String, SmartLockFragment> locks = new HashMap<String, SmartLockFragment>();
     final private ReentrantLock locksLock = new ReentrantLock();
+
+    private static OpenDdsBridge ddsBridge = null;
+
+    protected static OpenDdsBridge getDdsBridge() { return ddsBridge; }
 
     // flag for network changes.
     private boolean networkLost = false;
 
-    private OpenDdsService svc = null;
-
-    private ServiceConnection ddsServiceConnection = new ServiceConnection() {
-        @Override
-        public void onServiceConnected(ComponentName name, IBinder service) {
-            Log.i(LOG_TAG, "calling onServiceConnected");
-
-            OpenDdsService.OpenDdsBinder binder = (OpenDdsService.OpenDdsBinder) service ;
-            svc = binder.getService();
-
-            if (svc == null) {
-                Log.e(LOG_TAG, "onServiceConnected() DDS reference is null");
-            }
-            else {
-                // update lock models refs to service
-                for (Map.Entry<String, SmartLockFragment> item : locks.entrySet()) {
-                    item.getValue().svc = svc;
-                }
-                // update reference
-                svc.setActivity(MainActivity.this);
-            }
-        }
-
-            @Override
-        public void onServiceDisconnected(ComponentName name) {
-            Log.i(LOG_TAG, "calling onServiceDisconnected");
-        }
-    };
-
     private SmartLockFragment addLock (Context context) {
-        LinearLayout list = (LinearLayout) findViewById(R.id.list);
+        LinearLayout list = findViewById(R.id.list);
         LinearLayout container = new LinearLayout(context);
         int container_id = View.generateViewId();
         container.setId(container_id);
 
         FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
         SmartLockFragment frag = new SmartLockFragment();
-
-        // it's okay if dds is null here, since service may not be started yet.
-        if (svc != null) {
-            frag.svc = svc;
-        }
 
         ft.add(container_id, frag, frag.id_string);
         ft.commit();
@@ -75,37 +42,31 @@ public class MainActivity extends AppCompatActivity {
         return frag;
     }
 
-    private SmartLockFragment addLock (Context context, SmartLockStatus status) {
+    private void addLock (Context context, SmartLockStatus status) {
         SmartLockFragment frag = addLock(context);
         frag.setStatus(status);
         locks.put(status.id, frag);
-        return frag;
     }
 
-    public SmartLockFragment addLock (SmartLockStatus status) {
-        return addLock(this, status);
+    public void addLock (SmartLockStatus status) {
+         addLock(this, status);
     }
 
-    public SmartLockFragment updateLock (SmartLockStatus status) {
-        SmartLockFragment frag = null;
-        locksLock.lock();
-
-        try {
-            Log.i(LOG_TAG, "id = " + status.id + " contains " + locks.containsKey(status.id));
-            if (locks.containsKey(status.id)) {
-                frag = locks.get(status.id);
-                frag.setStatus(status);
-            }
-        } finally {
+    public void updateLock (SmartLockStatus status) {
+        SmartLockFragment frag = locks.get(status.id);
+        if (frag != null) {
+            Log.i(LOG_TAG, "updateLock " + status.id + " set to " + status.state);
+            locksLock.lock();
+            frag.setStatus(status);
             locksLock.unlock();
+        } else {
+            Log.e(LOG_TAG, "updateLock " + status.id + " failed. Lock not found.");
         }
-        return frag;
     }
 
     public void tryToUpdateLock (SmartLockStatus status) {
-        Log.i(LOG_TAG, "tryToUpdatelock 1");
+        Log.i(LOG_TAG, "tryToUpdatelock ");
         if (locksLock.tryLock()) {
-            Log.i(LOG_TAG, "tryToUpdatelock 2");
             updateLock(status);
         }
     }
@@ -122,14 +83,17 @@ public class MainActivity extends AppCompatActivity {
 
             // Set locks that we will show
             String[] locks = getResources().getStringArray(R.array.locks);
-            for (int i = 0; i < locks.length; i++) {
+            for (String lock : locks) {
                 SmartLockStatus status = new SmartLockStatus();
-                status.id = locks[i];
+                status.id = lock;
                 status.enabled = false;
                 addLock(status);
             }
         } else {
-
+            if (ddsBridge == null) {
+                Log.e(LOG_TAG, "onCreate() DDS reference is null");
+                boolean flag = false;
+            }
         }
     }
 
@@ -141,14 +105,10 @@ public class MainActivity extends AppCompatActivity {
 
         // create DDS Entities
         if (getResources().getBoolean(R.bool.init_opendds)) {
-
-            Intent intent = new Intent(getApplicationContext(), OpenDdsService.class);
-
-            if (!bindService(intent, ddsServiceConnection, Context.BIND_AUTO_CREATE)) {
-                Log.e(LOG_TAG, "FAILED to bind to OpenDdsService.");
-            }
+            ddsBridge = new OpenDdsBridge(this);
+            ddsBridge.start();
         }
-/*
+
         // install network change listener
         ConnectivityManager cm = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
         cm.registerDefaultNetworkCallback(new ConnectivityManager.NetworkCallback() {
@@ -171,31 +131,26 @@ public class MainActivity extends AppCompatActivity {
                 networkLost = true;
             }
         });
- */
     }
 
     @Override
     protected void onStop() {
         Log.i(LOG_TAG, "onStop()");
 
-        Log.i(LOG_TAG, "calling unbindService()");
-        unbindService(ddsServiceConnection);
-
         super.onStop();
     }
 
     @Override
     public void onDestroy() {
-        Log.i(LOG_TAG, "onDestroy()");
-
         super.onDestroy();
+        OpenDdsBridge.shutdown();
+        Log.i(LOG_TAG, "onDestroy()");
     }
 
     // screen orientation change handling if needed
     @Override
     protected void onSaveInstanceState(final Bundle outState) {
         super.onSaveInstanceState(outState);
-
         Log.i(LOG_TAG, "onSaveInstanceState()");
     }
 

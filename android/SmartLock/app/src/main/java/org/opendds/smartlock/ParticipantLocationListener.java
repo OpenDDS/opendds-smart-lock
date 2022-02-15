@@ -79,7 +79,7 @@ public class ParticipantLocationListener extends _DataReaderListenerLocalBase {
 
         if (bitDataReader == null)
         {
-            System.err.println("ParticipantLocationListener on_data_available: narrow failed.");;
+            System.err.println("ParticipantLocationListener on_data_available: narrow failed.");
             System.exit(1);
         }
 
