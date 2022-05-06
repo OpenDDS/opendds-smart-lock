@@ -71,7 +71,7 @@ public class SmartLockFragment extends Fragment {
             }
 
         } else {
-            if (! isHidden()) {
+            if (!isHidden()) {
                 FragmentManager fm = getFragmentManager();
                 fm.beginTransaction()
                         .setCustomAnimations(android.R.animator.fade_in, android.R.animator.fade_out)

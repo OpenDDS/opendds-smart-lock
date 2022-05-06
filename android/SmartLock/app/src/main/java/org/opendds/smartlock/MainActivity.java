@@ -26,7 +26,7 @@ public class MainActivity extends AppCompatActivity {
     // flag for network changes.
     private boolean networkLost = false;
 
-    private SmartLockFragment addLock (Context context) {
+    private SmartLockFragment addLock(Context context) {
         LinearLayout list = findViewById(R.id.list);
         LinearLayout container = new LinearLayout(context);
         int container_id = View.generateViewId();
@@ -42,13 +42,13 @@ public class MainActivity extends AppCompatActivity {
         return frag;
     }
 
-    private void addLock (Context context, SmartLockStatus status) {
+    private void addLock(Context context, SmartLockStatus status) {
         SmartLockFragment frag = addLock(context);
         frag.setStatus(status);
         locks.put(status.id, frag);
     }
 
-    public void addLock (SmartLockStatus status) {
+    public void addLock(SmartLockStatus status) {
          addLock(this, status);
     }
 
@@ -64,7 +64,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public void tryToUpdateLock (SmartLockStatus status) {
+    public void tryToUpdateLock(SmartLockStatus status) {
         Log.i(LOG_TAG, "tryToUpdatelock ");
         if (locksLock.tryLock()) {
             updateLock(status);
@@ -161,7 +161,7 @@ public class MainActivity extends AppCompatActivity {
         Log.i(LOG_TAG, "onRestoreInstanceState()");
     }
 
-    private void addFakeLocks () {
+    private void addFakeLocks() {
         {
             SmartLockStatus status = new SmartLockStatus();
             status.id = "Alice's House";

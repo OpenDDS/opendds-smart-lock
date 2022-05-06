@@ -58,7 +58,7 @@ void pi_shutdown() {
 
 void pi_init() {
   if (gpioInitialise() < 0) {
-    ACE_ERROR((LM_ERROR, "ERROR: pigpio initialisation failed\n"));
+    ACE_ERROR((LM_ERROR, "ERROR: pigpio initialization failed\n"));
     return;
   }
 

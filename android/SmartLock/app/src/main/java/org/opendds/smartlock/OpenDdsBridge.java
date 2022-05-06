@@ -40,7 +40,7 @@ public class OpenDdsBridge extends Thread {
     private static ParticipantLocationListener locationListener = null;
     private static DataWriter dw = null;
 
-    private  DomainParticipantQos participantQos;
+    private DomainParticipantQos participantQos;
 
     public boolean secure = false;
     private final int DOMAIN = 42;
@@ -54,7 +54,7 @@ public class OpenDdsBridge extends Thread {
         this.context = activity.getApplicationContext();
     }
 
-    public void updateLockState (SmartLockStatus lockState)
+    public void updateLockState(SmartLockStatus lockState)
     {
         boolean ret = false;
         if (dw != null) {
@@ -405,5 +405,4 @@ public class OpenDdsBridge extends Thread {
         participant = null;
         TheServiceParticipant.shutdown();
     }
-
 }
