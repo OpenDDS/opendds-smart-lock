@@ -2,6 +2,7 @@ package org.opendds.smartlock;
 
 import android.content.Context;
 import android.content.res.AssetManager;
+import android.content.res.Resources;
 import android.net.ConnectivityManager;
 import android.os.Handler;
 import android.os.Looper;
@@ -43,6 +44,8 @@ public class OpenDdsBridge extends Thread {
     private DomainParticipantQos participantQos;
 
     public boolean secure = false;
+    private String debug_level = "3";
+    private String transport_debug_level = "3";
     private final int DOMAIN = 42;
     private String[] groups;
 
@@ -191,7 +194,26 @@ public class OpenDdsBridge extends Thread {
             return;
         }
 
-        secure = context.getResources().getBoolean(R.bool.secure_opendds);
+        try {
+            secure = context.getResources().getBoolean(R.bool.secure_opendds);
+        } catch (Resources.NotFoundException e) {
+            Log.d(LOG_TAG, "Could not read 'secure_opendds' from config. Using default, 'false'");
+            secure = false;
+        }
+
+        try {
+            debug_level = context.getResources().getString(R.string.dcps_debug_level);
+        } catch (Resources.NotFoundException e) {
+            Log.d(LOG_TAG, "Could not read 'dcps_debug_level' from config. Using default, '3'");
+            debug_level = "3";
+        }
+
+        try {
+            debug_level = context.getResources().getString(R.string.dcps_transport_debug_level);
+        } catch (Resources.NotFoundException e) {
+            Log.d(LOG_TAG, "Could not read 'dcps_transport_debug_level' from config. Using default, '3'");
+            transport_debug_level = "3";
+        }
 
         // Ensure Config File and Security Files Exist
         final String config_file = copyAsset("opendds_config.ini");
@@ -206,9 +228,9 @@ public class OpenDdsBridge extends Thread {
         // Initialize OpenDDS by getting the Participant Factory
         ArrayList<String> args = new ArrayList<String>();
         args.add("-DCPSTransportDebugLevel");
-        args.add("10");
+        args.add(transport_debug_level);
         args.add("-DCPSDebugLevel");
-        args.add("10");
+        args.add(debug_level);
         args.add("-DCPSConfigFile");
         args.add(config_file);
 

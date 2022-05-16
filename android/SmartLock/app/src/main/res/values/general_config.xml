@@ -3,7 +3,12 @@
     <bool name="init_opendds">true</bool>
     <bool name="secure_opendds">false</bool>
     <bool name="add_fake_locks">false</bool>
-    <string-array name="locks"><item>lock1</item><item>lock2</item></string-array>
+    <string name="dcps_debug_level">3</string>
+    <string name="dcps_transport_debug_level">3</string>
+    <string-array name="locks">
+        <item>lock1</item>
+        <item>lock2</item>
+    </string-array>
     <string-array name="groups">
         <item>house1</item>
     </string-array>
