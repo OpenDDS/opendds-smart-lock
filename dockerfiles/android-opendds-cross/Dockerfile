@@ -31,7 +31,6 @@ RUN apt-get update && apt-get install -y \
   gdb \
   gdbserver \
   make \
-  cmake \
   openjdk-11-jdk-headless \
   perl-base \
   perl-modules \
@@ -73,27 +72,22 @@ RUN cd openssl-1.1.1m && \
   ./Configure ${ANDROID_ARCH} -D__ANDROID_API__=${ANDROID_MIN_API} no-shared -Wno-macro-redefined --prefix=/home/droid/droid-openssl && \
   make -j4 && make install
 
+# Download CMake
+RUN wget -O cmake-3.23.1-Linux-x86_64.tar.gz \
+        https://github.com/Kitware/CMake/releases/download/v3.23.1/cmake-3.23.1-linux-x86_64.tar.gz && \
+        tar xzvf cmake-3.23.1-Linux-x86_64.tar.gz
+
+ENV PATH="/home/droid/cmake-3.23.1-linux-x86_64/bin:${PATH}"
+
 # Build Xerces
 RUN wget -O xerces-c-3.2.3.tar.gz \
         https://dlcdn.apache.org//xerces/c/3/sources/xerces-c-3.2.3.tar.gz && \
         tar xvzf xerces-c-3.2.3.tar.gz
 
-RUN printf "\
-set(CMAKE_SYSTEM_NAME Linux)\n \
-set(CMAKE_SYSTEM_PROCESSOR arm)\n \
-set(CMAKE_C_COMPILER ${ANDROID_CC})\n \
-set(CMAKE_CXX_COMPILER ${ANDROID_CXX})\n \
-set(CMAKE_FIND_ROOT_PATH /home/droid/toolchains/llvm/prebuilt/linux-x86_64)\n \
-set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)\n \
-set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)\n \
-set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)\n \
-set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)\n \
-set(THREADS_PTHREAD_ARG 2)\n \
-" > /home/droid/AndroidToolchain.cmake
-
 RUN cd xerces-c-3.2.3 && \
   mkdir build && cd build && \
-  cmake -DCMAKE_TOOLCHAIN_FILE=/home/droid/AndroidToolchain.cmake \
+  cmake -DCMAKE_TOOLCHAIN_FILE=/$ANDROID_NDK/build/cmake/android.toolchain.cmake \
+        -DANDROID_ABI=${ANDROID_ABI} -DANDROID_PLATFORM=${ANDROID_API} \
         -DCMAKE_INSTALL_PREFIX=/home/droid/droid-xerces .. && \
   make && make install
 
