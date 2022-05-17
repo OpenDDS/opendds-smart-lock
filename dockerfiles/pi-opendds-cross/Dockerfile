@@ -34,6 +34,10 @@ USER pi
 
 WORKDIR /home/pi
 
+ENV BUILD_ROOT /home/pi
+ENV CROSS_PI_GCC=${BUILD_ROOT}/gcc-arm-10.2-2020.11-x86_64-arm-none-linux-gnueabihf
+ENV PATH=${PATH}:${CROSS_PI_GCC}/bin
+
 RUN ./build.sh
 
 ENV PIGPIO_DIR=${BUILD_ROOT}/pigpio
