@@ -24,11 +24,10 @@ public class DataReaderListenerImpl extends _DataReaderListenerLocalBase {
 
     private static final String LOGTAG = "SmartLock_DataReaderListenerImpl";
 
-    private OpenDdsService svc;
+    private final MainActivity act;
 
-    public DataReaderListenerImpl(OpenDdsService svc) {
-        super();
-        this.svc = svc;
+    public DataReaderListenerImpl(MainActivity act) {
+        this.act = act;
     }
 
     @Override
@@ -53,6 +52,7 @@ public class DataReaderListenerImpl extends _DataReaderListenerLocalBase {
 
     @Override
     public synchronized void on_data_available(DataReader reader) {
+        Log.i(LOGTAG, "DataReaderListenerImpl.on_data_available");
         StatusDataReader mdr = StatusDataReaderHelper.narrow(reader);
         if (mdr == null) {
             Log.e(LOGTAG, "ERROR: read: narrow failed.");
@@ -67,7 +67,6 @@ public class DataReaderListenerImpl extends _DataReaderListenerLocalBase {
         int status = mdr.take_next_sample(mh, sih);
 
         if (status == RETCODE_OK.value) {
-
             Log.d(LOGTAG, "SampleInfo.sample_rank = " + sih.value.sample_rank);
             Log.d(LOGTAG, "SampleInfo.instance_state = " + sih.value.instance_state);
 
@@ -79,7 +78,7 @@ public class DataReaderListenerImpl extends _DataReaderListenerLocalBase {
                                         SmartLockStatus.State.UNLOCKED;
                 lock_status.enabled = true;
 
-                Log.d(LOGTAG, "Got: " + lock_status.toString());
+                Log.d(LOGTAG, "Got: " + lock_status);
             }
             else if (sih.value.instance_state ==
                     NOT_ALIVE_DISPOSED_INSTANCE_STATE.value) {
@@ -99,8 +98,6 @@ public class DataReaderListenerImpl extends _DataReaderListenerLocalBase {
                         + sih.value.instance_state);
             }
 
-            final MainActivity act = svc.getActivity();
-
             if (act != null) {
                 Handler handler = new Handler(act.getMainLooper());
                 handler.post(new Runnable() {
@@ -114,8 +111,6 @@ public class DataReaderListenerImpl extends _DataReaderListenerLocalBase {
             else {
                 Log.i(LOGTAG, "did not update lock state since activity ref is null.");
             }
-
-
         } else if (status == RETCODE_NO_DATA.value) {
             Log.e(LOGTAG, "ERROR: reader received DDS::RETCODE_NO_DATA!");
         } else {

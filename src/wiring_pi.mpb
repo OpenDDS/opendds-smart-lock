@@ -1,6 +1,0 @@
-feature(!no_wiring_pi) {
-  libs += wiringPi
-  libpaths += $(WIRING_PI)
-  includes += $(WIRING_PI)
-  macros += HAS_WIRING_PI
-}

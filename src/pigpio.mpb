@@ -1,0 +1,6 @@
+feature(!no_pigpio) {
+  libs += pigpio
+  libpaths += $(PIGPIO_DIR)/lib
+  includes += $(PIGPIO_DIR)/include
+  macros += HAS_PIGPIO
+}

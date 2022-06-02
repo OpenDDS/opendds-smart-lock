@@ -1,12 +1,11 @@
 package org.opendds.smartlock;
 
-import android.app.Service;
-import android.content.Intent;
+import android.content.Context;
 import android.content.res.AssetManager;
+import android.content.res.Resources;
 import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
-import android.os.Binder;
-import android.os.IBinder;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -24,6 +23,7 @@ import DDS.*;
 import OpenDDS.DCPS.BuiltinTopicUtils;
 import OpenDDS.DCPS.DEFAULT_STATUS_MASK;
 import OpenDDS.DCPS.TheParticipantFactory;
+import OpenDDS.DCPS.TheServiceParticipant;
 import SmartLock.Control;
 import SmartLock.ControlDataWriter;
 import SmartLock.ControlDataWriterHelper;
@@ -32,39 +32,32 @@ import SmartLock.StatusTypeSupportImpl;
 import SmartLock.lock_t;
 import SmartLock.vec2;
 
-public class OpenDdsService extends Service {
+public class OpenDdsBridge extends Thread {
+    private final static String LOG_TAG = "SmartLock_OpenDDS_Bridge";
 
-    final static String LOG_TAG = "SmartLock_OpenDDS_Service";
-
-    final static String LOCK_UPDATE_MESSAGE = "LockUpdateMessage";
-    final static String LOCK_STATUS_DATA = "LockStatus";
-
-    public boolean secure = false;
-
-    public DomainParticipantFactory participantFactory;
-    public DomainParticipantQos participantQos;
-
-    private final int DOMAIN = 42;
-
-    private final IBinder binder = new OpenDdsBinder();
-
+    // need a persistent reference to avoid GC
+    private static DomainParticipantFactory participantFactory;
     private static DomainParticipant participant = null;
-
-    private MainActivity activity = null;
-
-    protected MainActivity getActivity() {
-        return activity;
-    }
-
-    protected void setActivity(MainActivity activity) {
-        Log.i(LOG_TAG, "Activity is " + activity.toString());
-        this.activity = activity;
-    }
-
-    // need a persistent reference to datawriter to avoid GC
+    private static ParticipantLocationListener locationListener = null;
     private static DataWriter dw = null;
 
-    public boolean updateLockState (SmartLockStatus lockState)
+    private DomainParticipantQos participantQos;
+
+    public boolean secure = false;
+    private String debug_level = "3";
+    private String transport_debug_level = "3";
+    private final int DOMAIN = 42;
+    private String[] groups;
+
+    private final MainActivity activity;
+    private final Context context;
+
+    public OpenDdsBridge(MainActivity activity) {
+        this.activity = activity;
+        this.context = activity.getApplicationContext();
+    }
+
+    public void updateLockState(SmartLockStatus lockState)
     {
         boolean ret = false;
         if (dw != null) {
@@ -75,17 +68,16 @@ public class OpenDdsService extends Service {
             Control control_message = new Control();
             control_message.lock = new lock_t();
             control_message.lock.id = lockState.id;
-            boolean lockthis = lockState.state == SmartLockStatus.State.PENDING_LOCK ||
-                    lockState.state == SmartLockStatus.State.LOCKED;
-
-            control_message.lock.locked = lockthis;
+            control_message.lock.locked = (
+                    lockState.state == SmartLockStatus.State.PENDING_LOCK ||
+                    lockState.state == SmartLockStatus.State.LOCKED);
             control_message.lock.position = new vec2();
 
             int return_code = control_dw.write(control_message,
                     control_dw.register_instance(control_message));
             if (return_code != RETCODE_OK.value) {
                 Log.e(LOG_TAG,
-                        "Error writing control update, return code was" + String.valueOf(return_code));
+                        "Error writing control update, return code was" + return_code);
             }
             else {
                 ret = true;
@@ -93,21 +85,6 @@ public class OpenDdsService extends Service {
 
         } else {
             Log.e(LOG_TAG, "Cant Send Control Update because Datawriter is null");
-        }
-
-        return ret;
-    }
-
-    private String[] groups;
-
-    // Used to load the 'native-lib' library on application startup.
-    static {
-        System.loadLibrary("native-lib");
-    }
-
-    public class OpenDdsBinder extends Binder {
-        OpenDdsService getService() {
-            return OpenDdsService.this;
         }
     }
 
@@ -143,6 +120,12 @@ public class OpenDdsService extends Service {
         dr_qos.reader_data_lifecycle = new ReaderDataLifecycleQosPolicy();
         dr_qos.reader_data_lifecycle.autopurge_nowriter_samples_delay = new Duration_t();
         dr_qos.reader_data_lifecycle.autopurge_disposed_samples_delay = new Duration_t();
+        dr_qos.representation = new DataRepresentationQosPolicy();
+        dr_qos.representation.value = new short[0];
+        dr_qos.type_consistency = new TypeConsistencyEnforcementQosPolicy();
+        dr_qos.type_consistency.kind = 2;
+        dr_qos.type_consistency.ignore_member_names = false;
+        dr_qos.type_consistency.force_type_validation = false;
 
         DataReaderQosHolder holder = new DataReaderQosHolder(dr_qos);
         subscriber.get_default_datareader_qos(holder);
@@ -183,12 +166,12 @@ public class OpenDdsService extends Service {
     }
 
     private String copyAsset(String asset_path) throws InitOpenDDSException {
-        File new_file = new File(getFilesDir(), asset_path);
+        File new_file = new File(context.getFilesDir(), asset_path);
         final String full_path = new_file.getAbsolutePath();
         Log.d(LOG_TAG, "Writing Asset File ".concat(asset_path));
         Throwable exception = null;
         try {
-            InputStream in = getAssets().open(asset_path, AssetManager.ACCESS_BUFFER);
+            InputStream in = context.getAssets().open(asset_path, AssetManager.ACCESS_BUFFER);
             byte[] buffer = new byte[in.available()];
             in.read(buffer);
             in.close();
@@ -211,7 +194,26 @@ public class OpenDdsService extends Service {
             return;
         }
 
-        secure = getResources().getBoolean(R.bool.secure_opendds);
+        try {
+            secure = context.getResources().getBoolean(R.bool.secure_opendds);
+        } catch (Resources.NotFoundException e) {
+            Log.d(LOG_TAG, "Could not read 'secure_opendds' from config. Using default, 'false'");
+            secure = false;
+        }
+
+        try {
+            debug_level = context.getResources().getString(R.string.dcps_debug_level);
+        } catch (Resources.NotFoundException e) {
+            Log.d(LOG_TAG, "Could not read 'dcps_debug_level' from config. Using default, '3'");
+            debug_level = "3";
+        }
+
+        try {
+            debug_level = context.getResources().getString(R.string.dcps_transport_debug_level);
+        } catch (Resources.NotFoundException e) {
+            Log.d(LOG_TAG, "Could not read 'dcps_transport_debug_level' from config. Using default, '3'");
+            transport_debug_level = "3";
+        }
 
         // Ensure Config File and Security Files Exist
         final String config_file = copyAsset("opendds_config.ini");
@@ -226,9 +228,9 @@ public class OpenDdsService extends Service {
         // Initialize OpenDDS by getting the Participant Factory
         ArrayList<String> args = new ArrayList<String>();
         args.add("-DCPSTransportDebugLevel");
-        args.add("3");
+        args.add(transport_debug_level);
         args.add("-DCPSDebugLevel");
-        args.add("10");
+        args.add(debug_level);
         args.add("-DCPSConfigFile");
         args.add(config_file);
 
@@ -236,6 +238,7 @@ public class OpenDdsService extends Service {
             args.add("-DCPSSecurity");
             args.add("1");
         }
+
         StringSeqHolder argsHolder = new StringSeqHolder(args.toArray(new String[args.size()]));
         participantFactory = TheParticipantFactory.WithArgs(argsHolder);
         if (participantFactory == null) {
@@ -244,7 +247,7 @@ public class OpenDdsService extends Service {
 
         // Determine Participant QOS
         List<Property_t> properties_list = new ArrayList<>();
-        groups = getResources().getStringArray(R.array.groups);
+        groups = context.getResources().getStringArray(R.array.groups);
         properties_list.add(new Property_t("OpenDDS.RtpsRelay.Groups",
                 String.join(",", groups), true));
 
@@ -257,6 +260,7 @@ public class OpenDdsService extends Service {
             properties_list.add(new Property_t("dds.sec.access.governance", f + gov_file, false));
             properties_list.add(new Property_t("dds.sec.access.permissions", f + user_perm_file, false));
         }
+
         participantQos = new DomainParticipantQos(
                 PARTICIPANT_QOS_DEFAULT.get().user_data,
                 PARTICIPANT_QOS_DEFAULT.get().entity_factory,
@@ -266,33 +270,39 @@ public class OpenDdsService extends Service {
     }
 
     private void startDds() {
-        // Start OpenDDS
-        String error_message = null;
-        Throwable exception = null;
-        if (getResources().getBoolean(R.bool.init_opendds)) {
-            ConnectivityManager cm = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
-            NetworkInfo network = cm.getActiveNetworkInfo();
-            boolean has_network = network != null && network.isConnectedOrConnecting();
-            if (has_network) {
-                try {
-                    initParticipantFactory();
-                } catch (InitOpenDDSException e) {
-                    error_message = "Error Initializing OpenDDS";
-                    exception = e;
+        if (participant == null) {
+            // Start OpenDDS
+            String error_message = null;
+            Throwable exception = null;
+            if (context.getResources().getBoolean(R.bool.init_opendds)) {
+                ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+                if (cm.getActiveNetwork() != null) {
+                    try {
+                        initParticipantFactory();
+                    } catch (InitOpenDDSException e) {
+                        error_message = "Error Initializing OpenDDS";
+                        exception = e;
+                    }
+                } else {
+                    error_message = "No Network Connection, could not start OpenDDS, restart this app when connected to a network";
                 }
-            } else {
-                error_message = "No Network Connection, could not start OpenDDS, restart this app when connected to a network";
             }
-        }
-        if (error_message != null) {
-            Toast.makeText(getApplicationContext(), error_message, Toast.LENGTH_LONG).show();
-            if (exception != null) {
-                Log.e(LOG_TAG, error_message, exception);
-            } else {
-                Log.e(LOG_TAG, error_message);
-            }
-        }
+            if (error_message != null) {
+                final String err = error_message;
+                new Handler(Looper.getMainLooper()).post(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(context.getApplicationContext(), err, Toast.LENGTH_LONG).show();
+                    }
+                });
 
+                if (exception != null) {
+                    Log.e(LOG_TAG, error_message, exception);
+                } else {
+                    Log.e(LOG_TAG, error_message);
+                }
+            }
+        }
     }
 
     private void initParticipant() throws InitOpenDDSException {
@@ -336,7 +346,7 @@ public class OpenDdsService extends Service {
         sub.get_default_datareader_qos(qosh);
         qosh.value.reliability.kind = ReliabilityQosPolicyKind.RELIABLE_RELIABILITY_QOS;
         qosh.value.history.kind = HistoryQosPolicyKind.KEEP_ALL_HISTORY_QOS;
-        DataReaderListenerImpl listener = new DataReaderListenerImpl(this);
+        DataReaderListenerImpl listener = new DataReaderListenerImpl(activity);
         DataReader reader = sub.create_datareader(status_topic,
                 qosh.value,
                 listener,
@@ -359,9 +369,7 @@ public class OpenDdsService extends Service {
             return;
         }
 
-
-        ParticipantLocationListener locationListener = new ParticipantLocationListener();
-        assert (locationListener != null);
+        locationListener = new ParticipantLocationListener();
 
         int ret = bitDr.set_listener(locationListener, OpenDDS.DCPS.DEFAULT_STATUS_MASK.value);
         assert (ret == DDS.RETCODE_OK.value);
@@ -400,61 +408,23 @@ public class OpenDdsService extends Service {
         }
     }
 
-    public void deleteParticipant() {
-        if (participant != null) {
-            participant.delete_contained_entities();
-            participantFactory.delete_participant(participant);
-            participant = null;
-        }
-    }
-
-
-    @Override
-    public void onCreate() {
+    public void run() {
         startDds();
-
-        if (getResources().getBoolean(R.bool.init_opendds)) {
-            try {
-                initParticipant();
-            } catch (InitOpenDDSException exception) {
-                final String error_message = "Error Initializing OpenDDS Participant";
-                Log.e(LOG_TAG, error_message, exception);
-                Toast.makeText(getApplicationContext(), error_message, Toast.LENGTH_LONG).show();
-            }
+        try {
+            initParticipant();
+        } catch (InitOpenDDSException e) {
+            e.printStackTrace();
         }
     }
 
-    @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
-        Log.i(LOG_TAG, "onStartCommand()");
-        return START_NOT_STICKY;
-    }
+    public static void shutdown() {
+        Log.i(LOG_TAG, "Shutting down");
 
-    @Override
-    public IBinder onBind(Intent intent) {
-        Log.i(LOG_TAG, "onBind()");
-        return binder;
-    }
-
-    @Override
-    public void onRebind(Intent intent) {
-        Log.i(LOG_TAG, "onRebind()");
-        super.onRebind(intent); }
-
-
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        Log.i(LOG_TAG, "onDestroy()");
-
-        // TODO: Cleanup service before destruction
-        //participant.delete_contained_entities();
-        //dw = null;
-        //participantFactory.delete_participant(participant);
-        //participant = null;
-
-        //TheServiceParticipant.shutdown();
-
-        stopSelf();
+        // Cleanup service before destruction
+        participant.delete_contained_entities();
+        dw = null;
+        participantFactory.delete_participant(participant);
+        participant = null;
+        TheServiceParticipant.shutdown();
     }
 }

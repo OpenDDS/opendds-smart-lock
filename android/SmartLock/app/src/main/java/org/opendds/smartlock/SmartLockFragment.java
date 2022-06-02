@@ -1,11 +1,11 @@
 package org.opendds.smartlock;
 
-import android.arch.lifecycle.ViewModelProviders;
+import androidx.lifecycle.ViewModelProviders;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.v4.app.Fragment;
-import android.support.v4.app.FragmentManager;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -22,11 +22,6 @@ public class SmartLockFragment extends Fragment {
     public String id_string;
     public int id_int;
     private SmartLockStatus set_status = null;
-
-    public OpenDdsService svc = null;
-
-    // use a local copy of view since calls to getView()
-    // after a screen orientation change can be null
     private View mView;
 
     public static SmartLockFragment newInstance() {
@@ -44,27 +39,21 @@ public class SmartLockFragment extends Fragment {
     }
 
     private void updateView() {
-//        getView().findViewById(R.id.container).setVisibility(
-//                mViewModel.value.enabled ? View.GONE : View.VISIBLE);
-//
-//        if (! mViewModel.value.enabled) return;
-
         boolean enabled = mViewModel.value.enabled;
 
         if (enabled) {
             if (isHidden()) {
-
                 FragmentManager fm = getFragmentManager();
                 fm.beginTransaction()
                         .setCustomAnimations(android.R.animator.fade_in, android.R.animator.fade_out)
                         .show(this)
                         .commit();
             }
-            TextView lock_id_tv = (TextView) mView.findViewById(R.id.lock_id);
+            TextView lock_id_tv = mView.findViewById(R.id.lock_id);
             lock_id_tv.setText(mViewModel.value.id);
 
             ImageView lock_status_img = mView.findViewById(R.id.lock_status);
-            Switch lock_sw = (Switch) mView.findViewById(R.id.lock_switch);
+            Switch lock_sw = mView.findViewById(R.id.lock_switch);
 
             if (mViewModel.value.state == SmartLockStatus.State.LOCKED) {
                 lock_status_img.setImageResource(R.drawable.fa_lock_closed);
@@ -82,7 +71,7 @@ public class SmartLockFragment extends Fragment {
             }
 
         } else {
-            if (! isHidden()) {
+            if (!isHidden()) {
                 FragmentManager fm = getFragmentManager();
                 fm.beginTransaction()
                         .setCustomAnimations(android.R.animator.fade_in, android.R.animator.fade_out)
@@ -93,8 +82,8 @@ public class SmartLockFragment extends Fragment {
     }
 
     private void updateControl() {
-        if (svc != null) {
-            svc.updateLockState(mViewModel.value);
+        if (MainActivity.getDdsBridge() != null) {
+            MainActivity.getDdsBridge().updateLockState(mViewModel.value);
         } else {
             Log.e("SmartLockFragment", "Cant Send Control Update because DDS reference is null");
         }
@@ -130,9 +119,7 @@ public class SmartLockFragment extends Fragment {
             setStatus(set_status);
         }
 
-        final SmartLockFragment fragment = this;
-
-        Switch sw = (Switch) mView.findViewById(R.id.lock_switch);
+        Switch sw = mView.findViewById(R.id.lock_switch);
 
         sw.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override

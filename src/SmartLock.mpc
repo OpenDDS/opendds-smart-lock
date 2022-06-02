@@ -1,5 +1,5 @@
 
-project: dcps, wiring_pi {
+project: dcps, pigpio {
   requires += no_opendds_safety_profile
 
   after += SmartLock_Idl

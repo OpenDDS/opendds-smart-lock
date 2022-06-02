@@ -1,32 +1,25 @@
-
 module SmartLock {
 
-struct vec2 {
-  float x;
-  float y;
-};
+  struct vec2 {
+    float x;
+    float y;
+  };
 
-#pragma DCPS_DATA_TYPE "SmartLock::lock_t"
-#pragma DCPS_DATA_KEY "SmartLock::lock_t id"
+  @topic
+  struct lock_t {
+    @key string id;
+    boolean locked;
+    vec2 position;
+  };
 
-struct lock_t {
-  string id;
-  boolean locked;
-  vec2 position;
-};
+  @topic
+  struct Status {
+    @key lock_t lock;
+  };
 
-#pragma DCPS_DATA_TYPE "SmartLock::Status"
-#pragma DCPS_DATA_KEY "SmartLock::Status lock.id"
-
-struct Status {
-  lock_t lock;
-};
-
-#pragma DCPS_DATA_TYPE "SmartLock::Control"
-#pragma DCPS_DATA_KEY "SmartLock::Control lock.id"
-
-struct Control {
-  lock_t lock;
-};
+  @topic
+  struct Control {
+    @key lock_t lock;
+  };
 
 };
