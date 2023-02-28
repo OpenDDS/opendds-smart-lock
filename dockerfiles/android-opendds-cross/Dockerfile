@@ -80,11 +80,11 @@ RUN wget -O cmake-3.23.1-Linux-x86_64.tar.gz \
 ENV PATH="/home/droid/cmake-3.23.1-linux-x86_64/bin:${PATH}"
 
 # Build Xerces
-RUN wget -O xerces-c-3.2.3.tar.gz \
-        https://dlcdn.apache.org//xerces/c/3/sources/xerces-c-3.2.3.tar.gz && \
-        tar xvzf xerces-c-3.2.3.tar.gz
+RUN wget -O xerces-c-3.2.4.tar.gz \
+        https://dlcdn.apache.org//xerces/c/3/sources/xerces-c-3.2.4.tar.gz && \
+        tar xvzf xerces-c-3.2.4.tar.gz
 
-RUN cd xerces-c-3.2.3 && \
+RUN cd xerces-c-3.2.4 && \
   mkdir build && cd build && \
   cmake -DCMAKE_TOOLCHAIN_FILE=/$ANDROID_NDK/build/cmake/android.toolchain.cmake \
         -DANDROID_ABI=${ANDROID_ABI} -DANDROID_PLATFORM=${ANDROID_API} \
@@ -129,10 +129,7 @@ ENV RUNTIME_LIBS=${ANDROID_NDK}/toolchains/llvm/prebuilt/linux-x86_64/sysroot/us
 RUN cp ${RUNTIME_LIBS}/libc++_shared.so /home/droid/libs && \
     cp ${XERCES_LIBS}/libxerces-c-3.2.so /home/droid/libs
 
-RUN for i in libACE.so libTAO.so libTAO_AnyTypeCode.so libTAO_BiDirGIOP.so \
-              libTAO_CodecFactory.so libTAO_PI.so libTAO_PortableServer.so \
-              libACE_XML_Utils.so; do cp ${ACE_LIBS}/${i} /home/droid/libs; done
-
-RUN cp ${DDS_LIBS}/* /home/droid/libs
+RUN cp ${ACE_LIBS}/* /home/droid/libs && \
+    cp ${DDS_LIBS}/* /home/droid/libs
 
 CMD ["/bin/bash"]
