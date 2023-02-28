@@ -310,6 +310,10 @@ public class OpenDdsBridge extends Thread {
             return;
         }
 
+        if (participantQos == null) {
+            throw new InitOpenDDSException("ERROR: Domain participant QOS is not initialized");
+        }
+
         participant = participantFactory.create_participant(
                 DOMAIN, participantQos, null, DEFAULT_STATUS_MASK.value);
 

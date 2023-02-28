@@ -36,10 +36,10 @@ printf "\
 	set(THREADS_PTHREAD_ARG 2)\n \
 	" > ${BUILD_ROOT}/PiToolchain.cmake
 
-wget -nc https://dlcdn.apache.org//xerces/c/3/sources/xerces-c-3.2.3.tar.gz
-tar xzf xerces-c-3.2.3.tar.gz
+wget -nc https://dlcdn.apache.org//xerces/c/3/sources/xerces-c-3.2.4.tar.gz
+tar xzf xerces-c-3.2.4.tar.gz
 
-(cd xerces-c-3.2.3 && \
+(cd xerces-c-3.2.4 && \
   mkdir -p build-pi && cd build-pi && \
   cmake -DCMAKE_TOOLCHAIN_FILE=${BUILD_ROOT}/PiToolchain.cmake -DCMAKE_INSTALL_PREFIX=${BUILD_ROOT}/pi-xerces .. && \
   make && make install)
