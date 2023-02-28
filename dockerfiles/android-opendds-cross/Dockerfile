@@ -129,7 +129,7 @@ ENV RUNTIME_LIBS=${ANDROID_NDK}/toolchains/llvm/prebuilt/linux-x86_64/sysroot/us
 RUN cp ${RUNTIME_LIBS}/libc++_shared.so /home/droid/libs && \
     cp ${XERCES_LIBS}/libxerces-c-3.2.so /home/droid/libs
 
-RUN cp ${ACE_LIBS}/${i} /home/droid/libs && \
+RUN cp ${ACE_LIBS}/* /home/droid/libs && \
     cp ${DDS_LIBS}/* /home/droid/libs
 
 CMD ["/bin/bash"]
