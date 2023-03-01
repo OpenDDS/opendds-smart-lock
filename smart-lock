@@ -236,7 +236,7 @@ function pi-compile {
     match-keyword 'compile'
     expected-end-of-input
 
-    ${DOCKER_COMMAND} run --rm -it -v "${_SMART_LOCK_DIR}/src:/home/pi/smartlock" -w "/home/pi/smartlock" pi-opendds-cross bash -c "source /home/pi/pi-opendds/build/target/setenv.sh; mchmod -R u+w .; wc.pl -type gnuace -features 'no_pigpio=0'; make"
+    ${DOCKER_COMMAND} run --rm -it -v "${_SMART_LOCK_DIR}/src:/home/pi/smartlock" -w "/home/pi/smartlock" pi-opendds-cross bash -c "source /home/pi/pi-opendds/build/target/setenv.sh; chmod -R u+w .; wc.pl -type gnuace -features 'no_pigpio=0'; make"
 }
 
 function pi-install {
@@ -554,6 +554,8 @@ DDS_ROOT=/home/droid/droid-opendds;
 source $DDS_ROOT/build/target/setenv.sh;
 echo $HOME
 cd $HOME/smartlock/android/Idl;
+id
+ls -ld .
 chmod -R u+w .;
 mwc.pl -type gnuace;
 make -f GNUmakefile.${APP_MPC_NAME} ${APP_NAME}TypeSupportJC.h && \
