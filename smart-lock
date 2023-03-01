@@ -236,7 +236,7 @@ function pi-compile {
     match-keyword 'compile'
     expected-end-of-input
 
-    ${DOCKER_COMMAND} run --rm -it -v "${_SMART_LOCK_DIR}/src:/home/pi/smartlock" -w "/home/pi/smartlock" pi-opendds-cross bash -c "source /home/pi/pi-opendds/build/target/setenv.sh; mwc.pl -type gnuace -features 'no_pigpio=0'; make"
+    ${DOCKER_COMMAND} run --rm -it -v "${_SMART_LOCK_DIR}/src:/home/pi/smartlock" -w "/home/pi/smartlock" pi-opendds-cross bash -c "source /home/pi/pi-opendds/build/target/setenv.sh; mchmod -R u+w .; wc.pl -type gnuace -features 'no_pigpio=0'; make"
 }
 
 function pi-install {
@@ -260,17 +260,17 @@ function pi-install {
     fi
 
     rm -f "${_SMART_LOCK_DIR}/src/smartlock_env"
-    if [ ${ENABLE_SECURITY:-} == 1 ]; then
+    if [ ${ENABLE_SECURITY:-0} == 1 ]; then
         echo "SMARTLOCK_SECURE=1" > "${_SMART_LOCK_DIR}/src/smartlock_env"
     else
         echo "SMARTLOCK_SECURE=0" > "${_SMART_LOCK_DIR}/src/smartlock_env"
     fi
 
     rsync -avz -e 'ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null' "${_SMART_LOCK_DIR}/src/" "pi@${!ip_var}:~/smartlock"
-    if [ ${ENABLE_SECURITY:-} == 1 ]; then
+    if [ ${ENABLE_SECURITY:-0} == 1 ]; then
         rsync -avz -e 'ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null' "${_SMART_LOCK_DIR}/certs/" "pi@${!ip_var}:~/smartlock/certs/"
     fi
-    ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "pi@${!ip_var}" "sudo cp /home/pi/smartlock/systemd/smartlock.service /etc/systemd/system/smartlock.service; sudo chmod 0644 /etc/systemd/system/smartlock.service; sudo systemctl daemon-reload; sudo systemctl enable smartlock; echo '${!lock_id_var}' > /home/pi/smartlock.id"
+    ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "pi@${!ip_var}" "sudo cp /home/pi/smartlock/systemd/smartlock.service /etc/systemd/system/smartlock.service; sudo chmod 0644 /etc/systemd/system/smartlock.service; sudo systemctl daemon-reload; sudo systemctl enable smartlock; echo '${!lock_id_var:-}' > /home/pi/smartlock.id"
 }
 
 function pi-start {
@@ -533,7 +533,7 @@ function android-compile {
 
     cp "${_SMART_LOCK_DIR}/android/SmartLock/general_config.xml.template" "${_SMART_LOCK_DIR}/android/SmartLock/app/src/main/res/values/general_config.xml"
     sed -e "s/{LOCKS}/${locks}/g" -i'' "${_SMART_LOCK_DIR}/android/SmartLock/app/src/main/res/values/general_config.xml"
-    if [ ${ENABLE_SECURITY:-} == 1 ]; then
+    if [ ${ENABLE_SECURITY:-0} == 1 ]; then
         sed 's/name="secure_opendds">false/name="secure_opendds">true/' -i'' "${_SMART_LOCK_DIR}/android/SmartLock/app/src/main/res/values/general_config.xml"
     fi
 
@@ -554,6 +554,7 @@ DDS_ROOT=/home/droid/droid-opendds;
 source $DDS_ROOT/build/target/setenv.sh;
 echo $HOME
 cd $HOME/smartlock/android/Idl;
+chmod -R u+w .;
 mwc.pl -type gnuace;
 make -f GNUmakefile.${APP_MPC_NAME} ${APP_NAME}TypeSupportJC.h && \
         make && \
