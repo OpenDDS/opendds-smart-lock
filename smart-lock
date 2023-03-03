@@ -554,7 +554,7 @@ DDS_ROOT=/home/droid/droid-opendds;
 source $DDS_ROOT/build/target/setenv.sh;
 echo $HOME
 cd $HOME/smartlock/android/Idl;
-sudo chown -R droid .;
+sudo chown -R droid ..;
 mwc.pl -type gnuace;
 make -f GNUmakefile.${APP_MPC_NAME} ${APP_NAME}TypeSupportJC.h && \
         make && \
