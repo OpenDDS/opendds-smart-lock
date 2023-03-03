@@ -46,7 +46,7 @@ public class OpenDdsBridge extends Thread {
     public boolean secure = false;
     private String debug_level = "3";
     private String transport_debug_level = "3";
-    private final int DOMAIN = 42;
+    private final int DOMAIN = 1;
     private String[] groups;
 
     private final MainActivity activity;
@@ -218,12 +218,12 @@ public class OpenDdsBridge extends Thread {
         // Ensure Config File and Security Files Exist
         final String config_file = copyAsset("opendds_config.ini");
 
-        final String gov_file = copyAsset("gov_signed.p7s");
-        final String id_ca_cert = copyAsset("identity_ca_cert.pem");
-        final String perm_ca_cert = copyAsset("permissions_ca_cert.pem");
-        final String user_cert = copyAsset("tablet_cert.pem");
-        final String user_private_cert = copyAsset("private_key.pem");
-        final String user_perm_file = copyAsset("house1_signed.p7s");
+        final String gov_file = copyAsset("governance.xml.p7s");
+        final String id_ca_cert = copyAsset("identity_ca.pem");
+        final String perm_ca_cert = copyAsset("permissions_ca.pem");
+        final String user_cert = copyAsset("identity.pem");
+        final String user_private_cert = copyAsset("identity_key.pem");
+        final String user_perm_file = copyAsset("permissions.xml.p7s");
 
         // Initialize OpenDDS by getting the Participant Factory
         ArrayList<String> args = new ArrayList<String>();
@@ -328,7 +328,7 @@ public class OpenDdsBridge extends Thread {
             throw new InitOpenDDSException("ERROR: Status register_type failed");
         }
 
-        Topic status_topic = participant.create_topic("SmartLock Status",
+        Topic status_topic = participant.create_topic("C.53.SmartLock Status",
                 status_servant.get_type_name(),
                 TOPIC_QOS_DEFAULT.get(),
                 null,
@@ -384,7 +384,7 @@ public class OpenDdsBridge extends Thread {
         if (control_servant.register_type(participant, "") != RETCODE_OK.value) {
             throw new InitOpenDDSException("ERROR: Control register_type failed");
         }
-        Topic control_topic = participant.create_topic("SmartLock Control",
+        Topic control_topic = participant.create_topic("C.53.SmartLock Control",
                 control_servant.get_type_name(),
                 TOPIC_QOS_DEFAULT.get(),
                 null,
