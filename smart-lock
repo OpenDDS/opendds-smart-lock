@@ -562,7 +562,10 @@ DDS_ROOT=/home/droid/droid-opendds;
 source $DDS_ROOT/build/target/setenv.sh;
 cd $HOME/smartlock/android/Idl;
 sudo chmod -R o+w ..;
+type mwc.pl;
+mwc.pl --version;
 mwc.pl -type gnuace;
+cat GNUmakefile.${APP_MPC_NAME};
 make -f GNUmakefile.${APP_MPC_NAME} ${APP_NAME}TypeSupportJC.h && \
         make && \
         $DDS_ROOT/java/build_scripts/javac_wrapper.pl \
