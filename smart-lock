@@ -580,8 +580,8 @@ cp $HOME/libs/*.so $HOME/smartlock/android/Idl/*.so $HOME/smartlock/android/Smar
 
     (
         cd "${_SMART_LOCK_DIR}/android/SmartLock"
-        ls -ld .
         id
+        ls -l app/libs
         ./gradlew assemble
     )
 }
