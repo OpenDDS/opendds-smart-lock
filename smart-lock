@@ -394,20 +394,28 @@ $(command-prefix) - Development tool for Raspberry Pis in the SmartLock Demo
 
 Usage: $(command-prefix) COMMAND [OPTION ...]
 
-    Commands:
-            build-toolchain                 Build a Docker image containing a cross-compiler and cross-compiled dependencies
-            clean-toolchain                 Remove the Docker image containing a cross-compiler and cross-compiled dependencies
-            compile                         Cross-compile the SmartLock Demo application
-            install-dependencies NAME       Copy all dependencies to NAME
-            install NAME                    Copy the compiled SmartLock Demo application to NAME
-            start NAME                      Start the SmartLock Demo application on NAME
-            stop NAME                       Stop the SmartLock Demo application on NAME
-            status NAME                     Show the status of the SmartLock Demo application on NAME
-            restart NAME                    Restart the SmartLock the Demo application on NAME
-            ssh NAME                        ssh into NAME
-            logs NAME [follow]              Show the logs for NAME
-            copy-public-key PATH            Copy a public key to NAME
-            help                            Print this help
+Commands:
+  build-toolchain              Build a Docker image containing a cross-compiler
+                               and cross-compiled dependencies
+  clean-toolchain              Remove the Docker image containing a
+                               cross-compiler and cross-compiled dependencies
+  compile                      Cross-compile the SmartLock Demo application
+  install-dependencies NAME    Copy all dependencies to NAME
+  install NAME                 Copy the compiled SmartLock Demo application to
+                               NAME
+  start NAME                   Start the SmartLock Demo application on NAME
+  stop NAME                    Stop the SmartLock Demo application on NAME
+  status NAME                  Show the status of the SmartLock Demo
+                               application on NAME
+  restart NAME                 Restart the SmartLock the Demo application on
+                               NAME
+  ssh NAME                     ssh into NAME
+  logs NAME [follow]           Show the logs for NAME
+  copy-public-key PATH         Copy a public key to NAME
+  help                         Print this help
+
+NOTE: You will need to export <NAME>_ip=xxx.xxx.xxx.xxx before running install,
+      start, stop, restart, ssh, or logs
 EOF
                  )
     set-help "${h}"
@@ -552,9 +560,9 @@ APP_MPC_NAME=SmartLock_Idl_Java;
 APP_NAME=SmartLock;
 DDS_ROOT=/home/droid/droid-opendds;
 source $DDS_ROOT/build/target/setenv.sh;
-echo $HOME
 cd $HOME/smartlock/android/Idl;
 sudo chown -R droid ..;
+chmod -R o+w ..;
 mwc.pl -type gnuace;
 make -f GNUmakefile.${APP_MPC_NAME} ${APP_NAME}TypeSupportJC.h && \
         make && \
