@@ -88,10 +88,6 @@ public class OpenDdsBridge extends Thread {
         }
     }
 
-    public void copyPartitionQos(PartitionQosPolicy partitionQosPolicy) {
-        partitionQosPolicy.name = groups;
-    }
-
     public DataReaderQos newDefaultDataReaderQos(Subscriber subscriber) {
         DataReaderQos dr_qos = new DataReaderQos();
         dr_qos.durability = new DurabilityQosPolicy();
@@ -339,7 +335,6 @@ public class OpenDdsBridge extends Thread {
 
         SubscriberQosHolder subscriberQos = new SubscriberQosHolder(
                 newDefaultSubscriberQos(participant));
-        copyPartitionQos(subscriberQos.value.partition);
         Subscriber sub = participant.create_subscriber(subscriberQos.value,
                 null, DEFAULT_STATUS_MASK.value);
         if (sub == null) {
@@ -396,7 +391,6 @@ public class OpenDdsBridge extends Thread {
 
         PublisherQosHolder publisherQos = new PublisherQosHolder(
                 newDefaultPublisherQos(participant));
-        copyPartitionQos(publisherQos.value.partition);
         Publisher pub = participant.create_publisher(publisherQos.value,
                 null, DEFAULT_STATUS_MASK.value);
         if (pub == null) {
