@@ -17,5 +17,6 @@ project: dcps_java {
 
   Idl_Files {
     ../../src/Idl/SmartLock.idl
+    SmartLockTypeSupport.idl
   }
 }
