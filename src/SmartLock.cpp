@@ -723,7 +723,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[])
 
     // Create DomainParticipant
     participant =
-      dpf->create_participant(42,
+      dpf->create_participant(1,
                               part_qos,
                               0,
                               OpenDDS::DCPS::DEFAULT_STATUS_MASK);
@@ -761,7 +761,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[])
     // Status
     CORBA::String_var type_name = status_ts->get_type_name();
     DDS::Topic_var status_topic =
-      participant->create_topic("SmartLock Status",
+      participant->create_topic("C.53.SmartLock Status",
                                 type_name,
                                 TOPIC_QOS_DEFAULT,
                                 0,
@@ -777,7 +777,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[])
     // Control
     type_name = control_ts->get_type_name();
     DDS::Topic_var control_topic =
-      participant->create_topic("SmartLock Control",
+      participant->create_topic("C.53.SmartLock Control",
                                 type_name,
                                 TOPIC_QOS_DEFAULT,
                                 0,
