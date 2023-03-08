@@ -1,4 +1,4 @@
-name: "Build & Test"
+name: "Build"
 
 on:
   push:
@@ -11,7 +11,6 @@ on:
       - '!AUTHORS'
       - '!PROBLEM-REPORT-FORM'
       - '!LICENSE'
-      - '!Dockerfile**'
       - '!.dockerignore'
       - '!.mailmap'
       - '!deploy/**'
@@ -30,7 +29,6 @@ on:
       - '!AUTHORS'
       - '!PROBLEM-REPORT-FORM'
       - '!LICENSE'
-      - '!Dockerfile**'
       - '!.dockerignore'
       - '!.mailmap'
       - '!deploy/**'
@@ -44,10 +42,6 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
-
-env:
-  TRIGGERING_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
-  VCPKG_INSTALLED_DIR: ${{ github.workspace }}\vcpkg\installed
 
 jobs:
 
