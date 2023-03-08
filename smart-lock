@@ -563,8 +563,9 @@ source $DDS_ROOT/build/target/setenv.sh;
 cd $HOME/smartlock/android/Idl;
 sudo chmod -R o+w ..;
 mwc.pl -type gnuace;
-make -f GNUmakefile.${APP_MPC_NAME} ${APP_NAME}TypeSupportJC.h && \
-        make && \
+make -f GNUmakefile.${APP_MPC_NAME} ${APP_NAME}TypeSupportJC.h;
+mwc.pl -type gnuace;
+make && \
         $DDS_ROOT/java/build_scripts/javac_wrapper.pl \
           -sourcepath . \
           -d classes \
