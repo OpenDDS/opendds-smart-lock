@@ -10,6 +10,13 @@ declare -r command="$0"
 declare -i arg_idx=0
 declare -ra args=( "$@" )
 
+## If the user has podman installed and in the path, prefer it over docker.
+if [ -z "`type podman 2> /dev/null`" ]; then
+  DOCKER_COMMAND=docker
+else
+  DOCKER_COMMAND=podman
+fi
+
 function end-of-input? {
     [[ ${arg_idx} == ${#args[@]} ]]
 }
@@ -185,7 +192,7 @@ function pi-build-toolchain {
     expected-end-of-input
 
     #add --no-cache if needed: "docker build --no-cache ..."
-    docker build "${_SMART_LOCK_DIR}/dockerfiles/pi-opendds-cross" -f "${_SMART_LOCK_DIR}/dockerfiles/pi-opendds-cross/Dockerfile" -t pi-opendds-cross
+    ${DOCKER_COMMAND} build "${_SMART_LOCK_DIR}/dockerfiles/pi-opendds-cross" -f "${_SMART_LOCK_DIR}/dockerfiles/pi-opendds-cross/Dockerfile" -t pi-opendds-cross
 }
 
 function pi-clean-toolchain {
@@ -194,7 +201,7 @@ function pi-clean-toolchain {
     match-keyword 'clean-toolchain'
     expected-end-of-input
 
-    docker rmi pi-opendds-cross
+    ${DOCKER_COMMAND} rmi pi-opendds-cross
 }
 
 function pi-install-dependencies {
@@ -210,14 +217,14 @@ function pi-install-dependencies {
     # Copy the dependencies out of the docker image.
     rm -rf "${_SMART_LOCK_DIR}/libs"
     mkdir -p "${_SMART_LOCK_DIR}/libs"
-    docker run -d --name piopendds pi-opendds-cross
-    docker cp piopendds:/home/pi/pi-opendds.tar.gz  libs
-    docker cp piopendds:/home/pi/pi-openssl.tar.gz  libs
-    docker cp piopendds:/home/pi/pi-xerces.tar.gz libs
-    docker cp piopendds:/home/pi/pigpio.tar.gz libs
-    docker stop piopendds
-    docker rm piopendds
-    #docker run --rm -ti -v "${_SMART_LOCK_DIR}:/home/pi/outer" -w "/home/pi" pi-opendds-cross bash -c "mkdir -p outer/libs; cp pi-opendds.tar.gz pi-openssl.tar.gz pi-xerces.tar.gz outer/libs"    # Copy them to the pi.
+    ${DOCKER_COMMAND} run -d --name piopendds pi-opendds-cross
+    ${DOCKER_COMMAND} cp piopendds:/home/pi/pi-opendds.tar.gz  libs
+    ${DOCKER_COMMAND} cp piopendds:/home/pi/pi-openssl.tar.gz  libs
+    ${DOCKER_COMMAND} cp piopendds:/home/pi/pi-xerces.tar.gz libs
+    ${DOCKER_COMMAND} cp piopendds:/home/pi/pigpio.tar.gz libs
+    ${DOCKER_COMMAND} stop piopendds
+    ${DOCKER_COMMAND} rm piopendds
+    #${DOCKER_COMMAND} run --rm -ti -v "${_SMART_LOCK_DIR}:/home/pi/outer" -w "/home/pi" pi-opendds-cross bash -c "mkdir -p outer/libs; cp pi-opendds.tar.gz pi-openssl.tar.gz pi-xerces.tar.gz outer/libs"    # Copy them to the pi.
     scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "${_SMART_LOCK_DIR}/libs/pi-opendds.tar.gz" "${_SMART_LOCK_DIR}/libs/pi-openssl.tar.gz" "${_SMART_LOCK_DIR}/libs/pi-xerces.tar.gz" "${_SMART_LOCK_DIR}/libs/pigpio.tar.gz" "pi@${!ip_var}:"
     # Unzip them.
     ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "pi@${!ip_var}" 'tar xzf pi-opendds.tar.gz; tar xzf pi-openssl.tar.gz; tar xzf pi-xerces.tar.gz; tar xzf pigpio.tar.gz'
@@ -229,7 +236,7 @@ function pi-compile {
     match-keyword 'compile'
     expected-end-of-input
 
-    docker run --rm -it -v "${_SMART_LOCK_DIR}/src:/home/pi/smartlock" -w "/home/pi/smartlock" pi-opendds-cross bash -c "source /home/pi/pi-opendds/build/target/setenv.sh; mwc.pl -type gnuace -features 'no_pigpio=0'; make"
+    ${DOCKER_COMMAND} run --rm -it -v "${_SMART_LOCK_DIR}/src:/home/pi/smartlock" -w "/home/pi/smartlock" pi-opendds-cross bash -c "source /home/pi/pi-opendds/build/target/setenv.sh; sudo chown -R pi .; mwc.pl -type gnuace -features 'no_pigpio=0'; make"
 }
 
 function pi-install {
@@ -253,17 +260,17 @@ function pi-install {
     fi
 
     rm -f "${_SMART_LOCK_DIR}/src/smartlock_env"
-    if [ ${ENABLE_SECURITY:-} == 1 ]; then
+    if [ ${ENABLE_SECURITY:-0} == 1 ]; then
         echo "SMARTLOCK_SECURE=1" > "${_SMART_LOCK_DIR}/src/smartlock_env"
     else
         echo "SMARTLOCK_SECURE=0" > "${_SMART_LOCK_DIR}/src/smartlock_env"
     fi
 
     rsync -avz -e 'ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null' "${_SMART_LOCK_DIR}/src/" "pi@${!ip_var}:~/smartlock"
-    if [ ${ENABLE_SECURITY:-} == 1 ]; then
+    if [ ${ENABLE_SECURITY:-0} == 1 ]; then
         rsync -avz -e 'ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null' "${_SMART_LOCK_DIR}/certs/" "pi@${!ip_var}:~/smartlock/certs/"
     fi
-    ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "pi@${!ip_var}" "sudo cp /home/pi/smartlock/systemd/smartlock.service /etc/systemd/system/smartlock.service; sudo chmod 0644 /etc/systemd/system/smartlock.service; sudo systemctl daemon-reload; sudo systemctl enable smartlock; echo '${!lock_id_var}' > /home/pi/smartlock.id"
+    ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "pi@${!ip_var}" "sudo cp /home/pi/smartlock/systemd/smartlock.service /etc/systemd/system/smartlock.service; sudo chmod 0644 /etc/systemd/system/smartlock.service; sudo systemctl daemon-reload; sudo systemctl enable smartlock; echo '${!lock_id_var:-}' > /home/pi/smartlock.id"
 }
 
 function pi-start {
@@ -387,20 +394,28 @@ $(command-prefix) - Development tool for Raspberry Pis in the SmartLock Demo
 
 Usage: $(command-prefix) COMMAND [OPTION ...]
 
-    Commands:
-            build-toolchain                 Build a Docker image containing a cross-compiler and cross-compiled dependencies
-            clean-toolchain                 Remove the Docker image containing a cross-compiler and cross-compiled dependencies
-            compile                         Cross-compile the SmartLock Demo application
-            install-dependencies NAME       Copy all dependencies to NAME
-            install NAME                    Copy the compiled SmartLock Demo application to NAME
-            start NAME                      Start the SmartLock Demo application on NAME
-            stop NAME                       Stop the SmartLock Demo application on NAME
-            status NAME                     Show the status of the SmartLock Demo application on NAME
-            restart NAME                    Restart the SmartLock the Demo application on NAME
-            ssh NAME                        ssh into NAME
-            logs NAME [follow]              Show the logs for NAME
-            copy-public-key PATH            Copy a public key to NAME
-            help                            Print this help
+Commands:
+  build-toolchain              Build a Docker image containing a cross-compiler
+                               and cross-compiled dependencies
+  clean-toolchain              Remove the Docker image containing a
+                               cross-compiler and cross-compiled dependencies
+  compile                      Cross-compile the SmartLock Demo application
+  install-dependencies NAME    Copy all dependencies to NAME
+  install NAME                 Copy the compiled SmartLock Demo application to
+                               NAME
+  start NAME                   Start the SmartLock Demo application on NAME
+  stop NAME                    Stop the SmartLock Demo application on NAME
+  status NAME                  Show the status of the SmartLock Demo
+                               application on NAME
+  restart NAME                 Restart the SmartLock the Demo application on
+                               NAME
+  ssh NAME                     ssh into NAME
+  logs NAME [follow]           Show the logs for NAME
+  copy-public-key PATH         Copy a public key to NAME
+  help                         Print this help
+
+NOTE: You will need to export <NAME>_ip=xxx.xxx.xxx.xxx before running install,
+      start, stop, restart, ssh, or logs
 EOF
                  )
     set-help "${h}"
@@ -461,7 +476,7 @@ function android-build-toolchain-arm64 {
     expected-end-of-input
 
     #add --no-cache if needed: "docker build --no-cache ..."
-    docker build --build-arg "OPENDDS_BRANCH=${commit}" "${_SMART_LOCK_DIR}/dockerfiles/android-opendds-cross" -f "${_SMART_LOCK_DIR}/dockerfiles/android-opendds-cross/Dockerfile" -t android-opendds-cross
+    ${DOCKER_COMMAND} build --build-arg "OPENDDS_BRANCH=${commit}" "${_SMART_LOCK_DIR}/dockerfiles/android-opendds-cross" -f "${_SMART_LOCK_DIR}/dockerfiles/android-opendds-cross/Dockerfile" -t android-opendds-cross
 }
 
 function android-build-toolchain-arm {
@@ -476,7 +491,7 @@ function android-build-toolchain-arm {
     expected-end-of-input
 
     #add --no-cache if needed: "docker build --no-cache ..."
-    docker build --build-arg ABI=armeabi-v7a --build-arg ABI_PREFIX=armv7a-linux-androideabi --build-arg RUNTIME_ROOT=arm-linux-androideabi --build-arg PLATFORM=android-arm --build-arg "OPENDDS_BRANCH=${commit}" "${_SMART_LOCK_DIR}/dockerfiles/android-opendds-cross" -f "${_SMART_LOCK_DIR}/dockerfiles/android-opendds-cross/Dockerfile" -t android-opendds-cross
+    ${DOCKER_COMMAND} build --build-arg ABI=armeabi-v7a --build-arg ABI_PREFIX=armv7a-linux-androideabi --build-arg RUNTIME_ROOT=arm-linux-androideabi --build-arg PLATFORM=android-arm --build-arg "OPENDDS_BRANCH=${commit}" "${_SMART_LOCK_DIR}/dockerfiles/android-opendds-cross" -f "${_SMART_LOCK_DIR}/dockerfiles/android-opendds-cross/Dockerfile" -t android-opendds-cross
 }
 
 function android-build-toolchain-x86 {
@@ -491,7 +506,7 @@ function android-build-toolchain-x86 {
     expected-end-of-input
 
     #add --no-cache if needed: "docker build --no-cache ..."
-    docker build --build-arg ABI=x86 --build-arg ABI_PREFIX=i686-linux-android --build-arg PLATFORM=android-x86 --build-arg "OPENDDS_BRANCH=${commit}" "${_SMART_LOCK_DIR}/dockerfiles/android-opendds-cross" -f "${_SMART_LOCK_DIR}/dockerfiles/android-opendds-cross/Dockerfile" -t android-opendds-cross
+    ${DOCKER_COMMAND} build --build-arg ABI=x86 --build-arg ABI_PREFIX=i686-linux-android --build-arg PLATFORM=android-x86 --build-arg "OPENDDS_BRANCH=${commit}" "${_SMART_LOCK_DIR}/dockerfiles/android-opendds-cross" -f "${_SMART_LOCK_DIR}/dockerfiles/android-opendds-cross/Dockerfile" -t android-opendds-cross
 }
 
 function android-clean-toolchain {
@@ -500,7 +515,7 @@ function android-clean-toolchain {
     match-keyword 'clean-toolchain'
     expected-end-of-input
 
-    docker rmi android-opendds-cross
+    ${DOCKER_C0MMAND} rmi android-opendds-cross
 }
 
 function android-compile {
@@ -526,7 +541,7 @@ function android-compile {
 
     cp "${_SMART_LOCK_DIR}/android/SmartLock/general_config.xml.template" "${_SMART_LOCK_DIR}/android/SmartLock/app/src/main/res/values/general_config.xml"
     sed -e "s/{LOCKS}/${locks}/g" -i'' "${_SMART_LOCK_DIR}/android/SmartLock/app/src/main/res/values/general_config.xml"
-    if [ ${ENABLE_SECURITY:-} == 1 ]; then
+    if [ ${ENABLE_SECURITY:-0} == 1 ]; then
         sed 's/name="secure_opendds">false/name="secure_opendds">true/' -i'' "${_SMART_LOCK_DIR}/android/SmartLock/app/src/main/res/values/general_config.xml"
     fi
 
@@ -540,16 +555,17 @@ function android-compile {
     #    sed -e "s/#SPDP_RTPS_RELAY_ADDRESS_LINE/SpdpRtpsRelayAddress=${RTPS_RELAY_IP}:4444/g" -e "s/#SEDP_RTPS_RELAY_ADDRESS_LINE/SedpRtpsRelayAddress=${RTPS_RELAY_IP}:4445/g" -e "s/#DATA_RTPS_RELAY_ADDRESS_LINE/DataRtpsRelayAddress=${RTPS_RELAY_IP}:4446/g" -i'' "${_SMART_LOCK_DIR}/android/SmartLock/app/src/main/assets/opendds_config.ini"
     #fi
 
-    docker run --rm -ti -v "${_SMART_LOCK_DIR}:/home/droid/smartlock" -w '/home/droid' android-opendds-cross bash -c '
+    ${DOCKER_COMMAND} run --rm -ti -v "${_SMART_LOCK_DIR}:/home/droid/smartlock" -w '/home/droid' android-opendds-cross bash -c '
 APP_MPC_NAME=SmartLock_Idl_Java;
 APP_NAME=SmartLock;
 DDS_ROOT=/home/droid/droid-opendds;
 source $DDS_ROOT/build/target/setenv.sh;
-echo $HOME
 cd $HOME/smartlock/android/Idl;
+sudo chmod -R o+w ..;
 mwc.pl -type gnuace;
-make -f GNUmakefile.${APP_MPC_NAME} ${APP_NAME}TypeSupportJC.h && \
-        make && \
+make -f GNUmakefile.${APP_MPC_NAME} ${APP_NAME}TypeSupportJC.h;
+mwc.pl -type gnuace;
+make && \
         $DDS_ROOT/java/build_scripts/javac_wrapper.pl \
           -sourcepath . \
           -d classes \
@@ -576,7 +592,7 @@ function android-clean {
     expected-end-of-input
 
     load-config
-    docker run --rm -ti -v "${_SMART_LOCK_DIR}:/home/droid/smartlock" -w '/home/droid' android-opendds-cross bash -c '
+    ${DOCKER_COMMAND} run --rm -ti -v "${_SMART_LOCK_DIR}:/home/droid/smartlock" -w '/home/droid' android-opendds-cross bash -c '
 APP_MPC_NAME=SmartLock_Idl_Java;
 APP_NAME=SmartLock;
 DDS_ROOT=/home/droid/droid-opendds;
