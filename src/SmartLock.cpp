@@ -102,9 +102,6 @@ protected:
     DDS::PublisherQos qos;
     dp->get_default_publisher_qos(qos);
 
-    groups_to_partitions(groups, partition_);
-    qos.partition = partition_;
-
     publisher_ = dp->create_publisher(qos, 0, OpenDDS::DCPS::DEFAULT_STATUS_MASK);
 
     if (! publisher_) {
@@ -129,9 +126,6 @@ protected:
   {
     DDS::SubscriberQos qos;
     dp->get_default_subscriber_qos(qos);
-
-    groups_to_partitions(groups, partition_);
-    qos.partition = partition_;
 
     subscriber_ = dp->create_subscriber(qos, 0, OpenDDS::DCPS::DEFAULT_STATUS_MASK);
 
@@ -716,9 +710,6 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[])
       }
     }
 #endif
-
-    DDS::PartitionQosPolicy partitions;
-    groups_to_partitions(groups, partitions);
 
     // Create DomainParticipant
     participant =
