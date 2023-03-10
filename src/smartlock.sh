@@ -60,23 +60,51 @@ if [[ -z "$LOCK" ]]; then
     fi
 fi
 
+ID_CA=${cert_dir}/id_ca/identity_ca.pem
+ID_CERT=${cert_dir}/${LOCK}/identity.pem
+ID_PKEY=${cert_dir}/${LOCK}/identity_key.pem
+PERM_CA=${cert_dir}/perm_ca/permissions_ca.pem
+PERM_GOV=${cert_dir}/governance.xml.p7s
+PERM_PERMS=${cert_dir}/${LOCK}/permissions.xml.p7s
+
 if (( $SECURITY )); then
     SECURITY_ARGS=" \
     -DCPSSecurityDebug bookkeeping \
     -DCPSSecurity 1 \
-	-ID_CA ${cert_dir}/id_ca/identity_ca.pem \
-	-ID_CERT ${cert_dir}/${LOCK}/identity.pem \
-	-ID_PKEY ${cert_dir}/${LOCK}/identity_key.pem \
-	-PERM_CA ${cert_dir}/perm_ca/permissions_ca.pem \
-	-PERM_GOV ${cert_dir}/governance.xml.p7s \
-	-PERM_PERMS ${cert_dir}/${LOCK}/permissions.xml.p7s \
+    -ID_CA ${ID_CA} \
+    -ID_CERT ${ID_CERT} \
+    -ID_PKEY ${ID_PKEY} \
+    -PERM_CA ${PERM_CA} \
+    -PERM_GOV ${PERM_GOV} \
+    -PERM_PERMS ${PERM_PERMS} \
     "
 fi
 
 echo "CMD: '$CMD', SECURITY: '$SECURITY', LOCK_ID: '$LOCK', SECURITY_ARGS: '$SECURITY_ARGS'"
 
+function update_certs {
+  APP_PASSWORD='ZOIWcsPg6BYmLXSv'
+  APP_NONCE='lock'
+  curl -c cookies.txt -H'Content-Type: application/json' -d"{\"username\":\"54\",\"password\":\"$APP_PASSWORD\"}" https://dpm.unityfoundation.io/api/login
+
+  curl --silent -b cookies.txt "https://dpm.unityfoundation.io/api/applications/identity_ca.pem" > ${ID_CA}
+  curl --silent -b cookies.txt "https://dpm.unityfoundation.io/api/applications/permissions_ca.pem" > ${PERM_CA}
+  curl --silent -b cookies.txt "https://dpm.unityfoundation.io/api/applications/governance.xml.p7s" > ${PERM_GOV}
+  curl --silent -b cookies.txt "https://dpm.unityfoundation.io/api/applications/key_pair?nonce=${APP_NONCE}" > key-pair
+  curl --silent -b cookies.txt "https://dpm.unityfoundation.io/api/applications/permissions.xml.p7s?nonce=${APP_NONCE}" > ${PERM_PERMS}
+
+  jq -r '.public' key-pair > ${ID_CERT}
+  jq -r '.private' key-pair > ${ID_PKEY}
+
+  rm -f cookies.txt key-pair
+}
+
 PID_FILE=${BASE_PATH}/smartlock.pid
 start() {
+    if (( $SECURITY )); then
+      update_certs
+    fi
+
     ${BASE_PATH}/smartlock/smartlock \
         -DCPSConfigFile ${BASE_PATH}/smartlock/rtps.ini \
         -DCPSDebugLevel 5 \
@@ -96,6 +124,9 @@ stop() {
 }
 
 start-system() {
+    if (( $SECURITY )); then
+      update_certs
+    fi
     export LD_LIBRARY_PATH
     exec ${BASE_PATH}/smartlock/smartlock \
         -DCPSConfigFile ${BASE_PATH}/smartlock/rtps.ini \
@@ -125,3 +156,4 @@ case "$CMD" in
         exit 1
         ;;
 esac
+
