@@ -13,6 +13,7 @@ project: dcps_java {
 
   Idl2Jni_Files {
     ../../src/Idl/SmartLock.idl
+    SmartLockTypeSupport.idl
   }
 
   Idl_Files {
