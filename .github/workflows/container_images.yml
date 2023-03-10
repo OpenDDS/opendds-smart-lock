@@ -1,0 +1,84 @@
+name: Create and publish container images
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - latest-release
+    tags:
+      - SmartLock-*
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-push-image:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+
+      - name: Build and push Pi Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: dockerfiles/pi-opendds-cross
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}-pi
+          labels: ${{ steps.meta.outputs.labels }}-pi
+
+      - name: Build and push Android ARM64 Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: dockerfiles/android-opendds-cross
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}-android-arm64
+          labels: ${{ steps.meta.outputs.labels }}-android-arm64
+
+      - name: Build and push Android ARM Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: dockerfiles/android-opendds-cross
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}-android-arm
+          labels: ${{ steps.meta.outputs.labels }}-android-arm
+          build-args: |
+            ABI=armeabi-v7a
+            ABI_PREFIX=armv7a-linux-androideabi
+            RUNTIME_ROOT=arm-linux-androideabi
+            PLATFORM=android-arm
+
+      - name: Build and push Android x86 Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: dockerfiles/android-opendds-cross
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}-android-x86
+          labels: ${{ steps.meta.outputs.labels }}-android-x86
+          build-args: |
+            ABI=x86
+            ABI_PREFIX=i686-linux-android
+            PLATFORM=android-x86
