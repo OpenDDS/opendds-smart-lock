@@ -13,7 +13,13 @@ project: dcps_java {
 
   Idl2Jni_Files {
     ../../src/Idl/SmartLock.idl
-    SmartLockTypeSupport.idl
+
+    // The TypeSupport helper (as of 2023/3/13) does not add some of the
+    // generated .java files to the list of outputs.  As a work-around for
+    // that, we will list them here.
+    SmartLockTypeSupport.idl >> SmartLock/_lock_tTypeSupportTAOPeer.java \
+                                SmartLock/_StatusTypeSupportTAOPeer.java \
+                                SmartLock/_ControlTypeSupportTAOPeer.java
   }
 
   Idl_Files {
