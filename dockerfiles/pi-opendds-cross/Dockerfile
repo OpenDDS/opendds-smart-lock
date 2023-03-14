@@ -30,7 +30,11 @@ RUN apt-get update && apt-get install -y \
 
 RUN useradd --shell /bin/bash --password "" --groups sudo --create-home pi
 COPY --chown=pi ./build.sh ${BUILD_DIR}
-COPY --chown=pi ./compile.sh ${BUILD_DIR}
+
+## Build the compile script
+COPY --chown=pi clone-smartlock ${BUILD_DIR}/compile.sh
+COPY --chown=pi pi-compile ${BUILD_DIR}
+RUN cat ${BUILD_DIR}/pi-compile >> ${BUILD_DIR}/compile.sh && rm ${BUILD_DIR}/pi-compile
 
 USER pi
 

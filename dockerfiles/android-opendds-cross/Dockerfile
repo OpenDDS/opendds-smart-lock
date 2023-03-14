@@ -1,5 +1,6 @@
 FROM debian:bullseye
 
+ARG BUILD_DIR=/home/droid
 ARG OPENDDS_BRANCH=master
 ARG OPENDDS_GIT_REPO=https://github.com/objectcomputing/OpenDDS.git
 ARG OPENDDS_MAKE_JOBS=4
@@ -133,7 +134,10 @@ RUN cp ${RUNTIME_LIBS}/libc++_shared.so /home/droid/libs && \
 RUN cp ${ACE_LIBS}/* /home/droid/libs && \
     cp ${DDS_LIBS}/* /home/droid/libs
 
-COPY ./compile.sh /home/droid
+## Build the compile script
+COPY clone-smartlock ${BUILD_DIR}/compile.sh
+COPY android-compile ${BUILD_DIR}
+RUN cat ${BUILD_DIR}/android-compile >> ${BUILD_DIR}/compile.sh && rm ${BUILD_DIR}/android-compile
 
 RUN if [ -n "$BUILD_SOURCE" ]; then bash ./compile.sh; fi
 
