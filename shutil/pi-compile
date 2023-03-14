@@ -1,0 +1,5 @@
+cd $HOME/smartlock
+. $HOME/pi-opendds/build/target/setenv.sh
+sudo chown -R pi .
+mwc.pl -type gnuace -features 'no_pigpio=0'
+make

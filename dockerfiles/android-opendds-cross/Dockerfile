@@ -11,6 +11,7 @@ ARG ABI=arm64-v8a
 ARG ABI_PREFIX=aarch64-linux-android
 ARG RUNTIME_ROOT=$ABI_PREFIX
 ARG PLATFORM=android-arm64
+ARG BUILD_SOURCE
 
 ENV ANDROID_API=$API
 ENV ANDROID_MIN_API=$MIN_API
@@ -131,5 +132,9 @@ RUN cp ${RUNTIME_LIBS}/libc++_shared.so /home/droid/libs && \
 
 RUN cp ${ACE_LIBS}/* /home/droid/libs && \
     cp ${DDS_LIBS}/* /home/droid/libs
+
+COPY ./compile.sh /home/droid
+
+RUN if [ -n "$BUILD_SOURCE" ]; then bash ./compile.sh; fi
 
 CMD ["/bin/bash"]

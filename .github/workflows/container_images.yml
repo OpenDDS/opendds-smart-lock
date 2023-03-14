@@ -17,7 +17,7 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  build-and-push-image:
+  build-and-push-image-pi:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -49,6 +49,33 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}-pi
           labels: ${{ steps.meta.outputs.labels }}-pi
+          build-args: |
+            BUILD_SOURCE=1
+
+  build-and-push-image-arm64:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
       - name: Build and push Android ARM64 Docker image
         uses: docker/build-push-action@v4
@@ -57,6 +84,33 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}-android-arm64
           labels: ${{ steps.meta.outputs.labels }}-android-arm64
+          build-args: |
+            BUILD_SOURCE=1
+
+  build-and-push-image-arm:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
       - name: Build and push Android ARM Docker image
         uses: docker/build-push-action@v4
@@ -66,10 +120,36 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}-android-arm
           labels: ${{ steps.meta.outputs.labels }}-android-arm
           build-args: |
+            BUILD_SOURCE=1
             ABI=armeabi-v7a
             ABI_PREFIX=armv7a-linux-androideabi
             RUNTIME_ROOT=arm-linux-androideabi
             PLATFORM=android-arm
+
+  build-and-push-image-x86:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
       - name: Build and push Android x86 Docker image
         uses: docker/build-push-action@v4
@@ -79,6 +159,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}-android-x86
           labels: ${{ steps.meta.outputs.labels }}-android-x86
           build-args: |
+            BUILD_SOURCE=1
             ABI=x86
             ABI_PREFIX=i686-linux-android
             PLATFORM=android-x86
