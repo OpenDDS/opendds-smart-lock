@@ -85,6 +85,9 @@ echo "CMD: '$CMD', SECURITY: '$SECURITY', LOCK_ID: '$LOCK', SECURITY_ARGS: '$SEC
 function update_certs {
   APP_PASSWORD='ZOIWcsPg6BYmLXSv'
   APP_NONCE='lock'
+
+  mkdir -p ${cert_dir}/id_ca ${cert_dir}/${LOCK} ${cert_dir}/perm_ca
+
   curl -c cookies.txt -H'Content-Type: application/json' -d"{\"username\":\"54\",\"password\":\"$APP_PASSWORD\"}" https://dpm.unityfoundation.io/api/login
 
   curl --silent -b cookies.txt "https://dpm.unityfoundation.io/api/applications/identity_ca.pem" > ${ID_CA}
