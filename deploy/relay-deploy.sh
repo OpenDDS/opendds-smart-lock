@@ -6,11 +6,6 @@
 
 apt-get update -y
 
-install_coturn() {
-     apt-get install -y coturn
-     sed -i -e 's/#TURNSERVER_ENABLED/TURNSERVER_ENABLED/g' /etc/default/coturn
-}
-
 install_docker() {
     # See https://docs.docker.com/install/linux/docker-ce/debian/
 
@@ -39,12 +34,15 @@ install_docker() {
 }
 
 make_relay_service() {
+    mkdir /opt/workspace
+    cd /opt/workspace
+    git clone https://github.com/OpenDDS/opendds-smart-lock.git
     cat > /etc/systemd/system/rtps-relay.service <<SERVICE
 [Unit]
 Description=Relay for RTPS
 After=network.target
 [Service]
-ExecStart=/usr/bin/docker run --log-driver none --rm -p 4444-4446:4444-4446/udp --name relay objectcomputing/opendds:master /opt/OpenDDS/tools/rtpsrelay/RtpsRelay -DCPSConfigFile /opt/OpenDDS/tools/rtpsrelay/rtps.ini
+ExecStart=/usr/bin/docker run --log-driver none --rm -p 4444-4446:4444-4446/udp --name relay --mount type=bind,source=/opt/workspace,target=/opt/workspace ghcr.io/opendds/opendds:latest-release /opt/OpenDDS/tools/rtpsrelay/RtpsRelay -DCPSConfigFile /opt/workspace/opendds-smart-lock/deploy/rtps.ini
 ExecStop=/usr/bin/docker stop rtps-relay
 [Install]
 WantedBy=multi-user.target
@@ -55,9 +53,7 @@ SERVICE
     systemctl enable rtps-relay
 }
 
-install_coturn
 install_docker
 make_relay_service
 
-systemctl restart coturn
 systemctl start rtps-relay
