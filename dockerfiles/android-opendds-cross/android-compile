@@ -1,0 +1,13 @@
+APP_MPC_NAME=SmartLock_Idl_Java
+APP_NAME=SmartLock
+DDS_ROOT=/home/droid/droid-opendds
+source $DDS_ROOT/build/target/setenv.sh
+cd $HOME/smartlock/android/Idl
+sudo chmod -R o+w ..
+cp -p ../../src/Idl/SmartLock.idl .
+mwc.pl -type gnuace
+make
+$DDS_ROOT/java/build_scripts/javac_wrapper.pl -sourcepath . -d classes -classpath . -implicit:none -classpath $DDS_ROOT/lib/i2jrt_corba.jar -classpath $DDS_ROOT/lib/i2jrt.jar -classpath $DDS_ROOT/lib/OpenDDS_DCPS.jar ${APP_NAME}/*
+cp $HOME/libs/*.jar $HOME/smartlock/android/Idl/*.jar $HOME/smartlock/android/SmartLock/app/libs
+mkdir -p $HOME/smartlock/android/SmartLock/app/native_libs/${ANDROID_ABI}
+cp $HOME/libs/*.so $HOME/smartlock/android/Idl/*.so $HOME/smartlock/android/SmartLock/app/native_libs/${ANDROID_ABI}

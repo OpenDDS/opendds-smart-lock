@@ -10,3 +10,4 @@ SmartLockJ*
 SmartLockS*
 **/*.jar
 GNUmakefile*
+SmartLock.idl
