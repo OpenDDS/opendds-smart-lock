@@ -26,6 +26,7 @@ RUN apt-get update && apt-get install -y \
   curl \
   htop \
   xz-utils \
+  jq \
   nano
 
 RUN useradd --shell /bin/bash --password "" --groups sudo --create-home pi

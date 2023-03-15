@@ -102,9 +102,6 @@ protected:
     DDS::PublisherQos qos;
     dp->get_default_publisher_qos(qos);
 
-    groups_to_partitions(groups, partition_);
-    qos.partition = partition_;
-
     publisher_ = dp->create_publisher(qos, 0, OpenDDS::DCPS::DEFAULT_STATUS_MASK);
 
     if (! publisher_) {
@@ -129,9 +126,6 @@ protected:
   {
     DDS::SubscriberQos qos;
     dp->get_default_subscriber_qos(qos);
-
-    groups_to_partitions(groups, partition_);
-    qos.partition = partition_;
 
     subscriber_ = dp->create_subscriber(qos, 0, OpenDDS::DCPS::DEFAULT_STATUS_MASK);
 
@@ -693,7 +687,6 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[])
     std::cout << "group_str=" << group_str << std::endl;
 
     OpenDDS::DCPS::SequenceBackInsertIterator<DDS::PropertySeq> props(part_qos.property.value);
-    *props = {"OpenDDS.RtpsRelay.Groups", group_str.c_str(), true};
 
 #if defined(OPENDDS_SECURITY)
     if (TheServiceParticipant->get_security()) {
@@ -718,12 +711,9 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[])
     }
 #endif
 
-    DDS::PartitionQosPolicy partitions;
-    groups_to_partitions(groups, partitions);
-
     // Create DomainParticipant
     participant =
-      dpf->create_participant(42,
+      dpf->create_participant(1,
                               part_qos,
                               0,
                               OpenDDS::DCPS::DEFAULT_STATUS_MASK);
@@ -759,9 +749,10 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[])
 
     // Create Topic
     // Status
+    const char* status_topic_name = "C.53.SmartLock Status";
     CORBA::String_var type_name = status_ts->get_type_name();
     DDS::Topic_var status_topic =
-      participant->create_topic("SmartLock Status",
+      participant->create_topic(status_topic_name,
                                 type_name,
                                 TOPIC_QOS_DEFAULT,
                                 0,
@@ -770,14 +761,16 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[])
     if (!status_topic) {
       ACE_ERROR_RETURN((LM_ERROR,
                         ACE_TEXT("ERROR: %N:%l: main() -")
-                        ACE_TEXT(" create_topic failed!\n")),
+                        ACE_TEXT(" create_topic %s failed!\n"),
+                        status_topic_name),
                        -1);
     }
 
     // Control
+    const char* control_topic_name = "C.53.SmartLock Control";
     type_name = control_ts->get_type_name();
     DDS::Topic_var control_topic =
-      participant->create_topic("SmartLock Control",
+      participant->create_topic(control_topic_name,
                                 type_name,
                                 TOPIC_QOS_DEFAULT,
                                 0,
@@ -786,7 +779,8 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[])
     if (!control_topic) {
       ACE_ERROR_RETURN((LM_ERROR,
                         ACE_TEXT("ERROR: %N:%l: main() -")
-                        ACE_TEXT(" create_topic failed!\n")),
+                        ACE_TEXT(" create_topic %s failed!\n"),
+                        control_topic_name),
                        -1);
     }
 
