@@ -83,7 +83,7 @@ fi
 echo "CMD: '$CMD', SECURITY: '$SECURITY', LOCK_ID: '$LOCK', SECURITY_ARGS: '$SECURITY_ARGS'"
 
 function update_certs {
-  APP_PASSWORD='ZOIWcsPg6BYmLXSv'
+  APP_PASSWORD=$(cat ${BASE_PATH}/dpm_password)
   APP_NONCE='lock'
 
   mkdir -p ${cert_dir}/id_ca ${cert_dir}/${LOCK} ${cert_dir}/perm_ca

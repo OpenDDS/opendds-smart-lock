@@ -240,12 +240,25 @@ function pi-compile {
     MSYS_NO_PATHCONV=1 ${DOCKER_COMMAND} run --rm -it -v "${_SMART_LOCK_DIR}/src:/home/pi/smartlock" -w "/home/pi/smartlock" pi-opendds-cross bash -c "$(tr '\n' ';' < ${COMPILE})"
 }
 
+declare dpm_password
+
+function dpm-password {
+    dpm_password="$(peek)"
+    case "${dpm_password}" in
+        '#END#')
+            expected 'password'
+            ;;
+    esac
+    consume
+}
+
 function pi-install {
     #Copy the compiled SmartLock Demo to target pi
     #ex: ./smart-lock pi install pi_1
     #To be used after build-toolchain, install-dependencies, and compile
     match-keyword 'install'
     to-pi
+    dpm-password
     expected-end-of-input
 
     load-config
@@ -271,7 +284,7 @@ function pi-install {
     if [ ${ENABLE_SECURITY:-0} == 1 ]; then
         rsync -avz -e 'ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null' "${_SMART_LOCK_DIR}/certs/" "pi@${!ip_var}:~/smartlock/certs/"
     fi
-    ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "pi@${!ip_var}" "sudo cp /home/pi/smartlock/systemd/smartlock.service /etc/systemd/system/smartlock.service; sudo chmod 0644 /etc/systemd/system/smartlock.service; sudo systemctl daemon-reload; sudo systemctl enable smartlock; echo '${!lock_id_var:-}' > /home/pi/smartlock.id"
+    ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "pi@${!ip_var}" "sudo cp /home/pi/smartlock/systemd/smartlock.service /etc/systemd/system/smartlock.service; sudo chmod 0644 /etc/systemd/system/smartlock.service; sudo systemctl daemon-reload; sudo systemctl enable smartlock; echo '${dpm_password}' > /home/pi/dpm_password; echo '${!lock_id_var:-}' > /home/pi/smartlock.id"
 }
 
 function pi-start {
@@ -402,8 +415,9 @@ Commands:
                                cross-compiler and cross-compiled dependencies
   compile                      Cross-compile the SmartLock Demo application
   install-dependencies NAME    Copy all dependencies to NAME
-  install NAME                 Copy the compiled SmartLock Demo application to
-                               NAME
+  install NAME DPM_PASSWORD    Copy the compiled SmartLock Demo application to
+                               NAME.  The DPM_PASSWORD is the DDS Permissions
+                               Manager password for the SmartLock application.
   start NAME                   Start the SmartLock Demo application on NAME
   stop NAME                    Stop the SmartLock Demo application on NAME
   status NAME                  Show the status of the SmartLock Demo
