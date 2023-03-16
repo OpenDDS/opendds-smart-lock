@@ -9,7 +9,7 @@ if [ $# -ne 1 ]; then
     exit 1
 fi
 
-mkdir /opt/workspace
+mkdir -p /opt/workspace
 cp $1 /opt/workspace
 
 apt-get update -y
