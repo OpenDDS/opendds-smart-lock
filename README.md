@@ -53,7 +53,7 @@ The `smart-lock` script contains a number of commands for building and deploying
 
 4. Install the SmartLock Demo application
 
-        smart-lock pi install pi_1
+        smart-lock pi install pi_1 <dpm_password>
 
 5. Restart the SmartLock Demo application
 
