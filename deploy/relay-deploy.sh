@@ -1,8 +1,16 @@
 #!/bin/bash
 #
-#   Deploy coturn and OpenDDS relay to Debian server. This script must be run
+#   Deploy OpenDDS relay to Debian server. This script must be run
 #   with elevated permissions.
 #
+
+if [ $# -ne 1 ]; then
+    echo "ERROR: Expect an rtps.ini file to be passed!"
+    exit 1
+fi
+
+mkdir /opt/workspace
+cp $1 /opt/workspace
 
 apt-get update -y
 
@@ -34,15 +42,12 @@ install_docker() {
 }
 
 make_relay_service() {
-    mkdir /opt/workspace
-    cd /opt/workspace
-    git clone https://github.com/OpenDDS/opendds-smart-lock.git
     cat > /etc/systemd/system/rtps-relay.service <<SERVICE
 [Unit]
 Description=Relay for RTPS
 After=network.target
 [Service]
-ExecStart=/usr/bin/docker run --log-driver none --rm -p 4444-4446:4444-4446/udp --name relay --mount type=bind,source=/opt/workspace,target=/opt/workspace ghcr.io/opendds/opendds:latest-release /opt/OpenDDS/tools/rtpsrelay/RtpsRelay -DCPSConfigFile /opt/workspace/opendds-smart-lock/deploy/rtps.ini
+ExecStart=/usr/bin/docker run --log-driver none --rm -p 4444-4446:4444-4446/udp --name relay --mount type=bind,source=/opt/workspace,target=/opt/workspace ghcr.io/opendds/opendds:latest-release /opt/OpenDDS/tools/rtpsrelay/RtpsRelay -DCPSConfigFile /opt/workspace/rtps.ini
 ExecStop=/usr/bin/docker stop rtps-relay
 [Install]
 WantedBy=multi-user.target
