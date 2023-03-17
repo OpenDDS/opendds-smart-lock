@@ -1,0 +1,15 @@
+libACE.so
+libACE_XML_Utils.so
+libc++_shared.so
+libOpenDDS_Dcps.so
+libOpenDDS_Rtps.so
+libOpenDDS_Security.so
+libSmartLock_Idl.so
+libTAO.so
+libTAO_AnyTypeCode.so
+libTAO_BiDirGIOP.so
+libTAO_CodecFactory.so
+libTAO_PI.so
+libTAO_PortableServer.so
+libTAO_Valuetype.so
+libxerces-c-3.2.so

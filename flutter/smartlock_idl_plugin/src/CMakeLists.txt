@@ -1,0 +1,29 @@
+# The Flutter tooling requires that developers have CMake 3.10 or later
+# installed. You should not increase this version, as doing so will cause
+# the plugin to fail to compile for some customers of the plugin.
+cmake_minimum_required(VERSION 3.10)
+
+project(smartlock_idl_plugin_library VERSION 0.0.1 LANGUAGES CXX)
+
+#findPackage(OpenDDS REQUIRED)
+
+set(TARGET smartlock_idl_plugin)
+
+add_library(${TARGET} SHARED
+  "smartlock_idl_plugin.cpp"
+)
+
+set_target_properties(${TARGET} PROPERTIES
+  PUBLIC_HEADER smartlock_idl_plugin.h
+  OUTPUT_NAME "smartlock_idl_plugin"
+)
+
+target_compile_definitions(${TARGET} PUBLIC DART_SHARED_LIB)
+
+target_include_directories(${TARGET} PRIVATE
+                           ../../../src/Idl
+                           "$ENV{ACE_ROOT}" "$ENV{TAO_ROOT}" "$ENV{DDS_ROOT}")
+
+target_compile_definitions(${TARGET} PUBLIC __ACE_INLINE__)
+target_link_directories(${TARGET} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../android/src/main/jniLibs/${ANDROID_ABI})
+target_link_libraries(${TARGET} SmartLock_Idl OpenDDS_Security OpenDDS_Dcps TAO_Valuetype TAO ACE_XML_Utils ACE)
