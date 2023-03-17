@@ -2,8 +2,8 @@ APP_MPC_NAME=SmartLock_Idl_Java
 APP_NAME=SmartLock
 DDS_ROOT=/home/droid/droid-opendds
 source $DDS_ROOT/build/target/setenv.sh
+sudo chmod -R o+w $HOME/smartlock
 cd $HOME/smartlock/android/Idl
-sudo chmod -R o+w ..
 cp -p ../../src/Idl/SmartLock.idl .
 mwc.pl -type gnuace
 make
@@ -12,5 +12,6 @@ cp $HOME/libs/*.jar $HOME/smartlock/android/Idl/*.jar $HOME/smartlock/android/Sm
 mkdir -p $HOME/smartlock/android/SmartLock/app/native_libs/${ANDROID_ABI}
 cp $HOME/libs/*.so $HOME/smartlock/android/Idl/*.so $HOME/smartlock/android/SmartLock/app/native_libs/${ANDROID_ABI}
 cd $HOME/libs
+mkdir -p $HOME/smartlock/android/src/main/jniLibs/${ANDROID_ABI}
 cp libACE.so libACE_XML_Utils.so libc++_shared.so libOpenDDS_Dcps.so libOpenDDS_Rtps.so libOpenDDS_Security.so libTAO.so libTAO_AnyTypeCode.so libTAO_BiDirGIOP.so libTAO_CodecFactory.so libTAO_PI.so libTAO_PortableServer.so libTAO_Valuetype.so libxerces-c-3.2.so $HOME/smartlock/flutter/smartlock_idl_plugin/android/src/main/jniLibs/${ANDROID_ABI}
 cp $HOME/smartlock/android/Idl/libSmartLock_Idl_Java.so $HOME/smartlock/flutter/smartlock_idl_plugin/android/src/main/jniLibs/${ANDROID_ABI}/libSmartLock_Idl.so
