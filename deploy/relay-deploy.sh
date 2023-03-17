@@ -47,8 +47,8 @@ make_relay_service() {
 Description=Relay for RTPS
 After=network.target
 [Service]
-ExecStart=/usr/bin/docker run --log-driver none --rm -p 4444-4446:4444-4446/udp --name relay --mount type=bind,source=/opt/workspace,target=/opt/workspace ghcr.io/opendds/opendds:latest-release /opt/OpenDDS/tools/rtpsrelay/RtpsRelay -DCPSConfigFile /opt/workspace/rtps.ini
-ExecStop=/usr/bin/docker stop rtps-relay
+ExecStart=/usr/bin/docker run --log-driver none --rm -p 4444-4446:4444-4446/udp --name relay --mount type=bind,source=/opt/workspace,target=/opt/workspace ghcr.io/opendds/opendds:latest-release /opt/OpenDDS/tools/rtpsrelay/RtpsRelay -Id id -VerticalAddress 0.0.0.0:4444 -DCPSConfigFile /opt/workspace/rtps.ini
+ExecStop=/usr/bin/docker stop relay
 [Install]
 WantedBy=multi-user.target
 SERVICE
