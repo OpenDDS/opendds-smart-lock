@@ -4,13 +4,16 @@
 #   with elevated permissions.
 #
 
-if [ $# -ne 1 ]; then
-    echo "ERROR: Expect an rtps.ini file to be passed!"
+if [ $# -ne 2 ]; then
+    echo "ERROR: Expect an rtps.ini file and a directory containing security docs to be passed!"
     exit 1
 fi
 
-mkdir -p /opt/workspace
-cp $1 /opt/workspace
+MOUNT_DIR=/opt/workspace
+mkdir -p ${MOUNT_DIR}
+cp $1 ${MOUNT_DIR}
+mkdir -p ${MOUNT_DIR}/certs
+cp $2/* ${MOUNT_DIR}/certs
 
 apt-get update -y
 
@@ -47,7 +50,7 @@ make_relay_service() {
 Description=Relay for RTPS
 After=network.target
 [Service]
-ExecStart=/usr/bin/docker run --log-driver none --rm -p 4444-4446:4444-4446/udp --name relay --mount type=bind,source=/opt/workspace,target=/opt/workspace ghcr.io/opendds/opendds:latest-release /opt/OpenDDS/tools/rtpsrelay/RtpsRelay -Id id -VerticalAddress 0.0.0.0:4444 -DCPSConfigFile /opt/workspace/rtps.ini
+ExecStart=/usr/bin/docker run --log-driver none --rm -p 4444-4446:4444-4446/udp --name relay --mount type=bind,source=/opt/workspace,target=/opt/workspace ghcr.io/opendds/opendds:latest-release /opt/OpenDDS/tools/rtpsrelay/RtpsRelay -Id id -VerticalAddress 0.0.0.0:4444 -IdentityCA /opt/workspace/certs/identity_ca.pem -PermissionsCA /opt/workspace/certs/permissions_ca.pem -IdentityCertificate /opt/workspace/certs/identity.pem -IdentityKey /opt/workspace/certs/identity_key.pem -Governance /opt/workspace/certs/governance.xml.p7s -Permissions /opt/workspace/certs/permissions.xml.p7s -DCPSConfigFile /opt/workspace/rtps.ini
 ExecStop=/usr/bin/docker stop relay
 [Install]
 WantedBy=multi-user.target
