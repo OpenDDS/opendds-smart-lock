@@ -10,6 +10,7 @@ LD_LIBRARY_PATH+=":${BASE_PATH}/pi-xerces/lib"
 LD_LIBRARY_PATH+=":${BASE_PATH}/pigpio/lib"
 LD_LIBRARY_PATH+=":${BASE_PATH}/smartlock/Idl"
 cert_dir=${BASE_PATH}/smartlock/certs
+smartlock_ini=${BASE_PATH}/smartlock/smartlock.ini
 
 SECURITY=${SMARTLOCK_SECURE:-0}
 CMD=start
@@ -84,17 +85,19 @@ echo "CMD: '$CMD', SECURITY: '$SECURITY', LOCK_ID: '$LOCK', SECURITY_ARGS: '$SEC
 
 function update_certs {
   APP_PASSWORD=$(cat ${BASE_PATH}/dpm_password)
-  APP_NONCE='lock'
+  APP_NONCE=${LOCK}
+  API_URL=$(grep api_url ${smartlock_ini} | sed 's/api_url *= *"//; s/".*//')
+  USERNAME=$(grep username ${smartlock_ini} | sed 's/username *= *"//; s/".*//')
 
   mkdir -p ${cert_dir}/id_ca ${cert_dir}/${LOCK} ${cert_dir}/perm_ca
 
-  curl -c cookies.txt -H'Content-Type: application/json' -d"{\"username\":\"54\",\"password\":\"$APP_PASSWORD\"}" https://dpm.unityfoundation.io/api/login
+  curl -c cookies.txt -H'Content-Type: application/json' -d"{\"username\":\"${USERNAME}\",\"password\":\"$APP_PASSWORD\"}" ${API_URL}/login
 
-  curl --silent -b cookies.txt "https://dpm.unityfoundation.io/api/applications/identity_ca.pem" > ${ID_CA}
-  curl --silent -b cookies.txt "https://dpm.unityfoundation.io/api/applications/permissions_ca.pem" > ${PERM_CA}
-  curl --silent -b cookies.txt "https://dpm.unityfoundation.io/api/applications/governance.xml.p7s" > ${PERM_GOV}
-  curl --silent -b cookies.txt "https://dpm.unityfoundation.io/api/applications/key_pair?nonce=${APP_NONCE}" > key-pair
-  curl --silent -b cookies.txt "https://dpm.unityfoundation.io/api/applications/permissions.xml.p7s?nonce=${APP_NONCE}" > ${PERM_PERMS}
+  curl --silent -b cookies.txt "${API_URL}/applications/identity_ca.pem" > ${ID_CA}
+  curl --silent -b cookies.txt "${API_URL}/applications/permissions_ca.pem" > ${PERM_CA}
+  curl --silent -b cookies.txt "${API_URL}/applications/governance.xml.p7s" > ${PERM_GOV}
+  curl --silent -b cookies.txt "${API_URL}/applications/key_pair?nonce=${APP_NONCE}" > key-pair
+  curl --silent -b cookies.txt "${API_URL}/applications/permissions.xml.p7s?nonce=${APP_NONCE}" > ${PERM_PERMS}
 
   jq -r '.public' key-pair > ${ID_CERT}
   jq -r '.private' key-pair > ${ID_PKEY}
@@ -114,6 +117,7 @@ start() {
         -DCPSTransportDebugLevel 5 \
         -lock ${LOCK} \
         -groups house1 \
+        -ini ${smartlock_ini} \
         ${SECURITY_ARGS} &
 
     echo "$!" > $PID_FILE
@@ -137,6 +141,7 @@ start-system() {
         -DCPSTransportDebugLevel 5 \
         -lock ${LOCK} \
         -groups house1 \
+        -ini ${smartlock_ini} \
         ${SECURITY_ARGS}
 }
 
