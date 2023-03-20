@@ -555,6 +555,60 @@ std::ostream& operator<<(std::ostream& lhs, const SecurityInfo& rhs) {
 }
 #endif
 
+bool load_config(const std::string& config_file,
+                 std::string& topic_prefix, int& domain_id)
+{
+  ACE_Configuration_Heap config;
+  if (config.open() != 0) {
+    ACE_ERROR_RETURN((LM_ERROR,
+                      ACE_TEXT("ERROR: %N:%l: load_config() -")
+                      ACE_TEXT(" ACE_Configuration_Heap open failed!\n")),
+                      false);
+  }
+
+  ACE_Ini_ImpExp import(config);
+  if (import.import_config(config_file.c_str()) != 0) {
+    ACE_ERROR_RETURN((LM_ERROR,
+                      ACE_TEXT("ERROR: %N:%l: load_config() -")
+                      ACE_TEXT(" INI import failed!\n")),
+                      false);
+  }
+
+  ACE_Configuration_Section_Key section;
+  if (config.open_section(config.root_section(),
+                          "smartlock", 1, section) != 0) {
+    ACE_ERROR_RETURN((LM_ERROR,
+                      ACE_TEXT("ERROR: %N:%l: load_config() -")
+                      ACE_TEXT(" The smartlock ini does not have a ")
+                      ACE_TEXT("smartlock section!\n")),
+                      false);
+  }
+
+  ACE_TString topic_prefix_str;
+  if (config.get_string_value(section, ACE_TEXT("topic_prefix"),
+                              topic_prefix_str) != 0) {
+    ACE_ERROR_RETURN((LM_ERROR,
+                      ACE_TEXT("ERROR: %N:%l: load_config() -")
+                      ACE_TEXT(" The smartlock ini does define a ")
+                      ACE_TEXT("topic prefix!\n")),
+                      false);
+  }
+  topic_prefix = topic_prefix_str.c_str();
+
+  // Every value, when imported by ACE, is a string value.
+  ACE_TString domain_id_str;
+  if (config.get_string_value(section, ACE_TEXT("domain_id"),
+                              domain_id_str) != 0) {
+    ACE_ERROR_RETURN((LM_ERROR,
+                      ACE_TEXT("ERROR: %N:%l: load_config() -")
+                      ACE_TEXT(" The smartlock ini does define a ")
+                      ACE_TEXT("domain id!\n")),
+                      false);
+  }
+  domain_id = ACE_OS::atoi(domain_id_str.c_str());
+  return true;
+}
+
 DDS::DomainParticipantFactory_var dpf = nullptr;
 DDS::DomainParticipant_var participant = nullptr;
 
@@ -679,50 +733,11 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[])
       return -1;
     }
 
-    ACE_Configuration_Heap config;
-    if (config.open() != 0) {
-      ACE_ERROR_RETURN((LM_ERROR,
-                        ACE_TEXT("ERROR: %N:%l: main() -")
-                        ACE_TEXT(" ACE_Configuration_Heap open failed!\n")),
-                       -1);
+    std::string topic_prefix;
+    int domain_id;
+    if (!load_config(config_file, topic_prefix, domain_id)) {
+      return -1;
     }
-    ACE_Ini_ImpExp import(config);
-    if (import.import_config(config_file.c_str()) != 0) {
-      ACE_ERROR_RETURN((LM_ERROR,
-                        ACE_TEXT("ERROR: %N:%l: main() -")
-                        ACE_TEXT(" INI import failed!\n")),
-                       -1);
-    }
-
-    ACE_Configuration_Section_Key section;
-    if (config.open_section(config.root_section(),
-                            "smartlock", 1, section) != 0) {
-      ACE_ERROR_RETURN((LM_ERROR,
-                        ACE_TEXT("ERROR: %N:%l: main() -")
-                        ACE_TEXT(" The smartlock ini does not have a ")
-                        ACE_TEXT("smartlock section!\n")),
-                       -1);
-    }
-    ACE_TString topic_prefix;
-    if (config.get_string_value(section, ACE_TEXT("topic_prefix"),
-                                topic_prefix) != 0) {
-      ACE_ERROR_RETURN((LM_ERROR,
-                        ACE_TEXT("ERROR: %N:%l: main() -")
-                        ACE_TEXT(" The smartlock ini does define a ")
-                        ACE_TEXT("topic prefix!\n")),
-                       -1);
-    }
-    // Every value, when imported by ACE, is a string value.
-    ACE_TString domain_id_str;
-    if (config.get_string_value(section, ACE_TEXT("domain_id"),
-                                domain_id_str) != 0) {
-      ACE_ERROR_RETURN((LM_ERROR,
-                        ACE_TEXT("ERROR: %N:%l: main() -")
-                        ACE_TEXT(" The smartlock ini does define a ")
-                        ACE_TEXT("domain id!\n")),
-                       -1);
-    }
-    const int domain_id = ACE_OS::atoi(domain_id_str.c_str());
 
     DDS::DomainParticipantQos part_qos;
     dpf->get_default_participant_qos(part_qos);
@@ -801,8 +816,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[])
 
     // Create Topic
     // Status
-    const ACE_TString status_topic_name = topic_prefix +
-                                          ACE_TEXT("SmartLock Status");
+    const std::string status_topic_name = topic_prefix + "SmartLock Status";
     CORBA::String_var type_name = status_ts->get_type_name();
     DDS::Topic_var status_topic =
       participant->create_topic(status_topic_name.c_str(),
@@ -820,8 +834,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[])
     }
 
     // Control
-    const ACE_TString control_topic_name = topic_prefix +
-                                           ACE_TEXT("SmartLock Control");
+    const std::string control_topic_name = topic_prefix + "SmartLock Control";
     type_name = control_ts->get_type_name();
     DDS::Topic_var control_topic =
       participant->create_topic(control_topic_name.c_str(),
