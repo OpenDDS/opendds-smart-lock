@@ -6,6 +6,7 @@
 #include <ace/Global_Macros.h>
 #include <ace/Log_Msg.h>
 #include <ace/OS_NS_stdlib.h>
+#include <ace/Configuration_Import_Export.h>
 
 #include <dds/DdsDcpsInfrastructureC.h>
 #include <dds/DdsDcpsPublicationC.h>
@@ -102,9 +103,6 @@ protected:
     DDS::PublisherQos qos;
     dp->get_default_publisher_qos(qos);
 
-    groups_to_partitions(groups, partition_);
-    qos.partition = partition_;
-
     publisher_ = dp->create_publisher(qos, 0, OpenDDS::DCPS::DEFAULT_STATUS_MASK);
 
     if (! publisher_) {
@@ -129,9 +127,6 @@ protected:
   {
     DDS::SubscriberQos qos;
     dp->get_default_subscriber_qos(qos);
-
-    groups_to_partitions(groups, partition_);
-    qos.partition = partition_;
 
     subscriber_ = dp->create_subscriber(qos, 0, OpenDDS::DCPS::DEFAULT_STATUS_MASK);
 
@@ -560,6 +555,60 @@ std::ostream& operator<<(std::ostream& lhs, const SecurityInfo& rhs) {
 }
 #endif
 
+bool load_config(const std::string& config_file,
+                 std::string& topic_prefix, int& domain_id)
+{
+  ACE_Configuration_Heap config;
+  if (config.open() != 0) {
+    ACE_ERROR_RETURN((LM_ERROR,
+                      ACE_TEXT("ERROR: %N:%l: load_config() -")
+                      ACE_TEXT(" ACE_Configuration_Heap open failed!\n")),
+                      false);
+  }
+
+  ACE_Ini_ImpExp import(config);
+  if (import.import_config(config_file.c_str()) != 0) {
+    ACE_ERROR_RETURN((LM_ERROR,
+                      ACE_TEXT("ERROR: %N:%l: load_config() -")
+                      ACE_TEXT(" INI import failed!\n")),
+                      false);
+  }
+
+  ACE_Configuration_Section_Key section;
+  if (config.open_section(config.root_section(),
+                          "smartlock", 1, section) != 0) {
+    ACE_ERROR_RETURN((LM_ERROR,
+                      ACE_TEXT("ERROR: %N:%l: load_config() -")
+                      ACE_TEXT(" The smartlock ini does not have a ")
+                      ACE_TEXT("smartlock section!\n")),
+                      false);
+  }
+
+  ACE_TString topic_prefix_str;
+  if (config.get_string_value(section, ACE_TEXT("topic_prefix"),
+                              topic_prefix_str) != 0) {
+    ACE_ERROR_RETURN((LM_ERROR,
+                      ACE_TEXT("ERROR: %N:%l: load_config() -")
+                      ACE_TEXT(" The smartlock ini does define a ")
+                      ACE_TEXT("topic prefix!\n")),
+                      false);
+  }
+  topic_prefix = topic_prefix_str.c_str();
+
+  // Every value, when imported by ACE, is a string value.
+  ACE_TString domain_id_str;
+  if (config.get_string_value(section, ACE_TEXT("domain_id"),
+                              domain_id_str) != 0) {
+    ACE_ERROR_RETURN((LM_ERROR,
+                      ACE_TEXT("ERROR: %N:%l: load_config() -")
+                      ACE_TEXT(" The smartlock ini does define a ")
+                      ACE_TEXT("domain id!\n")),
+                      false);
+  }
+  domain_id = ACE_OS::atoi(domain_id_str.c_str());
+  return true;
+}
+
 DDS::DomainParticipantFactory_var dpf = nullptr;
 DDS::DomainParticipant_var participant = nullptr;
 
@@ -608,6 +657,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[])
 
     std::vector<std::string> groups;
     SmartLock::lock_t lock;
+    std::string config_file("smartlock.ini");
 
     ACE_Arg_Shifter args(argc, argv);
     while (args.is_anything_left()) {
@@ -668,6 +718,11 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[])
 
         } while (args.is_parameter_next());
 
+      } else if ((arg = args.get_the_parameter("-ini")) != nullptr) {
+
+        config_file = args.get_current();
+        args.consume_arg();
+
       } else {
         args.ignore_arg();
       }
@@ -675,6 +730,12 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[])
 
     if (role == kUnknown || lock.id().empty()) {
       usage(std::cerr);
+      return -1;
+    }
+
+    std::string topic_prefix;
+    int domain_id;
+    if (!load_config(config_file, topic_prefix, domain_id)) {
       return -1;
     }
 
@@ -693,7 +754,6 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[])
     std::cout << "group_str=" << group_str << std::endl;
 
     OpenDDS::DCPS::SequenceBackInsertIterator<DDS::PropertySeq> props(part_qos.property.value);
-    *props = {"OpenDDS.RtpsRelay.Groups", group_str.c_str(), true};
 
 #if defined(OPENDDS_SECURITY)
     if (TheServiceParticipant->get_security()) {
@@ -718,12 +778,9 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[])
     }
 #endif
 
-    DDS::PartitionQosPolicy partitions;
-    groups_to_partitions(groups, partitions);
-
     // Create DomainParticipant
     participant =
-      dpf->create_participant(42,
+      dpf->create_participant(domain_id,
                               part_qos,
                               0,
                               OpenDDS::DCPS::DEFAULT_STATUS_MASK);
@@ -759,9 +816,10 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[])
 
     // Create Topic
     // Status
+    const std::string status_topic_name = topic_prefix + "SmartLock Status";
     CORBA::String_var type_name = status_ts->get_type_name();
     DDS::Topic_var status_topic =
-      participant->create_topic("SmartLock Status",
+      participant->create_topic(status_topic_name.c_str(),
                                 type_name,
                                 TOPIC_QOS_DEFAULT,
                                 0,
@@ -770,14 +828,16 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[])
     if (!status_topic) {
       ACE_ERROR_RETURN((LM_ERROR,
                         ACE_TEXT("ERROR: %N:%l: main() -")
-                        ACE_TEXT(" create_topic failed!\n")),
+                        ACE_TEXT(" create_topic %s failed!\n"),
+                        status_topic_name),
                        -1);
     }
 
     // Control
+    const std::string control_topic_name = topic_prefix + "SmartLock Control";
     type_name = control_ts->get_type_name();
     DDS::Topic_var control_topic =
-      participant->create_topic("SmartLock Control",
+      participant->create_topic(control_topic_name.c_str(),
                                 type_name,
                                 TOPIC_QOS_DEFAULT,
                                 0,
@@ -786,7 +846,8 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[])
     if (!control_topic) {
       ACE_ERROR_RETURN((LM_ERROR,
                         ACE_TEXT("ERROR: %N:%l: main() -")
-                        ACE_TEXT(" create_topic failed!\n")),
+                        ACE_TEXT(" create_topic %s failed!\n"),
+                        control_topic_name),
                        -1);
     }
 
