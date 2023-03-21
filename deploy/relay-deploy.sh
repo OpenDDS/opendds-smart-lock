@@ -4,16 +4,18 @@
 #   with elevated permissions.
 #
 
-if [ $# -ne 2 ]; then
-    echo "ERROR: Expect an rtps.ini file and a directory containing security docs to be passed!"
+if [ $# -ne 3 ]; then
+    echo "ERROR: Expect username/password to the permission manager and an rtps.ini file to be passed."
+    echo "Usage: $0 username password path_to_ini_file"
     exit 1
 fi
 
 MOUNT_DIR=/opt/workspace
 mkdir -p ${MOUNT_DIR}
-cp $1 ${MOUNT_DIR}
-mkdir -p ${MOUNT_DIR}/certs
-cp $2/* ${MOUNT_DIR}/certs
+cp $3 ${MOUNT_DIR}
+
+DPM_USERNAME=$1
+DPM_PASSWORD=$2
 
 apt-get update -y
 
@@ -44,6 +46,23 @@ install_docker() {
     usermod -aG docker $USER
 }
 
+download_security_docs() {
+    NONCE=relaynonce
+    API_URL=https://dpm.unityfoundation.io/api
+    CERTS_DIR=${MOUNT_DIR}/certs
+
+    mkdir -p ${CERTS_DIR}
+    curl -c cookies.txt -H'Content-Type: application/json' -d"{\"username\":\"${DPM_USERNAME}\",\"password\":\"$DPM_PASSWORD\"}" ${API_URL}/login
+    curl --silent -b cookies.txt "${API_URL}/applications/identity_ca.pem" > ${CERTS_DIR}/identity_ca.pem
+    curl --silent -b cookies.txt "${API_URL}/applications/permissions_ca.pem" > ${CERTS_DIR}/permissions_ca.pem
+    curl --silent -b cookies.txt "${API_URL}/applications/governance.xml.p7s" > ${CERTS_DIR}/governance.xml.p7s
+    curl --silent -b cookies.txt "${API_URL}/applications/key_pair?nonce=${NONCE}" > key-pair
+    curl --silent -b cookies.txt "${API_URL}/applications/permissions.xml.p7s?nonce=${NONCE}" > ${CERTS_DIR}/permissions.xml.p7s
+    jq -r '.public' key-pair > ${CERTS_DIR}/identity.pem
+    jq -r '.private' key-pair > ${CERTS_DIR}/identity_key.pem
+    rm -f cookies.txt key-pair
+}
+
 make_relay_service() {
     cat > /etc/systemd/system/rtps-relay.service <<SERVICE
 [Unit]
@@ -62,6 +81,7 @@ SERVICE
 }
 
 install_docker
+download_security_docs
 make_relay_service
 
 systemctl start rtps-relay
