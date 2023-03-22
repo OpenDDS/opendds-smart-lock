@@ -220,7 +220,7 @@ private:
     }
 
     participant =
-      participantFactory->create_participant(DOMAIN,
+      participantFactory->create_participant(domain,
                                              participantQos,
                                              nullptr,
                                              OpenDDS::DCPS::DEFAULT_STATUS_MASK);
