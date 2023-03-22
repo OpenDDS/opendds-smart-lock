@@ -45,10 +45,18 @@ public:
     int status = mdr->take_next_sample(mh, sih);
     if (status == DDS::RETCODE_OK) {
       SmartLockStatus lock_status;
+#if defined(OPENDDS_HAS_CXX11)
+      lock_status.id = mh.lock().id().c_str();
+#else
       lock_status.id = mh.lock.id;
+#endif
       if (sih.valid_data) {
         lock_status.enabled = true;
+#if defined(OPENDDS_HAS_CXX11)
+        lock_status.state = mh.lock().locked() ? LOCKED : UNLOCKED;
+#else
         lock_status.state = mh.lock.locked ? LOCKED : UNLOCKED;
+#endif
       } else {
         lock_status.enabled = false;
       }
@@ -83,7 +91,7 @@ public:
      debug_level("3"),
      transport_debug_level("3"),
      topic_prefix("C.53."),
-     DOMAIN(1),
+     domain(1),
      groups() {
   }
 
@@ -124,13 +132,20 @@ public:
       SmartLock::ControlDataWriter_var control_dw =
         SmartLock::ControlDataWriter::_narrow(dw);
 
+#if defined(OPENDDS_HAS_CXX11)
+      SmartLock::Control control_message(
+        SmartLock::lock_t(status->id,
+                          status->state == PENDING_LOCK ||
+                          status->state == LOCKED,
+                          SmartLock::vec2(20, 10)));
+#else
       SmartLock::Control control_message;
       control_message.lock.id = status->id;
       control_message.lock.locked = status->state == PENDING_LOCK ||
                                     status->state == LOCKED;
       control_message.lock.position.x = 20;
       control_message.lock.position.y = 10;
-
+#endif
       int return_code = control_dw->write(control_message,
                                           control_dw->register_instance(control_message));
       if (return_code != DDS::RETCODE_OK) {
@@ -188,7 +203,8 @@ private:
       try {
         initParticipantFactory(config);
       } catch (const std::exception& e) {
-        error_message = "Error Initializing OpenDDS";
+        error_message = "Error Initializing OpenDDS: ";
+        error_message += e.what();
         ACE_DEBUG((LM_NOTICE, "%s: %s\n", LOG_TAG, error_message.c_str()));
         if (send != nullptr) {
           send(error_message.c_str());
@@ -303,7 +319,7 @@ private:
       return;
     }
 
-    // TODO: locationListener
+    // TODO: locationListener?
     //locationListener = new ParticipantLocationListener();
     //int ret = bitDr.set_listener(locationListener, OpenDDS.DCPS.DEFAULT_STATUS_MASK.value);
     //assert (ret == DDS.RETCODE_OK.value);
@@ -385,7 +401,7 @@ private:
   std::string debug_level;
   std::string transport_debug_level;
   std::string topic_prefix;
-  int DOMAIN;
+  int domain;
   std::vector<std::string> groups;
 };
 
