@@ -3,6 +3,7 @@ libACE_XML_Utils.so
 libc++_shared.so
 libOpenDDS_Dcps.so
 libOpenDDS_Rtps.so
+libOpenDDS_Rtps_Udp.so
 libOpenDDS_Security.so
 libSmartLock_Idl.so
 libTAO.so
