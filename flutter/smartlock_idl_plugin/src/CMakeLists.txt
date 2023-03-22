@@ -22,7 +22,7 @@ set_target_properties(${TARGET} PROPERTIES
 target_compile_definitions(${TARGET} PUBLIC DART_SHARED_LIB)
 
 target_include_directories(${TARGET} PRIVATE
-                           ../../../src/Idl
+                           ../../../android/Idl
                            "${ACE_ROOT}" "${DDS_ROOT}")
 
 target_compile_definitions(${TARGET} PUBLIC __ACE_INLINE__ OPENDDS_SECURITY)

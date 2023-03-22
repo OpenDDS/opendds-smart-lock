@@ -59,11 +59,12 @@ public:
       SmartLock::ControlDataWriter_var control_dw =
         SmartLock::ControlDataWriter::_narrow(dw);
 
-      SmartLock::Control control_message(
-        SmartLock::lock_t(status->id,
-                          status->state == PENDING_LOCK ||
-                          status->state == LOCKED,
-                          SmartLock::vec2(20, 10)));
+      SmartLock::Control control_message;
+      control_message.lock.id = status->id;
+      control_message.lock.locked = status->state == PENDING_LOCK ||
+                                    status->state == LOCKED;
+      control_message.lock.position.x = 20;
+      control_message.lock.position.y = 10;
 
       int return_code = control_dw->write(control_message,
                                           control_dw->register_instance(control_message));
