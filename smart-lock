@@ -237,7 +237,7 @@ function pi-compile {
     expected-end-of-input
 
     COMPILE="${_SMART_LOCK_DIR}/dockerfiles/pi-opendds-cross/pi-compile"
-    MSYS_NO_PATHCONV=1 ${DOCKER_COMMAND} run --rm -it -v "${_SMART_LOCK_DIR}/src:/home/pi/smartlock" -w "/home/pi/smartlock" pi-opendds-cross bash -c "$(tr '\n' ';' < ${COMPILE})"
+    MSYS_NO_PATHCONV=1 ${DOCKER_COMMAND} run --rm -it -v "${_SMART_LOCK_DIR}/src:/home/pi/smartlock" -w "/home/pi/smartlock" pi-opendds-cross bash -c "$(tr '\n' ';' < ${COMPILE} | sed 's/\r//g')"
 }
 
 declare dpm_password
@@ -576,7 +576,7 @@ function android-compile {
     ## directory within the .mpc file, the TypeSupport.idl file contents
     ## cannot be determined due to a limitation within the idl2jni helper.
     COMPILE="${_SMART_LOCK_DIR}/dockerfiles/android-opendds-cross/android-compile"
-    MSYS_NO_PATHCONV=1 ${DOCKER_COMMAND} run --rm -ti -v "${_SMART_LOCK_DIR}:/home/droid/smartlock" -w '/home/droid' android-opendds-cross bash -c "$(tr '\n' ';' < ${COMPILE})"
+    MSYS_NO_PATHCONV=1 ${DOCKER_COMMAND} run --rm -ti -v "${_SMART_LOCK_DIR}:/home/droid/smartlock" -w '/home/droid' android-opendds-cross bash -c "$(tr '\n' ';' < ${COMPILE} | sed 's/\r//g')"
 
     (
         cd "${_SMART_LOCK_DIR}/android/SmartLock"
