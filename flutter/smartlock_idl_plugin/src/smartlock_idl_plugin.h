@@ -23,7 +23,15 @@ typedef struct {
   void* ptr;
 } OpenDdsBridge;
 
+typedef enum { UNLOCKED, PENDING_UNLOCK, LOCKED, PENDING_LOCK } State;
+typedef struct {
+  const char* id;
+  State state;
+  int enabled;
+} SmartLockStatus;
+
 typedef void (*notifier)(const char* message);
+typedef void (*lock_update)(const SmartLockStatus* status);
 
 typedef struct {
   // The full path of the ini file.
@@ -42,13 +50,10 @@ typedef struct {
   // The user of the bridge can provide a function to receive
   // message back from the bridge.
   notifier receiver;
-} OpenDdsBridgeConfig;
 
-typedef enum { UNLOCKED, PENDING_UNLOCK, LOCKED, PENDING_LOCK } State;
-typedef struct {
-  const char* id;
-  State state;
-} SmartLockStatus;
+  // Callback to update the lock status
+  lock_update update;
+} OpenDdsBridgeConfig;
 
 FFI_PLUGIN_EXPORT OpenDdsBridge* createOpenDdsBridge();
 FFI_PLUGIN_EXPORT void destroyOpenDdsBridge(OpenDdsBridge* bridge);

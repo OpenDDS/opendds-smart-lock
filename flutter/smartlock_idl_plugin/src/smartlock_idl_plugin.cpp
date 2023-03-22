@@ -10,8 +10,70 @@
 
 #include <ace/OS_NS_stdio.h>
 
-extern "C" {
+class DataReaderListenerImpl: public DDS::DataReaderListener
+{
+public:
+  DataReaderListenerImpl() {}
+  ~DataReaderListenerImpl() {}
 
+  void on_requested_deadline_missed (
+      ::DDS::DataReader_ptr reader,
+      const ::DDS::RequestedDeadlineMissedStatus & status) override {}
+
+  void on_requested_incompatible_qos (
+      ::DDS::DataReader_ptr reader,
+      const ::DDS::RequestedIncompatibleQosStatus & status) override {}
+
+  void on_sample_rejected (
+      ::DDS::DataReader_ptr reader,
+      const ::DDS::SampleRejectedStatus & status) override {}
+
+  void on_liveliness_changed (
+      ::DDS::DataReader_ptr reader,
+      const ::DDS::LivelinessChangedStatus & status) override {}
+
+  void on_data_available (
+      ::DDS::DataReader_ptr reader) override {
+    SmartLock::StatusDataReader_var mdr = SmartLock::StatusDataReader::_narrow(reader);
+    if (mdr == nullptr) {
+      ACE_DEBUG((LM_NOTICE, "%s: read: narrow failed.\n", LOGTAG));
+      return;
+    }
+
+    SmartLock::Status mh;
+    DDS::SampleInfo sih;
+    int status = mdr->take_next_sample(mh, sih);
+    if (status == DDS::RETCODE_OK) {
+      SmartLockStatus lock_status;
+      lock_status.id = mh.lock.id;
+      if (sih.valid_data) {
+        lock_status.enabled = true;
+        lock_status.state = mh.lock.locked ? LOCKED : UNLOCKED;
+      } else {
+        lock_status.enabled = false;
+      }
+      if (update != nullptr) {
+        update(&lock_status);
+      }
+    }
+  }
+
+  void on_subscription_matched (
+      ::DDS::DataReader_ptr reader,
+      const ::DDS::SubscriptionMatchedStatus & status) override {}
+
+  void on_sample_lost (
+      ::DDS::DataReader_ptr reader,
+      const ::DDS::SampleLostStatus & status) override {}
+
+  static lock_update update;
+
+private:
+  static const char* LOGTAG;
+};
+
+lock_update DataReaderListenerImpl::update;
+const char* DataReaderListenerImpl::LOGTAG = "SmartLock_DataReaderListenerImpl";
 
 class OpenDdsBridgeImpl
 {
@@ -20,6 +82,7 @@ public:
    : secure(true),
      debug_level("3"),
      transport_debug_level("3"),
+     topic_prefix("C.53."),
      DOMAIN(1),
      groups() {
   }
@@ -28,7 +91,9 @@ public:
     startDds(config);
     try {
       initParticipant();
-      send("The OpenDDS Bridge is running");
+      if (send != nullptr) {
+        send("The OpenDDS Bridge is running");
+      }
     }
     catch(const std::exception& e) {
       error_message = e.what();
@@ -75,33 +140,9 @@ public:
     }
   }
 
-  const char* getLastError() {
-    return error_message.c_str();
-  }
-
   static notifier send;
 
 private:
-  DDS::DataReaderQos newDefaultDataReaderQos(DDS::Subscriber_ptr subscriber) {
-    DDS::DataReaderQos qos;
-    subscriber->get_default_datareader_qos(qos);
-    return qos;
-  }
-
-  DDS::PublisherQos newDefaultPublisherQos(
-                      DDS::DomainParticipant_ptr participant) {
-    DDS::PublisherQos qos;
-    participant->get_default_publisher_qos(qos);
-    return qos;
-  }
-
-  DDS::SubscriberQos newDefaultSubscriberQos(
-                       DDS::DomainParticipant_ptr participant) {
-    DDS::SubscriberQos qos;
-    participant->get_default_subscriber_qos(qos);
-    return qos;
-  }
-
   void initParticipantFactory(const OpenDdsBridgeConfig* config) {
     if (participantFactory != nullptr) {
       return;
@@ -148,6 +189,10 @@ private:
         initParticipantFactory(config);
       } catch (const std::exception& e) {
         error_message = "Error Initializing OpenDDS";
+        ACE_DEBUG((LM_NOTICE, "%s: %s\n", LOG_TAG, error_message.c_str()));
+        if (send != nullptr) {
+          send(error_message.c_str());
+        }
       }
     }
   }
@@ -159,11 +204,10 @@ private:
     }
 
     participant =
-      participantFactory->create_participant(1,
+      participantFactory->create_participant(DOMAIN,
                                              participantQos,
                                              nullptr,
                                              OpenDDS::DCPS::DEFAULT_STATUS_MASK);
-
     if (participant == nullptr) {
       error_message = "create_participant failed!";
       ACE_ERROR((LM_ERROR,
@@ -184,21 +228,30 @@ private:
       return;
     }
 
-    const char* status_topic_name = "C.53.SmartLock Status";
+    const std::string status_topic_name = topic_prefix + "SmartLock Status";
     CORBA::String_var type_name = status_ts->get_type_name();
     DDS::Topic_var status_topic =
-      participant->create_topic(status_topic_name,
+      participant->create_topic(status_topic_name.c_str(),
                                 type_name,
                                 TOPIC_QOS_DEFAULT,
                                 nullptr,
                                 OpenDDS::DCPS::DEFAULT_STATUS_MASK);
+    if (status_topic == nullptr) {
+      error_message = "create_topic ";
+      error_message += status_topic_name;
+      error_message += " failed!";
+      ACE_ERROR((LM_ERROR,
+                 ACE_TEXT("ERROR: %N:%l: ")
+                 ACE_TEXT("%s\n"),
+                 error_message.c_str()));
+      return;
+    }
 
     DDS::SubscriberQos sub_qos;
     participant->get_default_subscriber_qos(sub_qos);
 
-    DDS::Subscriber_var sub = participant->create_subscriber(sub_qos, 0,
+    DDS::Subscriber_var sub = participant->create_subscriber(sub_qos, nullptr,
       OpenDDS::DCPS::DEFAULT_STATUS_MASK);
-
     if (sub == nullptr) {
       error_message = "create_subscriber failed!";
       ACE_ERROR((LM_ERROR,
@@ -213,14 +266,12 @@ private:
     sub->get_default_datareader_qos(read_qos);
     read_qos.reliability.kind = DDS::RELIABLE_RELIABILITY_QOS;
     read_qos.history.kind = DDS::KEEP_ALL_HISTORY_QOS;
-    // TODO: DataReaderListenerImpl
-    DDS::DataReaderListener_var listener = nullptr;
+    DDS::DataReaderListener_var listener = new DataReaderListenerImpl;
     DDS::DataReader_var reader =
       sub->create_datareader(status_topic,
                              read_qos,
                              listener,
                              OpenDDS::DCPS::DEFAULT_STATUS_MASK);
-
     if (reader == nullptr) {
       error_message = "create_datareader failed!";
       ACE_ERROR((LM_ERROR,
@@ -268,10 +319,10 @@ private:
       return;
     }
 
-    const char* control_topic_name = "C.53.SmartLock Control";
+    const std::string control_topic_name = topic_prefix + "SmartLock Control";
     type_name = control_servant->get_type_name();
     DDS::Topic_var control_topic =
-      participant->create_topic(control_topic_name,
+      participant->create_topic(control_topic_name.c_str(),
                                 type_name,
                                 TOPIC_QOS_DEFAULT,
                                 nullptr,
@@ -290,18 +341,25 @@ private:
 
     DDS::PublisherQos pub_qos;
     participant->get_default_publisher_qos(pub_qos);
-
     DDS::Publisher_var publisher =
       participant->create_publisher(pub_qos,
                                     nullptr,
                                     OpenDDS::DCPS::DEFAULT_STATUS_MASK);
+    if (publisher == nullptr) {
+      error_message = "create_publisher failed!";
+      ACE_ERROR((LM_ERROR,
+                 ACE_TEXT("ERROR: %N:%l: ")
+                 ACE_TEXT("%s\n"),
+                 error_message.c_str()));
+      return;
+    }
+
     DDS::DataWriterQos writer_qos;
       publisher->get_default_datawriter_qos(writer_qos);
     dw = publisher->create_datawriter(control_topic,
                                       writer_qos,
                                       nullptr,
                                       OpenDDS::DCPS::DEFAULT_STATUS_MASK);
-
     if (dw == nullptr) {
       error_message = "create_datawriter failed!";
       ACE_ERROR((LM_ERROR,
@@ -318,7 +376,7 @@ private:
 
   static DDS::DomainParticipantFactory_var participantFactory;
   static DDS::DomainParticipant_var participant;
-  //static ParticipantLocationListener_var locationListener;
+  //static DDS::DataReaderListener_var locationListener;
   static DDS::DataWriter_var dw;
 
   DDS::DomainParticipantQos participantQos;
@@ -326,16 +384,20 @@ private:
   bool secure;
   std::string debug_level;
   std::string transport_debug_level;
+  std::string topic_prefix;
   int DOMAIN;
   std::vector<std::string> groups;
 };
 
+notifier OpenDdsBridgeImpl::send;
+
 const char* OpenDdsBridgeImpl::LOG_TAG = "SmartLock_OpenDDS_Bridge";
 DDS::DomainParticipantFactory_var OpenDdsBridgeImpl::participantFactory;
 DDS::DomainParticipant_var OpenDdsBridgeImpl::participant;
-//ParticipantLocationListener_var OpenDdsBridgeImpl::locationListener;
+//DDS::DataReaderListener_var OpenDdsBridgeImpl::locationListener;
 DDS::DataWriter_var OpenDdsBridgeImpl::dw;
-notifier OpenDdsBridgeImpl::send;
+
+extern "C" {
 
 OpenDdsBridge* createOpenDdsBridge()
 {
@@ -362,6 +424,7 @@ void startOpenDdsBridge(OpenDdsBridge* bridge,
                         const OpenDdsBridgeConfig* config)
 {
   OpenDdsBridgeImpl::send = config->receiver;
+  DataReaderListenerImpl::update = config->update;
   if (bridge != nullptr) {
     reinterpret_cast<OpenDdsBridgeImpl*>(bridge->ptr)->run(config);
   }
@@ -377,14 +440,6 @@ void updateOpenDdsBridgeLockState(OpenDdsBridge* bridge,
 
 void shutdownOpenDdsBridge() {
   OpenDdsBridgeImpl::shutdown();
-}
-
-const char* getOpenDdsBridgeLastError(OpenDdsBridge* bridge)
-{
-  if (bridge != nullptr) {
-    return reinterpret_cast<OpenDdsBridgeImpl*>(bridge->ptr)->getLastError();
-  }
-  return "";
 }
 
 }

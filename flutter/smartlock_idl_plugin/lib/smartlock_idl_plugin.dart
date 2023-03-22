@@ -25,18 +25,27 @@ final SmartlockIdlPluginBindings _bindings = SmartlockIdlPluginBindings(_dylib);
 
 enum LockState { unlocked, pendingUnlock, locked, pendingLock }
 
-typedef Messenger = Void Function(Pointer<Char>);
+typedef SnackCallback = Function(String);
+typedef LockUpdate = Function(bool, String, LockState);
 
 class Bridge {
   late Pointer<OpenDdsBridge> bridge;
-  static Function snack = (message) {};
+  static SnackCallback snack = (message) {};
+  static LockUpdate update = (enabled, id, state) {};
 
+  /// Initializes the underlying OpenDdsBridge.
   Bridge() {
     bridge = _bindings.createOpenDdsBridge();
   }
 
+  /// Start the OpenDdsBridge.
+  ///
+  /// The receiver will be given string messages from the native code.
+  ///
+  /// The uiLockUpdater will be given lock status info from the native code.
   void start(
-      Function func,
+      SnackCallback receiver,
+      LockUpdate uiLockUpdater,
       String ini,
       String idCa,
       String permCa,
@@ -44,7 +53,11 @@ class Bridge {
       String permPerms,
       String idCert,
       String idPrivateKey) async {
-    snack = func;
+
+    // Keep a reference to these functions for use in our own static methods
+    // that we will give to the native code.
+    snack = receiver;
+    update = uiLockUpdater;
 
     final Pointer<OpenDdsBridgeConfig> config =
         ffi.malloc<OpenDdsBridgeConfig>();
@@ -55,7 +68,8 @@ class Bridge {
     config.ref.perm_perms = permPerms.toNativeUtf8().cast<Char>();
     config.ref.id_cert = idCert.toNativeUtf8().cast<Char>();
     config.ref.id_pkey = idPrivateKey.toNativeUtf8().cast<Char>();
-    config.ref.receiver = Pointer.fromFunction(receive);
+    config.ref.receiver = Pointer.fromFunction(_receive);
+    config.ref.update = Pointer.fromFunction(_lockUpdate);
 
     _bindings.startOpenDdsBridge(bridge, config);
 
@@ -69,9 +83,11 @@ class Bridge {
     ffi.malloc.free(config);
   }
 
-  void updateLockState(String id, LockState state) {
+  /// Sends lock state information to the native code to send to the lock.
+  void updateLockState(bool enabled, String id, LockState state) {
     final Pointer<SmartLockStatus> status = ffi.malloc<SmartLockStatus>();
     status.ref.id = id.toNativeUtf8().cast<Char>();
+    status.ref.enabled = enabled ? 1 : 0;
     switch (state) {
       case LockState.locked:
         status.ref.state = State.LOCKED;
@@ -91,14 +107,39 @@ class Bridge {
     ffi.malloc.free(status);
   }
 
-  static void receive(Pointer<Char> message) {
-    String msg = message.cast<ffi.Utf8>().toDartString();
-    snack(msg);
+  static void _receive(Pointer<Char> message) {
+    snack(message.cast<ffi.Utf8>().toDartString());
   }
+
+  static void _lockUpdate(Pointer<SmartLockStatus> status) {
+    final String id = status.ref.id.cast<ffi.Utf8>().toDartString();
+    LockState state = LockState.locked;
+    switch (status.ref.state) {
+      case State.LOCKED:
+        state = LockState.locked;
+        break;
+      case State.PENDING_LOCK:
+        state = LockState.pendingLock;
+        break;
+      case State.PENDING_UNLOCK:
+        state = LockState.pendingUnlock;
+        break;
+      case State.UNLOCKED:
+      default:
+        state = LockState.unlocked;
+        break;
+    }
+    final bool enabled = status.ref.enabled == 0 ? false : true;
+
+    update(enabled, id, state);
+  }
+
+  /// Shuts down the OpenDdsBridge.
   static void shutdown() {
     _bindings.shutdownOpenDdsBridge();
   }
 
+  /// Destroys the OpenDdsBridge associated with this class.
   void dispose() {
     _bindings.destroyOpenDdsBridge(bridge);
     bridge = nullptr;

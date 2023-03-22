@@ -109,6 +109,7 @@ class _HomeState extends State<Home> {
     if (certs.containsKey('id_private')) {
       _bridge?.start(
           snack,
+          tryToUpdateLock,
           ini.path,
           certs['id_ca']!,
           certs['perm_ca']!,
@@ -128,6 +129,10 @@ class _HomeState extends State<Home> {
         SnackBar(content: Text(message)),
       );
     }
+  }
+
+  void tryToUpdateLock(bool enabled, String id, smartlock_idl.LockState state) {
+    print("$enabled - $id - $state");
   }
 
   @override
@@ -166,7 +171,7 @@ class _HomeState extends State<Home> {
                       } else {
                         state = smartlock_idl.LockState.unlocked;
                       }
-                      _bridge?.updateLockState("Alice's House", state);
+                      _bridge?.updateLockState(true, "lock1", state);
                     });
                   },
                   child: const Text("Do Something"),

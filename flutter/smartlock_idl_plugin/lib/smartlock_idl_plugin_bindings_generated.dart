@@ -101,6 +101,23 @@ class OpenDdsBridge extends ffi.Struct {
   external ffi.Pointer<ffi.Void> ptr;
 }
 
+abstract class State {
+  static const int UNLOCKED = 0;
+  static const int PENDING_UNLOCK = 1;
+  static const int LOCKED = 2;
+  static const int PENDING_LOCK = 3;
+}
+
+class SmartLockStatus extends ffi.Struct {
+  external ffi.Pointer<ffi.Char> id;
+
+  @ffi.Int32()
+  external int state;
+
+  @ffi.Int()
+  external int enabled;
+}
+
 class OpenDdsBridgeConfig extends ffi.Struct {
   /// The full path of the ini file.
   external ffi.Pointer<ffi.Char> ini;
@@ -123,21 +140,12 @@ class OpenDdsBridgeConfig extends ffi.Struct {
   /// The user of the bridge can provide a function to receive
   /// message back from the bridge.
   external notifier receiver;
+
+  /// Callback to update the lock status
+  external lock_update update;
 }
 
 typedef notifier
     = ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Char>)>>;
-
-abstract class State {
-  static const int UNLOCKED = 0;
-  static const int PENDING_UNLOCK = 1;
-  static const int LOCKED = 2;
-  static const int PENDING_LOCK = 3;
-}
-
-class SmartLockStatus extends ffi.Struct {
-  external ffi.Pointer<ffi.Char> id;
-
-  @ffi.Int32()
-  external int state;
-}
+typedef lock_update = ffi.Pointer<
+    ffi.NativeFunction<ffi.Void Function(ffi.Pointer<SmartLockStatus>)>>;
