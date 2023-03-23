@@ -5,10 +5,14 @@ import android.net.ConnectivityManager;
 import android.net.Network;
 import androidx.fragment.app.FragmentTransaction;
 import androidx.appcompat.app.AppCompatActivity;
+
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.LinearLayout;
+
+import org.opendds.smartlock.ui.login.LoginFragment;
 
 import java.util.HashMap;
 import java.util.concurrent.locks.ReentrantLock;
@@ -16,7 +20,7 @@ import java.util.concurrent.locks.ReentrantLock;
 public class MainActivity extends AppCompatActivity {
     private final String LOG_TAG = "SmartLock_Main_Activity";
 
-    private final HashMap<String, SmartLockFragment> locks = new HashMap<String, SmartLockFragment>();
+    private final HashMap<String, SmartLockFragment> locks = new HashMap<>();
     final private ReentrantLock locksLock = new ReentrantLock();
 
     private static OpenDdsBridge ddsBridge = null;
@@ -40,6 +44,20 @@ public class MainActivity extends AppCompatActivity {
         list.addView(container);
 
         return frag;
+    }
+
+    private void addLogin(Context context) {
+        LinearLayout list = findViewById(R.id.list);
+        LinearLayout container = new LinearLayout(context);
+        int container_id = View.generateViewId();
+        container.setId(container_id);
+
+        FragmentTransaction fragmentTransaction = getSupportFragmentManager().beginTransaction();
+        LoginFragment loginFragment = new LoginFragment();
+
+        fragmentTransaction.add(container_id, loginFragment, "login");
+        fragmentTransaction.commit();
+        list.addView(container);
     }
 
     private void addLock(Context context, SmartLockStatus status) {
@@ -77,17 +95,27 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         if (savedInstanceState == null) {
-            if (getResources().getBoolean(R.bool.add_fake_locks)) {
-                addFakeLocks();
-            }
+            OpenDDSSec.setCacheDir(getBaseContext().getCacheDir());
+            if (!OpenDDSSec.hasFiles()) {
+                new OpenDDSSec.Download("dpm.unityfoundation.io","54", "WNg97wLeR7Rk5eHz", "NONCE").executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+            } else {
+                if (getResources().getBoolean(R.bool.add_fake_locks)) {
+                    addFakeLocks();
+                }
+                // Set locks that we will show
+                String[] locks = getResources().getStringArray(R.array.locks);
+                for (String lock : locks) {
+                    SmartLockStatus status = new SmartLockStatus();
+                    status.id = lock;
+                    status.enabled = false;
+                    addLock(status);
+                }
 
-            // Set locks that we will show
-            String[] locks = getResources().getStringArray(R.array.locks);
-            for (String lock : locks) {
-                SmartLockStatus status = new SmartLockStatus();
-                status.id = lock;
-                status.enabled = false;
-                addLock(status);
+                // create DDS Entities
+                if (getResources().getBoolean(R.bool.init_opendds)) {
+                    ddsBridge = new OpenDdsBridge(this);
+                    ddsBridge.start();
+                }
             }
         } else {
             if (ddsBridge == null) {
@@ -103,11 +131,6 @@ public class MainActivity extends AppCompatActivity {
 
         Log.i(LOG_TAG, "calling onStart");
 
-        // create DDS Entities
-        if (getResources().getBoolean(R.bool.init_opendds)) {
-            ddsBridge = new OpenDdsBridge(this);
-            ddsBridge.start();
-        }
 
         // install network change listener
         ConnectivityManager cm = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);

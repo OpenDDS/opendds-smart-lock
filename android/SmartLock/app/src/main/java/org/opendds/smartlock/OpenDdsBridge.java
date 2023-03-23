@@ -185,6 +185,15 @@ public class OpenDdsBridge extends Thread {
         return full_path;
     }
 
+    private String verifyCacheFileExists(String cache_path) throws InitOpenDDSException {
+        File new_file = new File(context.getCacheDir().getPath() + File.separator + cache_path);
+        Log.d(LOG_TAG, "verifyCacheFileExists: ".concat(new_file.getAbsolutePath()));
+        if (!new_file.exists()){
+            throw new InitOpenDDSException("Missing Cache File: " + new_file.getAbsolutePath());
+        }
+        return new_file.getAbsolutePath();
+    }
+
     private void initParticipantFactory() throws InitOpenDDSException {
         if (participantFactory != null) {
             return;
@@ -213,13 +222,12 @@ public class OpenDdsBridge extends Thread {
 
         // Ensure Config File and Security Files Exist
         final String config_file = copyAsset("opendds_config.ini");
-
-        final String gov_file = copyAsset("governance.xml.p7s");
-        final String id_ca_cert = copyAsset("identity_ca.pem");
-        final String perm_ca_cert = copyAsset("permissions_ca.pem");
-        final String user_cert = copyAsset("identity.pem");
-        final String user_private_cert = copyAsset("identity_key.pem");
-        final String user_perm_file = copyAsset("permissions.xml.p7s");
+        final String gov_file = verifyCacheFileExists(OpenDDSSecEnum.ACCESS_GOVERNANCE.getFilename());
+        final String id_ca_cert = verifyCacheFileExists(OpenDDSSecEnum.AUTH_IDENTITY_CA.getFilename());
+        final String perm_ca_cert = verifyCacheFileExists(OpenDDSSecEnum.ACCESS_PERMISSIONS_CA.getFilename());
+        final String user_cert = verifyCacheFileExists(OpenDDSSecEnum.AUTH_IDENTITY_CERTIFICATE.getFilename());
+        final String user_private_cert = verifyCacheFileExists(OpenDDSSecEnum.AUTH_PRIVATE_KEY.getFilename());
+        final String user_perm_file = verifyCacheFileExists(OpenDDSSecEnum.ACCESS_PERMISSIONS.getFilename());
 
         // Initialize OpenDDS by getting the Participant Factory
         ArrayList<String> args = new ArrayList<String>();
