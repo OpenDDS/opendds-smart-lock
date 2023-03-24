@@ -132,7 +132,9 @@ class _HomeState extends State<Home> {
   }
 
   void tryToUpdateLock(bool enabled, String id, smartlock_idl.LockState state) {
-    print("$enabled - $id - $state");
+    setState(() {
+      _text.add("$enabled - $id - $state");
+    });
   }
 
   @override
