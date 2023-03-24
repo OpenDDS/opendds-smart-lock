@@ -3,7 +3,9 @@
 #include <stdlib.h>
 
 #if _WIN32
-#include <windows.h>
+#  if !defined(LOCAL_TEST)
+#    include <windows.h>
+#  endif
 #else
 #include <pthread.h>
 #include <unistd.h>

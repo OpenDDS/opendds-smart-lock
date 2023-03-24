@@ -1,0 +1,15 @@
+.vs
+Debug
+Release
+*.sln
+certs
+*.exe
+*.exp
+*.lib
+*.pdb
+*.vcxproj*
+
+GNUmakefile*
+local_bridge
+.obj
+.depend*
