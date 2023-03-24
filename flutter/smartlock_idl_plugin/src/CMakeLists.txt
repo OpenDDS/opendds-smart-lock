@@ -22,9 +22,9 @@ set_target_properties(${TARGET} PROPERTIES
 target_compile_definitions(${TARGET} PUBLIC DART_SHARED_LIB)
 
 target_include_directories(${TARGET} PRIVATE
-                           ../../../android/Idl
+                           ../../Idl
                            "${ACE_ROOT}" "${DDS_ROOT}")
 
 target_compile_definitions(${TARGET} PUBLIC __ACE_INLINE__ OPENDDS_SECURITY)
 target_link_directories(${TARGET} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../android/src/main/jniLibs/${ANDROID_ABI})
-target_link_libraries(${TARGET} SmartLock_Idl OpenDDS_Security OpenDDS_Dcps TAO_Valuetype TAO ACE_XML_Utils ACE)
+target_link_libraries(${TARGET} SmartLock_Idl_Flutter OpenDDS_Security OpenDDS_Dcps TAO_Valuetype TAO ACE_XML_Utils ACE)
