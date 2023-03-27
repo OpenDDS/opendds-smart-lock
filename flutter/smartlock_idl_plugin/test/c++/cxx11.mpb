@@ -1,2 +1,0 @@
-feature(!no_cxx11): opendds_uses_cxx11 {
-}
