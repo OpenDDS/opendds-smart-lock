@@ -9,6 +9,8 @@
 #include <dds/DCPS/SequenceIterator.h>
 
 #include <ace/OS_NS_stdio.h>
+#include <ace/OS_NS_sys_socket.h>
+#include <ace/OS_NS_arpa_inet.h>
 
 class DataReaderListenerImpl: public DDS::DataReaderListener
 {
@@ -42,7 +44,7 @@ public:
 
     SmartLock::Status mh;
     DDS::SampleInfo sih;
-    int status = mdr->take_next_sample(mh, sih);
+    const int status = mdr->take_next_sample(mh, sih);
     if (status == DDS::RETCODE_OK) {
       SmartLockStatus lock_status;
 #if defined(OPENDDS_HAS_CXX11)
@@ -60,9 +62,7 @@ public:
       } else {
         lock_status.enabled = false;
       }
-      if (update != nullptr) {
-        update(&lock_status);
-      }
+      update(&lock_status);
     }
   }
 
@@ -74,13 +74,58 @@ public:
       ::DDS::DataReader_ptr reader,
       const ::DDS::SampleLostStatus & status) override {}
 
-  static lock_update update;
+  static void setPort(short port) {
+    send_port = port;
+  }
 
 private:
+  static void update(const SmartLockStatus* status) {
+    // NOTE: Using Dart_PostCObject_DL() was causing a segmentation fault.
+    // As a fallback, I chose to send data back to the Dart main thread using
+    // a loopback socket.
+    //
+    //Dart_CObject msg;
+    //msg.type = Dart_CObject_kNativePointer;
+    //SmartLockStatus* copy = reinterpret_cast<SmartLockStatus*>(malloc(sizeof(*status)));
+    //memcpy(copy, status, sizeof(*copy));
+    //copy->id = strdup(status->id);
+    //msg.value.as_native_pointer.ptr = reinterpret_cast<intptr_t>(copy);
+    //msg.value.as_native_pointer.size = sizeof(*copy);
+    //msg.value.as_native_pointer.callback = dart_finalizer;
+    //Dart_PostCObject_DL(send_port, &msg);
+
+    static ACE_HANDLE sd = ACE_INVALID_HANDLE;
+    if (sd == ACE_INVALID_HANDLE) {
+      sd = ACE_OS::socket(AF_INET, SOCK_STREAM, 0);
+      if (sd != ACE_INVALID_HANDLE) {
+        struct sockaddr_in serv_addr;
+        serv_addr.sin_family = AF_INET;
+        serv_addr.sin_port = htons(send_port);
+        ACE_OS::inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr);
+        ACE_OS::connect(sd, (struct sockaddr*)&serv_addr, sizeof(serv_addr));
+      }
+    }
+
+    if (sd != ACE_INVALID_HANDLE) {
+      const size_t bytes = 2;
+      const size_t len = strlen(status->id);
+      const size_t total = bytes + len;
+      uint8_t* buffer = new uint8_t[total];
+      if (buffer != nullptr) {
+        buffer[0] = static_cast<uint8_t>(status->state);
+        buffer[1] = static_cast<uint8_t>(status->enabled);
+        ACE_OS::memcpy(buffer + bytes, status->id, len);
+        ACE_OS::send(sd, reinterpret_cast<const char*>(buffer), total, 0);
+        delete [] buffer;
+      }
+    }
+  }
+
+  static short send_port;
   static const char* LOGTAG;
 };
 
-lock_update DataReaderListenerImpl::update;
+short DataReaderListenerImpl::send_port = 0;
 const char* DataReaderListenerImpl::LOGTAG = "SmartLock_DataReaderListenerImpl";
 
 class OpenDdsBridgeImpl
@@ -109,6 +154,9 @@ public:
                  ACE_TEXT("ERROR: %N:%l: ")
                  ACE_TEXT("%s\n"),
                  error_message.c_str()));
+      if (send != nullptr) {
+        send(error_message.c_str());
+      }
     }
   }
 
@@ -146,8 +194,8 @@ public:
       control_message.lock.position.x = 20;
       control_message.lock.position.y = 10;
 #endif
-      int return_code = control_dw->write(control_message,
-                                          control_dw->register_instance(control_message));
+      const int return_code = control_dw->write(control_message,
+                                                control_dw->register_instance(control_message));
       if (return_code != DDS::RETCODE_OK) {
         ACE_DEBUG((LM_NOTICE, "%s: Error writing control update, return code was %d\n",
                               LOG_TAG, return_code));
@@ -195,6 +243,17 @@ private:
         *props = {"dds.sec.access.permissions", (file + config->perm_perms).c_str(), false};
       }
     }
+    else {
+      error_message = "participant factory initialization failed!";
+      ACE_ERROR((LM_ERROR,
+                 ACE_TEXT("ERROR: %N:%l: ")
+                 ACE_TEXT("%s\n"),
+                 error_message.c_str()));
+      if (send != nullptr) {
+        send(error_message.c_str());
+      }
+      return;
+    }
   }
 
   void startDds(const OpenDdsBridgeConfig* config) {
@@ -230,6 +289,9 @@ private:
                  ACE_TEXT("ERROR: %N:%l: ")
                  ACE_TEXT("%s\n"),
                  error_message.c_str()));
+      if (send != nullptr) {
+        send(error_message.c_str());
+      }
       return;
     }
 
@@ -241,6 +303,9 @@ private:
                  ACE_TEXT("ERROR: %N:%l: ")
                  ACE_TEXT("%s\n"),
                  error_message.c_str()));
+      if (send != nullptr) {
+        send(error_message.c_str());
+      }
       return;
     }
 
@@ -260,6 +325,9 @@ private:
                  ACE_TEXT("ERROR: %N:%l: ")
                  ACE_TEXT("%s\n"),
                  error_message.c_str()));
+      if (send != nullptr) {
+        send(error_message.c_str());
+      }
       return;
     }
 
@@ -274,6 +342,9 @@ private:
                  ACE_TEXT("ERROR: %N:%l: ")
                  ACE_TEXT("%s\n"),
                  error_message.c_str()));
+      if (send != nullptr) {
+        send(error_message.c_str());
+      }
       return;
     }
 
@@ -294,6 +365,9 @@ private:
                  ACE_TEXT("ERROR: %N:%l: ")
                  ACE_TEXT("%s\n"),
                  error_message.c_str()));
+      if (send != nullptr) {
+        send(error_message.c_str());
+      }
       return;
     }
 
@@ -304,6 +378,9 @@ private:
                  ACE_TEXT("ERROR: %N:%l: ")
                  ACE_TEXT("%s\n"),
                  error_message.c_str()));
+      if (send != nullptr) {
+        send(error_message.c_str());
+      }
       return;
     }
 
@@ -316,6 +393,9 @@ private:
                  ACE_TEXT("ERROR: %N:%l: ")
                  ACE_TEXT("%s\n"),
                  error_message.c_str()));
+      if (send != nullptr) {
+        send(error_message.c_str());
+      }
       return;
     }
 
@@ -332,6 +412,9 @@ private:
                  ACE_TEXT("ERROR: %N:%l: ")
                  ACE_TEXT("%s\n"),
                  error_message.c_str()));
+      if (send != nullptr) {
+        send(error_message.c_str());
+      }
       return;
     }
 
@@ -352,6 +435,9 @@ private:
                  ACE_TEXT("ERROR: %N:%l: ")
                  ACE_TEXT("%s\n"),
                  error_message.c_str()));
+      if (send != nullptr) {
+        send(error_message.c_str());
+      }
       return;
     }
 
@@ -367,6 +453,9 @@ private:
                  ACE_TEXT("ERROR: %N:%l: ")
                  ACE_TEXT("%s\n"),
                  error_message.c_str()));
+      if (send != nullptr) {
+        send(error_message.c_str());
+      }
       return;
     }
 
@@ -382,6 +471,9 @@ private:
                  ACE_TEXT("ERROR: %N:%l: ")
                  ACE_TEXT("%s\n"),
                  error_message.c_str()));
+      if (send != nullptr) {
+        send(error_message.c_str());
+      }
       return;
     }
   }
@@ -440,7 +532,7 @@ void startOpenDdsBridge(OpenDdsBridge* bridge,
                         const OpenDdsBridgeConfig* config)
 {
   OpenDdsBridgeImpl::send = config->receiver;
-  DataReaderListenerImpl::update = config->update;
+  DataReaderListenerImpl::setPort(config->send_port);
   if (bridge != nullptr) {
     reinterpret_cast<OpenDdsBridgeImpl*>(bridge->ptr)->run(config);
   }

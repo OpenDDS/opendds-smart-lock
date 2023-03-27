@@ -53,8 +53,12 @@ typedef struct {
   // message back from the bridge.
   notifier receiver;
 
-  // Callback to update the lock status
-  lock_update update;
+  // In order to call back into Dart from another thread, it
+  // must be done through a mechanism that can be forced through
+  // the main thread.  We should be able to use Dart_PostCObject_DL().
+  // But, that was causing a segmentation fault.  As a last resort,
+  // I fell back to sending data through a loopback socket.
+  short send_port;
 } OpenDdsBridgeConfig;
 
 FFI_PLUGIN_EXPORT OpenDdsBridge* createOpenDdsBridge();

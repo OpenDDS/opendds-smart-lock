@@ -1,5 +1,6 @@
 import 'dart:ffi';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:ffi/ffi.dart' as ffi;
 
 import 'smartlock_idl_plugin_bindings_generated.dart';
@@ -30,6 +31,8 @@ typedef LockUpdate = Function(bool, String, LockState);
 
 class Bridge {
   late Pointer<OpenDdsBridge> bridge;
+  static ServerSocket? server;
+  static const int port = 31214;
   static SnackCallback snack = (message) {};
   static LockUpdate update = (enabled, id, state) {};
 
@@ -53,6 +56,12 @@ class Bridge {
       String permPerms,
       String idCert,
       String idPrivateKey) async {
+    // Create a server socket and listen on that port, if we haven't done so
+    // already.
+    if (server == null) {
+      server = await ServerSocket.bind(InternetAddress.loopbackIPv4, port);
+      server?.listen((client) => client.listen(_lockUpdate));
+    }
 
     // Keep a reference to these functions for use in our own static methods
     // that we will give to the native code.
@@ -69,7 +78,7 @@ class Bridge {
     config.ref.id_cert = idCert.toNativeUtf8().cast<Char>();
     config.ref.id_pkey = idPrivateKey.toNativeUtf8().cast<Char>();
     config.ref.receiver = Pointer.fromFunction(_receive);
-    config.ref.update = Pointer.fromFunction(_lockUpdate);
+    config.ref.send_port = port;
 
     _bindings.startOpenDdsBridge(bridge, config);
 
@@ -111,10 +120,14 @@ class Bridge {
     snack(message.cast<ffi.Utf8>().toDartString());
   }
 
-  static void _lockUpdate(Pointer<SmartLockStatus> status) {
-    final String id = status.ref.id.cast<ffi.Utf8>().toDartString();
+  static void _lockUpdate(Uint8List data) async {
+    int index = 0;
+    final nativeState = data[index++];
+    final nativeEnabled = data[index++];
+    final String id = String.fromCharCodes(data, index);
+
     LockState state = LockState.locked;
-    switch (status.ref.state) {
+    switch (nativeState) {
       case State.LOCKED:
         state = LockState.locked;
         break;
@@ -129,7 +142,7 @@ class Bridge {
         state = LockState.unlocked;
         break;
     }
-    final bool enabled = status.ref.enabled == 0 ? false : true;
+    final bool enabled = nativeEnabled == 0 ? false : true;
 
     update(enabled, id, state);
   }
