@@ -33,14 +33,15 @@ android {
     // the version in their app and to download a newer version of the NDK.
     ndkVersion "21.1.6352462"
 
-    // Temporarily only build for the x86 emulator.  Eventually, we will
+    // Temporarily only build for x86 and arm64-v8a.  Eventually, we will
     // want to remove this section to build for all variants.
-    flavorDimensions "x86only"
+    flavorDimensions "only"
     productFlavors {
-        x86 {
-            dimension "x86only"
+        abis {
+            dimension "only"
             ndk {
                 abiFilter "x86"
+                abiFilter "arm64-v8a"
             }
         }
     }
