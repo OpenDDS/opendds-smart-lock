@@ -143,10 +143,8 @@ class OpenDdsBridgeConfig extends ffi.Struct {
 
   /// In order to call back into Dart from another thread, it
   /// must be done through a mechanism that can be forced through
-  /// the main thread.  We should be able to use Dart_PostCObject_DL().
-  /// But, that was causing a segmentation fault.  As a last resort,
-  /// I fell back to sending data through a loopback socket.
-  @ffi.Short()
+  /// the main thread.  We will be using Dart_PostCObject_DL().
+  @ffi.Int64()
   external int send_port;
 }
 

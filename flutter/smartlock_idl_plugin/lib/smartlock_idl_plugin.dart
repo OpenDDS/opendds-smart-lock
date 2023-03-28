@@ -1,6 +1,6 @@
 import 'dart:ffi';
 import 'dart:io';
-import 'dart:typed_data';
+import 'dart:isolate';
 import 'package:ffi/ffi.dart' as ffi;
 
 import 'smartlock_idl_plugin_bindings_generated.dart';
@@ -31,13 +31,23 @@ typedef LockUpdate = Function(bool, String, LockState);
 
 class Bridge {
   late Pointer<OpenDdsBridge> bridge;
-  static ServerSocket? server;
-  static const int port = 31214;
+  static ReceivePort port = ReceivePort();
   static SnackCallback snack = (message) {};
   static LockUpdate update = (enabled, id, state) {};
+  static bool _init = false;
 
   /// Initializes the underlying OpenDdsBridge.
   Bridge() {
+    // We need to initialize the Dart mechanism for passing data from
+    // other threads to the main thread.  This only needs to be done once.
+    if (!_init) {
+      _init = true;
+      final initializeApi = _dylib.lookupFunction<
+          IntPtr Function(Pointer<Void>),
+          int Function(Pointer<Void>)>("Dart_InitializeApiDL");
+      initializeApi(NativeApi.initializeApiDLData);
+    }
+
     bridge = _bindings.createOpenDdsBridge();
   }
 
@@ -56,12 +66,7 @@ class Bridge {
       String permPerms,
       String idCert,
       String idPrivateKey) async {
-    // Create a server socket and listen on that port, if we haven't done so
-    // already.
-    if (server == null) {
-      server = await ServerSocket.bind(InternetAddress.loopbackIPv4, port);
-      server?.listen((client) => client.listen(_lockUpdate));
-    }
+    port.listen((dynamic data) => _lockUpdate(data));
 
     // Keep a reference to these functions for use in our own static methods
     // that we will give to the native code.
@@ -78,7 +83,7 @@ class Bridge {
     config.ref.id_cert = idCert.toNativeUtf8().cast<Char>();
     config.ref.id_pkey = idPrivateKey.toNativeUtf8().cast<Char>();
     config.ref.receiver = Pointer.fromFunction(_receive);
-    config.ref.send_port = port;
+    config.ref.send_port = port.sendPort.nativePort;
 
     _bindings.startOpenDdsBridge(bridge, config);
 
@@ -120,11 +125,11 @@ class Bridge {
     snack(message.cast<ffi.Utf8>().toDartString());
   }
 
-  static void _lockUpdate(Uint8List data) async {
+  static void _lockUpdate(List data) async {
     int index = 0;
     final nativeState = data[index++];
-    final nativeEnabled = data[index++];
-    final String id = String.fromCharCodes(data, index);
+    final enabled = data[index++];
+    final String id = data[index++];
 
     LockState state = LockState.locked;
     switch (nativeState) {
@@ -142,7 +147,6 @@ class Bridge {
         state = LockState.unlocked;
         break;
     }
-    final bool enabled = nativeEnabled == 0 ? false : true;
 
     update(enabled, id, state);
   }

@@ -1,6 +1,7 @@
 #include "smartlock_idl_plugin.h"
 #include <string>
 
+#include <dart_api_dl.h>
 #include <SmartLockTypeSupportImpl.h>
 
 #include <dds/DCPS/Service_Participant.h>
@@ -74,58 +75,37 @@ public:
       ::DDS::DataReader_ptr reader,
       const ::DDS::SampleLostStatus & status) override {}
 
-  static void setPort(short port) {
+  static void setPort(int64_t port) {
     send_port = port;
   }
 
 private:
+  static void dart_finalizer(void* data, void* peer) {}
   static void update(const SmartLockStatus* status) {
-    // NOTE: Using Dart_PostCObject_DL() was causing a segmentation fault.
-    // As a fallback, I chose to send data back to the Dart main thread using
-    // a loopback socket.
-    //
-    //Dart_CObject msg;
-    //msg.type = Dart_CObject_kNativePointer;
-    //SmartLockStatus* copy = reinterpret_cast<SmartLockStatus*>(malloc(sizeof(*status)));
-    //memcpy(copy, status, sizeof(*copy));
-    //copy->id = strdup(status->id);
-    //msg.value.as_native_pointer.ptr = reinterpret_cast<intptr_t>(copy);
-    //msg.value.as_native_pointer.size = sizeof(*copy);
-    //msg.value.as_native_pointer.callback = dart_finalizer;
-    //Dart_PostCObject_DL(send_port, &msg);
+    Dart_CObject state = {
+      .type = Dart_CObject_kInt32, .value.as_int32 = status->state
+    };
+    Dart_CObject enabled = {
+      .type = Dart_CObject_kBool,
+      .value.as_bool = static_cast<bool>(status->enabled)
+    };
+    Dart_CObject id = {
+      .type = Dart_CObject_kString,
+      .value.as_string = const_cast<char*>(status->id)
+    };
+    Dart_CObject* values[] = { &state, &enabled, &id };
 
-    static ACE_HANDLE sd = ACE_INVALID_HANDLE;
-    if (sd == ACE_INVALID_HANDLE) {
-      sd = ACE_OS::socket(AF_INET, SOCK_STREAM, 0);
-      if (sd != ACE_INVALID_HANDLE) {
-        struct sockaddr_in serv_addr;
-        serv_addr.sin_family = AF_INET;
-        serv_addr.sin_port = htons(send_port);
-        ACE_OS::inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr);
-        ACE_OS::connect(sd, (struct sockaddr*)&serv_addr, sizeof(serv_addr));
-      }
-    }
-
-    if (sd != ACE_INVALID_HANDLE) {
-      const size_t bytes = 2;
-      const size_t len = strlen(status->id);
-      const size_t total = bytes + len;
-      uint8_t* buffer = new uint8_t[total];
-      if (buffer != nullptr) {
-        buffer[0] = static_cast<uint8_t>(status->state);
-        buffer[1] = static_cast<uint8_t>(status->enabled);
-        ACE_OS::memcpy(buffer + bytes, status->id, len);
-        ACE_OS::send(sd, reinterpret_cast<const char*>(buffer), total, 0);
-        delete [] buffer;
-      }
-    }
+    Dart_CObject msg = { .type = Dart_CObject_kArray };
+    msg.value.as_array.length = sizeof(values) / sizeof(values[0]);
+    msg.value.as_array.values = values;
+    Dart_PostCObject_DL(send_port, &msg);
   }
 
-  static short send_port;
+  static int64_t send_port;
   static const char* LOGTAG;
 };
 
-short DataReaderListenerImpl::send_port = 0;
+int64_t DataReaderListenerImpl::send_port = 0;
 const char* DataReaderListenerImpl::LOGTAG = "SmartLock_DataReaderListenerImpl";
 
 class OpenDdsBridgeImpl
