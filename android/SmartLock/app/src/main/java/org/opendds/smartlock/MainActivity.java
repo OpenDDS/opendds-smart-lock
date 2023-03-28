@@ -97,7 +97,7 @@ public class MainActivity extends AppCompatActivity {
         if (savedInstanceState == null) {
             OpenDDSSec.setCacheDir(getBaseContext().getCacheDir());
             if (!OpenDDSSec.hasFiles()) {
-                new OpenDDSSec.Download("dpm.unityfoundation.io","54", "WNg97wLeR7Rk5eHz", "NONCE").executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+                addLogin(this);
             } else {
                 if (getResources().getBoolean(R.bool.add_fake_locks)) {
                     addFakeLocks();

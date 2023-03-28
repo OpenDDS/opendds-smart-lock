@@ -7,6 +7,7 @@ import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
 import androidx.fragment.app.Fragment;
 
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -21,6 +22,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import org.opendds.smartlock.OpenDDSSec;
 import org.opendds.smartlock.databinding.FragmentLoginBinding;
 
 import org.opendds.smartlock.R;
@@ -49,6 +51,8 @@ public class LoginFragment extends Fragment {
 
         final EditText usernameEditText = binding.username;
         final EditText passwordEditText = binding.password;
+        final EditText dpm_urlEditText = binding.dpmUrl;
+        final EditText nonceEditText = binding.nonce;
         final Button loginButton = binding.login;
         final ProgressBar loadingProgressBar = binding.loading;
 
@@ -97,8 +101,12 @@ public class LoginFragment extends Fragment {
 
             @Override
             public void afterTextChanged(Editable s) {
-                loginViewModel.loginDataChanged(usernameEditText.getText().toString(),
-                        passwordEditText.getText().toString());
+                loginViewModel.loginDataChanged(
+                        usernameEditText.getText().toString(),
+                        passwordEditText.getText().toString(),
+                        dpm_urlEditText.getText().toString(),
+                        nonceEditText.getText().toString()
+                );
             }
         };
         usernameEditText.addTextChangedListener(afterTextChangedListener);
@@ -108,8 +116,12 @@ public class LoginFragment extends Fragment {
             @Override
             public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
                 if (actionId == EditorInfo.IME_ACTION_DONE) {
-                    loginViewModel.login(usernameEditText.getText().toString(),
-                            passwordEditText.getText().toString());
+                    loginViewModel.login(
+                            usernameEditText.getText().toString(),
+                            passwordEditText.getText().toString(),
+                            dpm_urlEditText.getText().toString(),
+                            nonceEditText.getText().toString()
+                    );
                 }
                 return false;
             }
@@ -119,8 +131,12 @@ public class LoginFragment extends Fragment {
             @Override
             public void onClick(View v) {
                 loadingProgressBar.setVisibility(View.VISIBLE);
-                loginViewModel.login(usernameEditText.getText().toString(),
-                        passwordEditText.getText().toString());
+                loginViewModel.login(
+                        usernameEditText.getText().toString(),
+                        passwordEditText.getText().toString(),
+                        dpm_urlEditText.getText().toString(),
+                        nonceEditText.getText().toString()
+                );
             }
         });
     }

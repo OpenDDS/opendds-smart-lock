@@ -12,53 +12,81 @@
     tools:context=".ui.login.LoginFragment">
 
     <EditText
-        android:id="@+id/username"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="24dp"
-        android:layout_marginTop="96dp"
-        android:layout_marginEnd="24dp"
-        android:autofillHints="@string/prompt_username"
-        android:hint="@string/prompt_username"
-        android:inputType="number"
-        android:selectAllOnFocus="true"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <EditText
         android:id="@+id/password"
-        android:layout_width="0dp"
+        android:layout_width="200dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="24dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginEnd="24dp"
+        android:layout_marginTop="75dp"
         android:autofillHints="@string/prompt_password"
         android:hint="@string/prompt_password"
         android:imeActionLabel="@string/action_sign_in_short"
         android:imeOptions="actionDone"
         android:inputType="textPassword"
         android:selectAllOnFocus="true"
+        android:text="@string/default_password"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/username" />
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <EditText
+        android:id="@+id/username"
+        android:layout_width="200dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="21dp"
+        android:autofillHints="@string/prompt_username"
+        android:hint="@string/prompt_username"
+        android:inputType="number"
+        android:selectAllOnFocus="true"
+        android:text="@string/default_username"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <EditText
+        android:id="@+id/dpm_url"
+        android:layout_width="200dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="136dp"
+        android:autofillHints="@string/prompt_dpm_url"
+        android:hint="@string/prompt_dpm_url"
+        android:imeActionLabel="@string/action_dpm_url"
+        android:inputType="textUri|text"
+        android:selectAllOnFocus="true"
+        android:text="@string/default_dpm_url"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <EditText
+        android:id="@+id/nonce"
+        android:layout_width="200dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="189dp"
+        android:autofillHints="@string/prompt_nonce"
+        android:hint="@string/prompt_nonce"
+        android:imeActionLabel="@string/action_nonce"
+        android:inputType="text"
+        android:selectAllOnFocus="true"
+        android:text="@string/default_nonce"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <Button
         android:id="@+id/login"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="start"
-        android:layout_marginStart="48dp"
-        android:layout_marginTop="16dp"
-        android:layout_marginEnd="48dp"
-        android:layout_marginBottom="64dp"
+        android:layout_marginTop="282dp"
         android:enabled="false"
         android:text="@string/action_sign_in"
-        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/password"
-        app:layout_constraintVertical_bias="0.2" />
+        app:layout_constraintTop_toTopOf="parent" />
 
     <ProgressBar
         android:id="@+id/loading"

@@ -29,9 +29,9 @@ public class LoginViewModel extends ViewModel {
         return loginResult;
     }
 
-    public void login(String username, String password) {
+    public void login(String username, String password, String dpm_url, String nonce) {
         // can be launched in a separate asynchronous job
-        Result<LoggedInUser> result = loginRepository.login(username, password);
+        Result<LoggedInUser> result = loginRepository.login(username, password, dpm_url, nonce);
 
         if (result instanceof Result.Success) {
             LoggedInUser data = ((Result.Success<LoggedInUser>) result).getData();
@@ -41,7 +41,7 @@ public class LoginViewModel extends ViewModel {
         }
     }
 
-    public void loginDataChanged(String username, String password) {
+    public void loginDataChanged(String username, String password, String dpm_url, String nonce) {
         if (!isUserNameValid(username)) {
             loginFormState.setValue(new LoginFormState(R.string.invalid_username, null));
         } else if (!isPasswordValid(password)) {
@@ -56,15 +56,12 @@ public class LoginViewModel extends ViewModel {
         if (username == null) {
             return false;
         }
-        if (username.contains("@")) {
-            return Patterns.EMAIL_ADDRESS.matcher(username).matches();
-        } else {
-            return !username.trim().isEmpty();
-        }
+        return !username.trim().isEmpty();
     }
 
     // A placeholder password validation check
     private boolean isPasswordValid(String password) {
+        // TODO: determine minimum dpm site password length
         return password != null && password.trim().length() > 5;
     }
 }

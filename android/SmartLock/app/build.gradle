@@ -30,6 +30,7 @@ android {
     ndkVersion '21.4.7075529'
     buildFeatures {
         viewBinding true
+        dataBinding true
     }
     // Uncomment this to add debug symbols to the respective shared objects.
     //
