@@ -184,15 +184,29 @@ function to-pi {
     consume
 }
 
+declare pi_toolchain_image
+
+#Either pi-build-toolchain or pi-get-github-image must be run first to
+#build the image for the toolchain or pull the existing image from GitHub.
 function pi-build-toolchain {
     #Build a Docker image containing a cross-compiler and cross-compiled dependencies
-    #Must be run first before other pi commands can be executed
     #ex: ./smart-lock pi build-toolchain
     match-keyword 'build-toolchain'
     expected-end-of-input
+    pi_toolchain_image="pi-opendds-cross"
 
     #add --no-cache if needed: "docker build --no-cache ..."
-    ${DOCKER_COMMAND} build "${_SMART_LOCK_DIR}/dockerfiles/pi-opendds-cross" -f "${_SMART_LOCK_DIR}/dockerfiles/pi-opendds-cross/Dockerfile" -t pi-opendds-cross
+    ${DOCKER_COMMAND} build "${_SMART_LOCK_DIR}/dockerfiles/pi-opendds-cross" -f "${_SMART_LOCK_DIR}/dockerfiles/pi-opendds-cross/Dockerfile" -t ${pi_toolchain_image}
+}
+
+function pi-get-github-image {
+    #Use the container image from GitHub Container Registry for the toolchain
+    #ex: ./smart-lock pi get-github-image
+    match-keyword 'get-github-image'
+    expected-end-of-input
+    pi_toolchain_image="ghcr.io/opendds/opendds-smart-lock:master-pi"
+
+    ${DOCKER_COMMAND} pull ${pi_toolchain_image}
 }
 
 function pi-clean-toolchain {
@@ -201,7 +215,7 @@ function pi-clean-toolchain {
     match-keyword 'clean-toolchain'
     expected-end-of-input
 
-    ${DOCKER_COMMAND} rmi pi-opendds-cross
+    ${DOCKER_COMMAND} rmi ${pi_toolchain_image}
 }
 
 function pi-install-dependencies {
@@ -217,14 +231,13 @@ function pi-install-dependencies {
     # Copy the dependencies out of the docker image.
     rm -rf "${_SMART_LOCK_DIR}/libs"
     mkdir -p "${_SMART_LOCK_DIR}/libs"
-    ${DOCKER_COMMAND} run -d --name piopendds pi-opendds-cross
-    ${DOCKER_COMMAND} cp piopendds:/home/pi/pi-opendds.tar.gz  libs
-    ${DOCKER_COMMAND} cp piopendds:/home/pi/pi-openssl.tar.gz  libs
+    ${DOCKER_COMMAND} run -d --name piopendds ${pi_toolchain_image}
+    ${DOCKER_COMMAND} cp piopendds:/home/pi/pi-opendds.tar.gz libs
+    ${DOCKER_COMMAND} cp piopendds:/home/pi/pi-openssl.tar.gz libs
     ${DOCKER_COMMAND} cp piopendds:/home/pi/pi-xerces.tar.gz libs
     ${DOCKER_COMMAND} cp piopendds:/home/pi/pigpio.tar.gz libs
     ${DOCKER_COMMAND} stop piopendds
     ${DOCKER_COMMAND} rm piopendds
-    #${DOCKER_COMMAND} run --rm -ti -v "${_SMART_LOCK_DIR}:/home/pi/outer" -w "/home/pi" pi-opendds-cross bash -c "mkdir -p outer/libs; cp pi-opendds.tar.gz pi-openssl.tar.gz pi-xerces.tar.gz outer/libs"    # Copy them to the pi.
     scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "${_SMART_LOCK_DIR}/libs/pi-opendds.tar.gz" "${_SMART_LOCK_DIR}/libs/pi-openssl.tar.gz" "${_SMART_LOCK_DIR}/libs/pi-xerces.tar.gz" "${_SMART_LOCK_DIR}/libs/pigpio.tar.gz" "pi@${!ip_var}:"
     # Unzip them.
     ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "pi@${!ip_var}" 'tar xzf pi-opendds.tar.gz; tar xzf pi-openssl.tar.gz; tar xzf pi-xerces.tar.gz; tar xzf pigpio.tar.gz'
@@ -237,7 +250,7 @@ function pi-compile {
     expected-end-of-input
 
     COMPILE="${_SMART_LOCK_DIR}/dockerfiles/pi-opendds-cross/pi-compile"
-    MSYS_NO_PATHCONV=1 ${DOCKER_COMMAND} run --rm -it -v "${_SMART_LOCK_DIR}/src:/home/pi/smartlock" -w "/home/pi/smartlock" pi-opendds-cross bash -c "$(tr '\n' ';' < ${COMPILE})"
+    MSYS_NO_PATHCONV=1 ${DOCKER_COMMAND} run --rm -it -v "${_SMART_LOCK_DIR}/src:/home/pi/smartlock" -w "/home/pi/smartlock" ${pi_toolchain_image} bash -c "$(tr '\n' ';' < ${COMPILE})"
 }
 
 declare dpm_password
@@ -267,9 +280,8 @@ function pi-install {
 
     cp "${_SMART_LOCK_DIR}/src/rtps.ini.template" "${_SMART_LOCK_DIR}/src/rtps.ini"
     if [ -n "${RTPS_RELAY_IP_PI:-}" ]; then
-	let "RTPS_RELAY_PORT_PI_SEDP = RTPS_RELAY_PORT_PI + 1"
-	let "RTPS_RELAY_PORT_PI_DATA = RTPS_RELAY_PORT_PI + 2"
-    #    sed -e "s/#SPDP_RTPS_RELAY_ADDRESS_LINE/SpdpRtpsRelayAddress=${RTPS_RELAY_IP_PI}:4444/g" -e "s/#SEDP_RTPS_RELAY_ADDRESS_LINE/SedpRtpsRelayAddress=${RTPS_RELAY_IP_PI}:4445/g" -e "s/#DATA_RTPS_RELAY_ADDRESS_LINE/DataRtpsRelayAddress=${RTPS_RELAY_IP_PI}:4446/g" -i'' "${_SMART_LOCK_DIR}/src/rtps.ini"
+	      let "RTPS_RELAY_PORT_PI_SEDP = RTPS_RELAY_PORT_PI + 1"
+	      let "RTPS_RELAY_PORT_PI_DATA = RTPS_RELAY_PORT_PI + 2"
         sed -e "s/#SPDP_RTPS_RELAY_ADDRESS_LINE/SpdpRtpsRelayAddress=${RTPS_RELAY_IP_PI}:${RTPS_RELAY_PORT_PI}/g" -e "s/#SEDP_RTPS_RELAY_ADDRESS_LINE/SedpRtpsRelayAddress=${RTPS_RELAY_IP_PI}:${RTPS_RELAY_PORT_PI_SEDP}/g" -e "s/#DATA_RTPS_RELAY_ADDRESS_LINE/DataRtpsRelayAddress=${RTPS_RELAY_IP_PI}:${RTPS_RELAY_PORT_PI_DATA}/g" -i'' "${_SMART_LOCK_DIR}/src/rtps.ini"
     fi
 
@@ -408,6 +420,8 @@ Usage: $(command-prefix) COMMAND [OPTION ...]
 Commands:
   build-toolchain              Build a Docker image containing a cross-compiler
                                and cross-compiled dependencies
+  get-github-image             Use the existing Docker image from GitHub Container
+                               Registry instead of building a local image
   clean-toolchain              Remove the Docker image containing a
                                cross-compiler and cross-compiled dependencies
   compile                      Cross-compile the SmartLock Demo application
@@ -436,6 +450,9 @@ EOF
     case "${token}" in
         build-toolchain)
             pi-build-toolchain
+            ;;
+        get-github-image)
+            pi-get-github-image
             ;;
         clean-toolchain)
             pi-clean-toolchain
