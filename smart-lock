@@ -281,9 +281,6 @@ function pi-install {
     fi
 
     rsync -avz -e 'ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null' "${_SMART_LOCK_DIR}/src/" "pi@${!ip_var}:~/smartlock"
-    if [ ${ENABLE_SECURITY:-0} == 1 ]; then
-        rsync -avz -e 'ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null' "${_SMART_LOCK_DIR}/certs/" "pi@${!ip_var}:~/smartlock/certs/"
-    fi
     ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "pi@${!ip_var}" "sudo cp /home/pi/smartlock/systemd/smartlock.service /etc/systemd/system/smartlock.service; sudo chmod 0644 /etc/systemd/system/smartlock.service; sudo systemctl daemon-reload; sudo systemctl enable smartlock; echo '${dpm_password}' > /home/pi/dpm_password; echo '${!lock_id_var:-}' > /home/pi/smartlock.id"
 }
 

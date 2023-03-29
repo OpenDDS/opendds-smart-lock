@@ -37,5 +37,6 @@ gcloud compute scp ./relay-deploy.sh relay-01:
 ### Bootstrap the machine and run the relay
 
 ```bash
-gcloud compute ssh relay-01 --command='sudo bash $HOME/relay-deploy.sh'
+gcloud compute ssh relay-01 --command='sudo bash $HOME/relay-deploy.sh $HOME/rtps.ini'
 ```
+Replace `$HOME/rtps.ini` with the actual path to a `rtps.ini` file.
