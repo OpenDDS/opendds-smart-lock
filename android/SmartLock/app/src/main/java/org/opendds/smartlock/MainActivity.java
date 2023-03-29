@@ -3,10 +3,10 @@ package org.opendds.smartlock;
 import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.Network;
+
 import androidx.fragment.app.FragmentTransaction;
 import androidx.appcompat.app.AppCompatActivity;
 
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -19,7 +19,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 public class MainActivity extends AppCompatActivity {
     private final String LOG_TAG = "SmartLock_Main_Activity";
-
+    private final String LOGIN_FRAGMENT_TAG = "login";
     private final HashMap<String, SmartLockFragment> locks = new HashMap<>();
     final private ReentrantLock locksLock = new ReentrantLock();
 
@@ -29,35 +29,42 @@ public class MainActivity extends AppCompatActivity {
 
     // flag for network changes.
     private boolean networkLost = false;
+    private LinearLayout parentLinearLayout = null;
 
     private SmartLockFragment addLock(Context context) {
-        LinearLayout list = findViewById(R.id.list);
-        LinearLayout container = new LinearLayout(context);
-        int container_id = View.generateViewId();
-        container.setId(container_id);
-
-        FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
-        SmartLockFragment frag = new SmartLockFragment();
-
-        ft.add(container_id, frag, frag.id_string);
-        ft.commit();
-        list.addView(container);
-
-        return frag;
-    }
-
-    private void addLogin(Context context) {
-        LinearLayout list = findViewById(R.id.list);
         LinearLayout container = new LinearLayout(context);
         int container_id = View.generateViewId();
         container.setId(container_id);
 
         FragmentTransaction fragmentTransaction = getSupportFragmentManager().beginTransaction();
+        fragmentTransaction.setReorderingAllowed(true);
+        SmartLockFragment smartLockFragment = new SmartLockFragment();
+        fragmentTransaction.add(container_id, smartLockFragment, smartLockFragment.id_string);
+
+        fragmentTransaction.commit();
+        parentLinearLayout.addView(container, parentLinearLayout.getChildCount() - 1);
+
+
+        return smartLockFragment;
+    }
+
+    private void addLogin(Context context) {
+        LinearLayout container = new LinearLayout(context);
+        int container_id = View.generateViewId();
+        container.setId(container_id);
+
+        FragmentTransaction fragmentTransaction = getSupportFragmentManager().beginTransaction();
+        fragmentTransaction.setReorderingAllowed(true);
         LoginFragment loginFragment = new LoginFragment();
 
-        fragmentTransaction.add(container_id, loginFragment, "login");
+        fragmentTransaction.add(container_id, loginFragment, LOGIN_FRAGMENT_TAG);
         fragmentTransaction.commit();
-        list.addView(container);
+        parentLinearLayout.addView(container, parentLinearLayout.getChildCount() - 1);
+    }
+
+    public void removeLogin(){
+        Log.d(LOG_TAG, "removeLogin");
+        parentLinearLayout.removeAllViews();
     }
 
     private void addLock(Context context, SmartLockStatus status) {
@@ -75,7 +82,11 @@ public class MainActivity extends AppCompatActivity {
         if (frag != null) {
             Log.i(LOG_TAG, "updateLock " + status.id + " set to " + status.state);
             locksLock.lock();
-            frag.setStatus(status);
+            try {
+                frag.setStatus(status);
+            } catch (IllegalStateException e) {
+                Log.e(LOG_TAG, "updateLock " + status.id + " unable to set status.");
+            }
             locksLock.unlock();
         } else {
             Log.e(LOG_TAG, "updateLock " + status.id + " failed. Lock not found.");
@@ -89,33 +100,39 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    public void startDDSBridge() {
+        if (getResources().getBoolean(R.bool.add_fake_locks)) {
+            addFakeLocks();
+        }
+        // Set locks that we will show
+        String[] locks = getResources().getStringArray(R.array.locks);
+        for (String lock : locks) {
+            SmartLockStatus status = new SmartLockStatus();
+            status.id = lock;
+            status.enabled = false;
+            addLock(status);
+        }
+
+        // create DDS Entities
+        if (getResources().getBoolean(R.bool.init_opendds)) {
+            ddsBridge = new OpenDdsBridge(this);
+            ddsBridge.start();
+        }
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        parentLinearLayout = findViewById(R.id.list);
 
         if (savedInstanceState == null) {
+            OpenDDSSec.setMainActivity(this);
             OpenDDSSec.setCacheDir(getBaseContext().getCacheDir());
             if (!OpenDDSSec.hasFiles()) {
                 addLogin(this);
             } else {
-                if (getResources().getBoolean(R.bool.add_fake_locks)) {
-                    addFakeLocks();
-                }
-                // Set locks that we will show
-                String[] locks = getResources().getStringArray(R.array.locks);
-                for (String lock : locks) {
-                    SmartLockStatus status = new SmartLockStatus();
-                    status.id = lock;
-                    status.enabled = false;
-                    addLock(status);
-                }
-
-                // create DDS Entities
-                if (getResources().getBoolean(R.bool.init_opendds)) {
-                    ddsBridge = new OpenDdsBridge(this);
-                    ddsBridge.start();
-                }
+                startDDSBridge();
             }
         } else {
             if (ddsBridge == null) {

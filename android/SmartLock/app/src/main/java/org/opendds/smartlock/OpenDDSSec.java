@@ -28,8 +28,6 @@ import java.net.HttpCookie;
 
 import javax.net.ssl.HttpsURLConnection;
 
-//jq -r '.public' key-pair > identity.pem
-//jq -r '.private' key-pair > identity_key.pem
 public class OpenDDSSec {
     static final String COOKIES_HEADER = "Set-Cookie";
     static final String KEYPAIR = "key_pair";
@@ -52,6 +50,16 @@ public class OpenDDSSec {
         }
         return false;
     }
+
+    public static void setMainActivity(MainActivity mainActivity) {
+        OpenDDSSec.mainActivity = mainActivity;
+    }
+
+    public static MainActivity getMainActivity() {
+        return mainActivity;
+    }
+
+    private static MainActivity mainActivity;
 
     private static boolean login(String dpm_url, String username, String password) {
         boolean rc = false;
@@ -167,10 +175,10 @@ public class OpenDDSSec {
         private String username_ = "54";
         private String password_ = "AlEMeGU3y45G1hIu";
         private String nonce_ = "NONCE";
-
         private String dpm_url_ = "dpm.unityfoundation.io";
 
         public Download(String dpm_url, String username, String password, String nonce) {
+
             if (dpm_url != null && !dpm_url.isEmpty()) {
                 this.dpm_url_ = dpm_url;
             }
@@ -195,6 +203,17 @@ public class OpenDDSSec {
                 download(this.dpm_url_, OpenDDSSecEnum.ACCESS_PERMISSIONS.getFilename(), this.nonce_);
             }
             return null;
+        }
+
+
+        @Override
+        protected void onPostExecute(Void unused) {
+            super.onPostExecute(unused);
+            Log.d("onPostExecute", "called");
+            if (getMainActivity() != null) {
+                getMainActivity().removeLogin();
+                getMainActivity().startDDSBridge();
+            }
         }
     }
 }

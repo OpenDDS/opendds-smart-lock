@@ -7,7 +7,6 @@ import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
 import androidx.fragment.app.Fragment;
 
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -144,15 +143,14 @@ public class LoginFragment extends Fragment {
     @Override
     public void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
-        // TODO: save validated username and password
+        // TODO: save validated login credentials
         // outState.putString("CERT_PASSWORD", usernameEditText.getText().toString()));
     }
 
     private void updateUiWithUser(LoggedInUserView model) {
-        String welcome = getString(R.string.welcome) + model.getDisplayName();
-        // TODO : initiate successful logged in experience
+        String loginSuccess = getString(R.string.welcome) + model.getDisplayName();
         if (getContext() != null && getContext().getApplicationContext() != null) {
-            Toast.makeText(getContext().getApplicationContext(), welcome, Toast.LENGTH_LONG).show();
+            Toast.makeText(getContext().getApplicationContext(), loginSuccess, Toast.LENGTH_LONG).show();
         }
     }
 
