@@ -10,7 +10,6 @@ Currently there is an Android tablet app which communicates and controls two Ras
 Some notes on the directory structure:
 
 * _android_: Android Studio project files and Idl for SmartLock app.
-* _certs_: Certificates for one tablet and two Raspberry Pis (the tablet files are also copied under android SmartLock/app/src/main/assets).
 * _deploy_:  Deployment scripts for RTPS Relay on GCP.
 * _dockerfiles_: Build environments for Android and Raspberry Pi.
 * _src_: Source files for SmartLock application on Raspberry Pi and the core IDL files used by Android as well.
@@ -43,6 +42,10 @@ The `smart-lock` script contains a number of commands for building and deploying
 
         smart-lock pi build-toolchain
 
+   Or use the existing image from GitHub
+
+        smart-lock pi get-github-image
+
 2. Install the dependencies
 
         smart-lock pi install-dependencies pi_1
@@ -65,9 +68,13 @@ The `smart-lock` script contains a number of commands for building and deploying
 
 ## Typical Use for Android
 
-1. Build the cross-compiler and dependencies
+1. Build the cross-compiler and dependencies for the target architecture. For example, for arm64:
 
-        smart-lock android build-toolchain [git tag or branch] // optional parameter - defaults to master branch
+        smart-lock android build-toolchain-arm64 [git tag or branch] // optional parameter - defaults to master branch
+
+   Or use an existing image from GitHub
+
+        smart-lock android get-github-image-arm64
 
 2. Compile the SmartLock Demo application
 
