@@ -29,10 +29,11 @@ import java.net.HttpCookie;
 import javax.net.ssl.HttpsURLConnection;
 
 public class OpenDDSSec {
-    static final String COOKIES_HEADER = "Set-Cookie";
-    static final String KEYPAIR = "key_pair";
-    static java.net.CookieManager cookieManager = new java.net.CookieManager(null, CookiePolicy.ACCEPT_ALL);
-    static File cacheDir_ = null;
+    private static final String LOG_TAG = "SmartLock_OpenDDSSec";
+    private static final String COOKIES_HEADER = "Set-Cookie";
+    private static final String KEYPAIR = "key_pair";
+    private static java.net.CookieManager cookieManager = new java.net.CookieManager(null, CookiePolicy.ACCEPT_ALL);
+    private static File cacheDir_ = null;
 
     public static void setCacheDir(File cacheDir) {
         cacheDir_ = cacheDir;
@@ -45,10 +46,16 @@ public class OpenDDSSec {
     public static boolean hasFiles() {
         if (cacheDir_ != null) {
             File cacheDir = getCacheDir();
-            File tmpFile = new File(cacheDir.getPath() + File.separator + OpenDDSSecEnum.AUTH_IDENTITY_CERTIFICATE.getFilename());
-            return tmpFile.exists();
+            for (OpenDDSSecEnum secfile : OpenDDSSecEnum.values()) {
+                File tmpFile = new File(cacheDir.getPath() + File.separator + secfile.getFilename());
+                if (!tmpFile.exists()) {
+                    Log.d(LOG_TAG, "Can't find file " + tmpFile.getAbsolutePath());
+                    return false;
+                }
+            }
+            return true; // all filenames exist
         }
-        return false;
+        return false; // cacheDir_ is null
     }
 
     public static void setMainActivity(MainActivity mainActivity) {
@@ -98,14 +105,14 @@ public class OpenDDSSec {
                 for (String cookie : cookiesHeader) {
                     cookieManager.getCookieStore().add(null, HttpCookie.parse(cookie).get(0));
                 }
-                Log.d("login cookies", "found");
+                Log.d(LOG_TAG, "login cookies found");
                 rc = true;
             } else {
-                Log.d("login cookies", "not found");
+                Log.d(LOG_TAG, "login cookies not found");
             }
 
         } catch (IOException | JSONException e) {
-            Log.i("login exception", e.toString());
+            Log.e(LOG_TAG, "login exception" + e.toString());
         } finally {
             if (urlConnection != null) {
                 urlConnection.disconnect();
@@ -163,7 +170,7 @@ public class OpenDDSSec {
                 writeSecurityFile(filename, response.toString());
             }
         } catch (IOException | JSONException e) {
-            Log.i("download exception", e.toString());
+            Log.e(LOG_TAG, "download exception " + e.toString());
         } finally {
             if (urlConnection != null) {
                 urlConnection.disconnect();
@@ -209,7 +216,7 @@ public class OpenDDSSec {
         @Override
         protected void onPostExecute(Void unused) {
             super.onPostExecute(unused);
-            Log.d("onPostExecute", "called");
+            Log.d(LOG_TAG, "onPostExecute called");
             if (getMainActivity() != null) {
                 getMainActivity().removeLogin();
                 getMainActivity().startDDSBridge();
