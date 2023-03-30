@@ -27,6 +27,7 @@ import java.util.Map;
 import java.net.HttpCookie;
 
 import javax.net.ssl.HttpsURLConnection;
+import org.opendds.smartlock.R;
 
 public class OpenDDSSec {
     private static final String LOG_TAG = "SmartLock_OpenDDSSec";
@@ -179,10 +180,10 @@ public class OpenDDSSec {
     }
 
     public static class Download extends AsyncTask<Void, Void, Void> {
-        private String username_ = "54";
-        private String password_ = "AlEMeGU3y45G1hIu";
-        private String nonce_ = "NONCE";
-        private String dpm_url_ = "dpm.unityfoundation.io";
+        private String username_ = String.valueOf(R.string.default_username);
+        private String password_ = String.valueOf(R.string.default_password);
+        private String nonce_ = String.valueOf(R.string.default_nonce);
+        private String dpm_url_ = String.valueOf(R.string.default_dpm_url);
 
         public Download(String dpm_url, String username, String password, String nonce) {
 
