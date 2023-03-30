@@ -420,7 +420,7 @@ Usage: $(command-prefix) COMMAND [OPTION ...]
 Commands:
   build-toolchain              Build a Docker image containing a cross-compiler
                                and cross-compiled dependencies
-  get-github-image             Use the existing Docker image from GitHub Container
+  get-github-image             Use an existing Docker image from GitHub Container
                                Registry instead of building a local image
   clean-toolchain              Remove the Docker image containing a
                                cross-compiler and cross-compiled dependencies
@@ -493,6 +493,8 @@ EOF
     esac
 }
 
+declare android_toolchain_image
+
 function android-build-toolchain-arm64 {
     local commit='master'
     match-keyword 'build-toolchain-arm64'
@@ -503,9 +505,18 @@ function android-build-toolchain-arm64 {
     fi
 
     expected-end-of-input
+    android_toolchain_image="android-opendds-cross"
 
     #add --no-cache if needed: "docker build --no-cache ..."
-    ${DOCKER_COMMAND} build --build-arg "OPENDDS_BRANCH=${commit}" "${_SMART_LOCK_DIR}/dockerfiles/android-opendds-cross" -f "${_SMART_LOCK_DIR}/dockerfiles/android-opendds-cross/Dockerfile" -t android-opendds-cross
+    ${DOCKER_COMMAND} build --build-arg "OPENDDS_BRANCH=${commit}" "${_SMART_LOCK_DIR}/dockerfiles/android-opendds-cross" -f "${_SMART_LOCK_DIR}/dockerfiles/android-opendds-cross/Dockerfile" -t ${android_toochain_image}
+}
+
+function android-get-github-image-arm64 {
+    match-keyword 'get-github-image-arm64'
+    expected-end-of-input
+    android_toolchain_image="ghcr.io/opendds/opendds-smart-lock:master-android-arm64"
+
+    ${DOCKER_COMMAND} pull ${android_toolchain_image}
 }
 
 function android-build-toolchain-arm {
@@ -518,9 +529,18 @@ function android-build-toolchain-arm {
     fi
 
     expected-end-of-input
+    android_toolchain_image="android-opendds-cross"
 
     #add --no-cache if needed: "docker build --no-cache ..."
-    ${DOCKER_COMMAND} build --build-arg ABI=armeabi-v7a --build-arg ABI_PREFIX=armv7a-linux-androideabi --build-arg RUNTIME_ROOT=arm-linux-androideabi --build-arg PLATFORM=android-arm --build-arg "OPENDDS_BRANCH=${commit}" "${_SMART_LOCK_DIR}/dockerfiles/android-opendds-cross" -f "${_SMART_LOCK_DIR}/dockerfiles/android-opendds-cross/Dockerfile" -t android-opendds-cross
+    ${DOCKER_COMMAND} build --build-arg ABI=armeabi-v7a --build-arg ABI_PREFIX=armv7a-linux-androideabi --build-arg RUNTIME_ROOT=arm-linux-androideabi --build-arg PLATFORM=android-arm --build-arg "OPENDDS_BRANCH=${commit}" "${_SMART_LOCK_DIR}/dockerfiles/android-opendds-cross" -f "${_SMART_LOCK_DIR}/dockerfiles/android-opendds-cross/Dockerfile" -t ${android_toolchain_image}
+}
+
+function android-get-github-image-arm {
+    match-keyword 'get-github-image-arm'
+    expected-end-of-input
+    android_toolchain_image="ghcr.io/opendds/opendds-smart-lock:master-android-arm"
+
+    ${DOCKER_COMMAND} pull ${android_toolchain_image}
 }
 
 function android-build-toolchain-x86 {
@@ -533,9 +553,18 @@ function android-build-toolchain-x86 {
     fi
 
     expected-end-of-input
+    android_toolchain_image="android-opendds-cross"
 
     #add --no-cache if needed: "docker build --no-cache ..."
-    ${DOCKER_COMMAND} build --build-arg ABI=x86 --build-arg ABI_PREFIX=i686-linux-android --build-arg PLATFORM=android-x86 --build-arg "OPENDDS_BRANCH=${commit}" "${_SMART_LOCK_DIR}/dockerfiles/android-opendds-cross" -f "${_SMART_LOCK_DIR}/dockerfiles/android-opendds-cross/Dockerfile" -t android-opendds-cross
+    ${DOCKER_COMMAND} build --build-arg ABI=x86 --build-arg ABI_PREFIX=i686-linux-android --build-arg PLATFORM=android-x86 --build-arg "OPENDDS_BRANCH=${commit}" "${_SMART_LOCK_DIR}/dockerfiles/android-opendds-cross" -f "${_SMART_LOCK_DIR}/dockerfiles/android-opendds-cross/Dockerfile" -t ${android_toolchain_image}
+}
+
+function android-get-github-image-x86 {
+    match-keyword 'get-github-image-x86'
+    expected-end-of-input
+    android_toolchain_image="ghcr.io/opendds/opendds-smart-lock:master-android-x86"
+
+    ${DOCKER_COMMAND} pull ${android_toolchain_image}
 }
 
 function android-clean-toolchain {
@@ -544,7 +573,7 @@ function android-clean-toolchain {
     match-keyword 'clean-toolchain'
     expected-end-of-input
 
-    ${DOCKER_C0MMAND} rmi android-opendds-cross
+    ${DOCKER_C0MMAND} rmi ${android_toolchain_image}
 }
 
 function android-compile {
@@ -590,7 +619,7 @@ function android-compile {
     ## directory within the .mpc file, the TypeSupport.idl file contents
     ## cannot be determined due to a limitation within the idl2jni helper.
     COMPILE="${_SMART_LOCK_DIR}/dockerfiles/android-opendds-cross/android-compile"
-    MSYS_NO_PATHCONV=1 ${DOCKER_COMMAND} run --rm -ti -v "${_SMART_LOCK_DIR}:/home/droid/smartlock" -w '/home/droid' android-opendds-cross bash -c "$(tr '\n' ';' < ${COMPILE})"
+    MSYS_NO_PATHCONV=1 ${DOCKER_COMMAND} run --rm -ti -v "${_SMART_LOCK_DIR}:/home/droid/smartlock" -w '/home/droid' ${android_toolchain_image} bash -c "$(tr '\n' ';' < ${COMPILE})"
 
     (
         cd "${_SMART_LOCK_DIR}/android/SmartLock"
@@ -605,7 +634,7 @@ function android-clean {
     expected-end-of-input
 
     load-config
-    MSYS_NO_PATHCONV=1 ${DOCKER_COMMAND} run --rm -ti -v "${_SMART_LOCK_DIR}:/home/droid/smartlock" -w '/home/droid' android-opendds-cross bash -c '
+    MSYS_NO_PATHCONV=1 ${DOCKER_COMMAND} run --rm -ti -v "${_SMART_LOCK_DIR}:/home/droid/smartlock" -w '/home/droid' ${android_toolchain_image} bash -c '
 APP_MPC_NAME=SmartLock_Idl_Java;
 APP_NAME=SmartLock;
 DDS_ROOT=/home/droid/droid-opendds;
@@ -706,8 +735,11 @@ Usage: $(command-prefix) COMMAND [OPTION ...]
 
 Commands:
         build-toolchain-arm64 [commit]  Build a Docker image containing arm64-v8a cross-compiler and cross-compiled dependencies
+        get-github-image-arm64          Use an existing Docker image from GitHub Container Registry for arm64 instead of building a local image
         build-toolchain-arm   [commit]  Build a Docker image containing arm cross-compiler and cross-compiled dependencies
+        get-github-image-arm            Use an existing Docker image from GitHub Container Registry for arm instead of building a local image
         build-toolchain-x86   [commit]  Build a Docker image containing x86 cross-compiler and cross-compiled dependencies
+        get-github-image-x86            Use an existing Docker image from GitHub Container Registry for x86 instead of building a local image
         clean-toolchain                 Remove the Docker image containing a cross-compiler and cross-compiled dependencies
         compile                         Cross-compile the SmartLock Demo application
         clean                           Remove the compiled application
@@ -726,11 +758,20 @@ EOF
         build-toolchain-arm64)
             android-build-toolchain-arm64
             ;;
+        get-github-image-arm64)
+            android-get-github-image-arm64
+            ;;
         build-toolchain-arm)
             android-build-toolchain-arm
             ;;
+        get-github-image-arm)
+            android-get-github-image-arm
+            ;;
         build-toolchain-x86)
             android-build-toolchain-x86
+            ;;
+        get-github-image-x86)
+            android-get-github-image-x86
             ;;
         clean-toolchain)
             android-clean-toolchain
