@@ -1,3 +1,3 @@
 // Relative import to be able to reuse the C sources.
 // See the comment in ../{projectName}}.podspec for more information.
-#include "../../src/smartlock_idl_plugin.c"
+#include "../../src/smartlock_idl_plugin.cpp"

@@ -4,6 +4,10 @@
 #include <dart_api_dl.h>
 #include <SmartLockTypeSupportImpl.h>
 
+#include <dds/DCPS/security/BuiltInPlugins.h>
+#include <dds/DCPS/transport/rtps_udp/RtpsUdpLoader.h>
+#include <dds/DCPS/RTPS/RtpsDiscovery.h>
+
 #include <dds/DCPS/Service_Participant.h>
 #include <dds/DCPS/Marked_Default_Qos.h>
 #include <dds/DCPS/BuiltInTopicUtils.h>
@@ -118,6 +122,7 @@ public:
      topic_prefix("C.53."),
      domain(1),
      groups() {
+    OpenDDS::DCPS::RtpsUdpLoader::load();
   }
 
   void run(const OpenDdsBridgeConfig* config) {

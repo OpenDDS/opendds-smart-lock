@@ -1,7 +1,8 @@
 GNUmakefile*
 .depend*
+.obj
 .shobj
-lib*.so
+lib*
 *.idl
 *.cpp
 *.h
