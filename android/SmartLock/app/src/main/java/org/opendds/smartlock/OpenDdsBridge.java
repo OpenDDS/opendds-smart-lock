@@ -46,7 +46,7 @@ public class OpenDdsBridge extends Thread {
     public boolean secure = false;
     private String debug_level = "3";
     private String transport_debug_level = "3";
-    private final int DOMAIN = 42;
+    private final int DOMAIN = 1;
     private String[] groups;
 
     private final MainActivity activity;
@@ -86,10 +86,6 @@ public class OpenDdsBridge extends Thread {
         } else {
             Log.e(LOG_TAG, "Cant Send Control Update because Datawriter is null");
         }
-    }
-
-    public void copyPartitionQos(PartitionQosPolicy partitionQosPolicy) {
-        partitionQosPolicy.name = groups;
     }
 
     public DataReaderQos newDefaultDataReaderQos(Subscriber subscriber) {
@@ -189,6 +185,15 @@ public class OpenDdsBridge extends Thread {
         return full_path;
     }
 
+    private String verifyCacheFileExists(String cache_path) throws InitOpenDDSException {
+        File new_file = new File(context.getCacheDir().getPath() + File.separator + cache_path);
+        Log.d(LOG_TAG, "verifyCacheFileExists: ".concat(new_file.getAbsolutePath()));
+        if (!new_file.exists()){
+            throw new InitOpenDDSException("Missing Cache File: " + new_file.getAbsolutePath());
+        }
+        return new_file.getAbsolutePath();
+    }
+
     private void initParticipantFactory() throws InitOpenDDSException {
         if (participantFactory != null) {
             return;
@@ -217,13 +222,12 @@ public class OpenDdsBridge extends Thread {
 
         // Ensure Config File and Security Files Exist
         final String config_file = copyAsset("opendds_config.ini");
-
-        final String gov_file = copyAsset("gov_signed.p7s");
-        final String id_ca_cert = copyAsset("identity_ca_cert.pem");
-        final String perm_ca_cert = copyAsset("permissions_ca_cert.pem");
-        final String user_cert = copyAsset("tablet_cert.pem");
-        final String user_private_cert = copyAsset("private_key.pem");
-        final String user_perm_file = copyAsset("house1_signed.p7s");
+        final String gov_file = verifyCacheFileExists(OpenDDSSecEnum.ACCESS_GOVERNANCE.getFilename());
+        final String id_ca_cert = verifyCacheFileExists(OpenDDSSecEnum.AUTH_IDENTITY_CA.getFilename());
+        final String perm_ca_cert = verifyCacheFileExists(OpenDDSSecEnum.ACCESS_PERMISSIONS_CA.getFilename());
+        final String user_cert = verifyCacheFileExists(OpenDDSSecEnum.AUTH_IDENTITY_CERTIFICATE.getFilename());
+        final String user_private_cert = verifyCacheFileExists(OpenDDSSecEnum.AUTH_PRIVATE_KEY.getFilename());
+        final String user_perm_file = verifyCacheFileExists(OpenDDSSecEnum.ACCESS_PERMISSIONS.getFilename());
 
         // Initialize OpenDDS by getting the Participant Factory
         ArrayList<String> args = new ArrayList<String>();
@@ -328,7 +332,7 @@ public class OpenDdsBridge extends Thread {
             throw new InitOpenDDSException("ERROR: Status register_type failed");
         }
 
-        Topic status_topic = participant.create_topic("SmartLock Status",
+        Topic status_topic = participant.create_topic("C.53.SmartLock Status",
                 status_servant.get_type_name(),
                 TOPIC_QOS_DEFAULT.get(),
                 null,
@@ -339,7 +343,6 @@ public class OpenDdsBridge extends Thread {
 
         SubscriberQosHolder subscriberQos = new SubscriberQosHolder(
                 newDefaultSubscriberQos(participant));
-        copyPartitionQos(subscriberQos.value.partition);
         Subscriber sub = participant.create_subscriber(subscriberQos.value,
                 null, DEFAULT_STATUS_MASK.value);
         if (sub == null) {
@@ -384,7 +387,7 @@ public class OpenDdsBridge extends Thread {
         if (control_servant.register_type(participant, "") != RETCODE_OK.value) {
             throw new InitOpenDDSException("ERROR: Control register_type failed");
         }
-        Topic control_topic = participant.create_topic("SmartLock Control",
+        Topic control_topic = participant.create_topic("C.53.SmartLock Control",
                 control_servant.get_type_name(),
                 TOPIC_QOS_DEFAULT.get(),
                 null,
@@ -396,7 +399,6 @@ public class OpenDdsBridge extends Thread {
 
         PublisherQosHolder publisherQos = new PublisherQosHolder(
                 newDefaultPublisherQos(participant));
-        copyPartitionQos(publisherQos.value.partition);
         Publisher pub = participant.create_publisher(publisherQos.value,
                 null, DEFAULT_STATUS_MASK.value);
         if (pub == null) {

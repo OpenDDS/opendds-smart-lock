@@ -3,4 +3,21 @@
     <string name="lock_id">Lock ID</string>
     <string name="lock_unlock">Lock/Unlock</string>
     <string name="logo_name">OpenDDS</string>
+    <!-- Strings related to login -->
+    <string name="prompt_username">Username</string>
+    <string name="prompt_password">Password</string>
+    <string name="action_sign_in">Login</string>
+    <string name="action_sign_in_short">Login</string>
+    <string name="welcome">"Downloading for username:"</string>
+    <string name="invalid_username">Not a valid username</string>
+    <string name="invalid_password">Password must be >5 characters</string>
+    <string name="login_failed">"Login failed"</string>
+    <string name="prompt_dpm_url">dpm.unityfoundation.io</string>
+    <string name="prompt_nonce">NONCE</string>
+    <string name="action_dpm_url">dpm_url</string>
+    <string name="action_nonce">NONCE</string>
+    <string name="default_nonce">NONCE</string>
+    <string name="default_dpm_url">dpm.unityfoundation.io</string>
+    <string name="default_username">54</string>
+    <string name="default_password">WNg97wLeR7Rk5eHz</string>
 </resources>
