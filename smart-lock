@@ -227,6 +227,20 @@ function pi-clean-toolchain {
     fi
 }
 
+function current-pi-image {
+    local -r local_image_exists=$((`docker images ${PI_LOCAL_IMAGE} | wc -l`-1))
+    local -r github_image_exists=$((`docker images ${PI_GITHUB_IMAGE} | wc -l`-1))
+    if [ $local_image_exists -eq 1 ]
+    then
+        echo ${PI_LOCAL_IMAGE}
+    elif [ $github_image_exists -eq 1 ]
+    then
+        echo ${PI_GITHUB_IMAGE}
+    else
+        echo "Image for pi not found!"
+    fi
+}
+
 function pi-install-dependencies {
     # Copies all dependencies to target pi from docker image
     # ex: ./smart-lock pi install-dependencies pi_1
@@ -240,13 +254,8 @@ function pi-install-dependencies {
     # Copy the dependencies out of the docker image.
     rm -rf "${_SMART_LOCK_DIR}/libs"
     mkdir -p "${_SMART_LOCK_DIR}/libs"
-    local -r local_image_exists=$((`docker images ${PI_LOCAL_IMAGE} | wc -l`-1))
-    if [ $local_image_exists -eq 1 ]
-    then
-        ${DOCKER_COMMAND} run -d --name piopendds ${PI_LOCAL_IMAGE}
-    else
-        ${DOCKER_COMMAND} run -d --name piopendds ${PI_GITHUB_IMAGE}
-    fi
+    local -r toolchain_image=`current-pi-image`
+    ${DOCKER_COMMAND} run -d --name piopendds ${toolchain_image}
     ${DOCKER_COMMAND} cp piopendds:/home/pi/pi-opendds.tar.gz libs
     ${DOCKER_COMMAND} cp piopendds:/home/pi/pi-openssl.tar.gz libs
     ${DOCKER_COMMAND} cp piopendds:/home/pi/pi-xerces.tar.gz libs
@@ -265,12 +274,7 @@ function pi-compile {
     expected-end-of-input
 
     COMPILE="${_SMART_LOCK_DIR}/dockerfiles/pi-opendds-cross/pi-compile"
-    local toolchain_image=${PI_LOCAL_IMAGE}
-    local -r local_image_exists=$((`docker images ${PI_LOCAL_IMAGE} | wc -l`-1))
-    if [ $local_image_exists -eq 0 ]
-    then
-        toolchain_image=${PI_GITHUB_IMAGE}
-    fi
+    local -r toolchain_image=`current-pi-image`
     MSYS_NO_PATHCONV=1 ${DOCKER_COMMAND} run --rm -it -v "${_SMART_LOCK_DIR}/src:/home/pi/smartlock" -w "/home/pi/smartlock" ${toolchain_image} bash -c "$(tr '\n' ';' < ${COMPILE} | sed 's/\r//g')"
 }
 
@@ -630,8 +634,11 @@ function current-android-image {
     elif [ $github_image_exists_arm -eq 1 ]
     then
         echo ${ANDROID_GITHUB_IMAGE_ARM}
-    else
+    elif [ $github_image_exists_x86 -eq 1 ]
+    then
         echo ${ANDROID_GITHUB_IMAGE_X86}
+    else
+        echo "Image for android not found!"
     fi
 }
 
