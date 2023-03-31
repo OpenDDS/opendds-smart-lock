@@ -258,11 +258,14 @@ private:
       return;
     }
 
-    participant =
-      participantFactory->create_participant(domain,
-                                             participantQos,
-                                             nullptr,
-                                             OpenDDS::DCPS::DEFAULT_STATUS_MASK);
+    if (participantFactory != nullptr) {
+      participant =
+        participantFactory->create_participant(domain,
+                                               participantQos,
+                                               nullptr,
+                                               OpenDDS::DCPS::DEFAULT_STATUS_MASK);
+    }
+
     if (participant == nullptr) {
       error_message = "create_participant failed!";
       ACE_ERROR((LM_ERROR,
