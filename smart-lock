@@ -271,7 +271,7 @@ function pi-compile {
     then
         toolchain_image=${PI_GITHUB_IMAGE}
     fi
-    MSYS_NO_PATHCONV=1 ${DOCKER_COMMAND} run --rm -it -v "${_SMART_LOCK_DIR}/src:/home/pi/smartlock" -w "/home/pi/smartlock" ${toolchain_image} bash -c "$(tr '\n' ';' < ${COMPILE})"
+    MSYS_NO_PATHCONV=1 ${DOCKER_COMMAND} run --rm -it -v "${_SMART_LOCK_DIR}/src:/home/pi/smartlock" -w "/home/pi/smartlock" ${toolchain_image} bash -c "$(tr '\n' ';' < ${COMPILE} | sed 's/\r//g')"
 }
 
 declare dpm_password
@@ -679,7 +679,7 @@ function android-compile {
     ## cannot be determined due to a limitation within the idl2jni helper.
     COMPILE="${_SMART_LOCK_DIR}/dockerfiles/android-opendds-cross/android-compile"
     local -r toolchain_image=`current-android-image`
-    MSYS_NO_PATHCONV=1 ${DOCKER_COMMAND} run --rm -ti -v "${_SMART_LOCK_DIR}:/home/droid/smartlock" -w '/home/droid' ${toolchain_image} bash -c "$(tr '\n' ';' < ${COMPILE})"
+    MSYS_NO_PATHCONV=1 ${DOCKER_COMMAND} run --rm -ti -v "${_SMART_LOCK_DIR}:/home/droid/smartlock" -w '/home/droid' ${toolchain_image} bash -c "$(tr '\n' ';' < ${COMPILE} | sed 's/\r//g')"
 
     (
         cd "${_SMART_LOCK_DIR}/android/SmartLock"
