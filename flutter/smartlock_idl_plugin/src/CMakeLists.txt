@@ -30,4 +30,4 @@ target_include_directories(${TARGET} PRIVATE
 
 target_compile_definitions(${TARGET} PUBLIC __ACE_INLINE__ OPENDDS_SECURITY)
 target_link_directories(${TARGET} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../android/src/main/jniLibs/${ANDROID_ABI})
-target_link_libraries(${TARGET} SmartLock_Idl_Flutter OpenDDS_Security OpenDDS_Dcps TAO_Valuetype TAO ACE_XML_Utils ACE)
+target_link_libraries(${TARGET} SmartLock_Idl_Flutter OpenDDS_Security OpenDDS_Rtps_Udp OpenDDS_Rtps OpenDDS_Dcps TAO_Valuetype TAO ACE_XML_Utils ACE)
