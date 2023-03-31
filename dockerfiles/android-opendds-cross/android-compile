@@ -7,11 +7,24 @@ cd $HOME/smartlock/android/Idl
 cp -p ../../src/Idl/SmartLock.idl .
 mwc.pl -type gnuace
 make
+cd $HOME/smartlock/flutter/Idl
+cp -p ../../src/Idl/SmartLock.idl .
+mwc.pl -type gnuace
+make
 $DDS_ROOT/java/build_scripts/javac_wrapper.pl -sourcepath . -d classes -classpath . -implicit:none -classpath $DDS_ROOT/lib/i2jrt_corba.jar -classpath $DDS_ROOT/lib/i2jrt.jar -classpath $DDS_ROOT/lib/OpenDDS_DCPS.jar ${APP_NAME}/*
 cp $HOME/libs/*.jar $HOME/smartlock/android/Idl/*.jar $HOME/smartlock/android/SmartLock/app/libs
 mkdir -p $HOME/smartlock/android/SmartLock/app/native_libs/${ANDROID_ABI}
 cp $HOME/libs/*.so $HOME/smartlock/android/Idl/*.so $HOME/smartlock/android/SmartLock/app/native_libs/${ANDROID_ABI}
 cd $HOME/libs
 mkdir -p $HOME/smartlock/android/src/main/jniLibs/${ANDROID_ABI}
-cp libACE.so libACE_XML_Utils.so libc++_shared.so libOpenDDS_Dcps.so libOpenDDS_Rtps.so libOpenDDS_Security.so libTAO.so libTAO_AnyTypeCode.so libTAO_BiDirGIOP.so libTAO_CodecFactory.so libTAO_PI.so libTAO_PortableServer.so libTAO_Valuetype.so libxerces-c-3.2.so $HOME/smartlock/flutter/smartlock_idl_plugin/android/src/main/jniLibs/${ANDROID_ABI}
-cp $HOME/smartlock/android/Idl/libSmartLock_Idl_Java.so $HOME/smartlock/flutter/smartlock_idl_plugin/android/src/main/jniLibs/${ANDROID_ABI}/libSmartLock_Idl.so
+cp libACE.so libACE_XML_Utils.so libc++_shared.so libOpenDDS_Dcps.so libOpenDDS_Rtps.so libOpenDDS_Rtps_Udp.so libOpenDDS_Security.so libTAO.so libTAO_AnyTypeCode.so libTAO_BiDirGIOP.so libTAO_CodecFactory.so libTAO_PI.so libTAO_PortableServer.so libTAO_Valuetype.so libxerces-c-3.2.so $HOME/smartlock/flutter/smartlock_idl_plugin/android/src/main/jniLibs/${ANDROID_ABI}
+cp $HOME/smartlock/flutter/Idl/libSmartLock_Idl_Flutter.so $HOME/smartlock/flutter/smartlock_idl_plugin/android/src/main/jniLibs/${ANDROID_ABI}/
+mkdir -p $HOME/smartlock/flutter/middleware/OpenDDS
+cd $HOME/droid-opendds/build/target/ACE_TAO/ACE/ace
+make -f GNUmakefile.ACE INSTALL_PREFIX=$HOME/smartlock/flutter/middleware/ACE_TAO install
+cd ../../TAO/tao
+make INSTALL_PREFIX=$HOME/smartlock/flutter/middleware/ACE_TAO install
+cd ../../../dds
+make INSTALL_PREFIX=$HOME/smartlock/flutter/middleware/OpenDDS install
+cd $HOME/smartlock/flutter/middleware
+rm -rf ACE_TAO/lib ACE_TAO/share OpenDDS/bin OpenDDS/lib OpenDDS/share

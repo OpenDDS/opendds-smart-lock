@@ -1,0 +1,8 @@
+GNUmakefile*
+.depend*
+.shobj
+lib*.so
+*.idl
+*.cpp
+*.h
+*.inl

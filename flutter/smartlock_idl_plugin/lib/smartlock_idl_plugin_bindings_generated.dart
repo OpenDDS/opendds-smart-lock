@@ -52,17 +52,40 @@ class SmartlockIdlPluginBindings {
 
   void startOpenDdsBridge(
     ffi.Pointer<OpenDdsBridge> bridge,
+    ffi.Pointer<OpenDdsBridgeConfig> config,
   ) {
     return _startOpenDdsBridge(
       bridge,
+      config,
     );
   }
 
   late final _startOpenDdsBridgePtr = _lookup<
-          ffi.NativeFunction<ffi.Void Function(ffi.Pointer<OpenDdsBridge>)>>(
-      'startOpenDdsBridge');
-  late final _startOpenDdsBridge = _startOpenDdsBridgePtr
-      .asFunction<void Function(ffi.Pointer<OpenDdsBridge>)>();
+      ffi.NativeFunction<
+          ffi.Void Function(ffi.Pointer<OpenDdsBridge>,
+              ffi.Pointer<OpenDdsBridgeConfig>)>>('startOpenDdsBridge');
+  late final _startOpenDdsBridge = _startOpenDdsBridgePtr.asFunction<
+      void Function(
+          ffi.Pointer<OpenDdsBridge>, ffi.Pointer<OpenDdsBridgeConfig>)>();
+
+  void updateOpenDdsBridgeLockState(
+    ffi.Pointer<OpenDdsBridge> bridge,
+    ffi.Pointer<SmartLockStatus> status,
+  ) {
+    return _updateOpenDdsBridgeLockState(
+      bridge,
+      status,
+    );
+  }
+
+  late final _updateOpenDdsBridgeLockStatePtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Void Function(ffi.Pointer<OpenDdsBridge>,
+              ffi.Pointer<SmartLockStatus>)>>('updateOpenDdsBridgeLockState');
+  late final _updateOpenDdsBridgeLockState =
+      _updateOpenDdsBridgeLockStatePtr.asFunction<
+          void Function(
+              ffi.Pointer<OpenDdsBridge>, ffi.Pointer<SmartLockStatus>)>();
 
   void shutdownOpenDdsBridge() {
     return _shutdownOpenDdsBridge();
@@ -77,3 +100,53 @@ class SmartlockIdlPluginBindings {
 class OpenDdsBridge extends ffi.Struct {
   external ffi.Pointer<ffi.Void> ptr;
 }
+
+abstract class State {
+  static const int UNLOCKED = 0;
+  static const int PENDING_UNLOCK = 1;
+  static const int LOCKED = 2;
+  static const int PENDING_LOCK = 3;
+}
+
+class SmartLockStatus extends ffi.Struct {
+  external ffi.Pointer<ffi.Char> id;
+
+  @ffi.Int32()
+  external int state;
+
+  @ffi.Int()
+  external int enabled;
+}
+
+class OpenDdsBridgeConfig extends ffi.Struct {
+  /// The full path of the ini file.
+  external ffi.Pointer<ffi.Char> ini;
+
+  /// These are downloaded from the Permissions Manager and are
+  /// stored as files in the documents directory.  The values here
+  /// are the full path names.
+  external ffi.Pointer<ffi.Char> id_ca;
+
+  external ffi.Pointer<ffi.Char> perm_ca;
+
+  external ffi.Pointer<ffi.Char> perm_gov;
+
+  external ffi.Pointer<ffi.Char> perm_perms;
+
+  external ffi.Pointer<ffi.Char> id_cert;
+
+  external ffi.Pointer<ffi.Char> id_pkey;
+
+  /// The user of the bridge can provide a function to receive
+  /// message back from the bridge.
+  external notifier receiver;
+
+  /// In order to call back into Dart from another thread, it
+  /// must be done through a mechanism that can be forced through
+  /// the main thread.  We will be using Dart_PostCObject_DL().
+  @ffi.Int64()
+  external int send_port;
+}
+
+typedef notifier
+    = ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Char>)>>;
