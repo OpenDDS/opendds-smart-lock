@@ -28,7 +28,7 @@ A new Flutter FFI plugin project.
     'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'i386',
     'GCC_PREPROCESSOR_DEFINITIONS' => [
       '__ACE_INLINE__', 'ACE_AS_STATIC_LIBS', 'TAO_AS_STATIC_LIBS',
-      'ACE_HAS_IOS', 'ACE_HAS_CUSTOM_EXPORT_MACROS=0'
+      'ACE_HAS_IOS', 'ACE_HAS_CUSTOM_EXPORT_MACROS=0',
       'OPENDDS_SECURITY', 'OPENDDS_RAPIDJSON',
     ],
     'HEADER_SEARCH_PATHS' => [
@@ -57,7 +57,10 @@ A new Flutter FFI plugin project.
        '../../../../middleware/ios-openssl/lib/libssl.a',
        '../../../../middleware/ios-xerces/lib/libxerces-c.a',
     ],
-    'ARCHS' => 'x86_64'
+    ## Set your IOS_ARCH to x86_64 to build this for the simulator
+    ## and to arm64 to build for the iPhone.  Be sure to do a "flutter clean"
+    ## if you change this environment variable.
+    'ARCHS' => '$IOS_ARCH',
   }
   s.swift_version = '5.0'
 end
