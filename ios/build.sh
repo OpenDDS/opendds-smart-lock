@@ -49,10 +49,12 @@ function check_xerces {
   status=0
   if [ -r $MIDDLEWARE/ios-xerces/lib/libxerces-c.a ]; then
     pushd $TMPDIR
-    tar xf $MIDDLEWARE/ios-xerces/lib/libxerces-c.a PosixFileMgr.cpp.o
-    if [ -n "`file PosixFileMgr.cpp.o 2> /dev/null | grep $XCODE_ARCH`" ]; then
+    file=PosixFileMgr.cpp.o
+    tar xf $MIDDLEWARE/ios-xerces/lib/libxerces-c.a $file
+    if [ -n "`file $file 2> /dev/null | grep $XCODE_ARCH`" ]; then
       status=1
     fi
+    rm -f $file
     popd
   fi
   return $status
@@ -76,11 +78,16 @@ if [ $? -eq 0 ]; then
 
   if [ -n "$FORCE_OPENSSL" -o -z "`file $MIDDLEWARE/ios-openssl/lib/libcrypto.dylib 2> /dev/null | grep $XCODE_ARCH`" ]; then
     ## Build OpenSSL
-    tar xzf ../$OPENSSL.tar.gz
+    if [ ! -r $OPENSSL/Configure ]; then
+      tar xzf ../$OPENSSL.tar.gz
+    fi
     cd $OPENSSL
-    ./Configure $OPENSSL_TARGET
+    if [ ! -r Makefile ]; then
+      ./Configure $OPENSSL_TARGET
+    fi
     make && make install DESTDIR=$MIDDLEWARE/ios-openssl
     pushd $MIDDLEWARE/ios-openssl
+    rm -rf bin include lib share ssl
     mv usr/local/* .
     rm -rf usr
     popd
@@ -90,7 +97,9 @@ if [ $? -eq 0 ]; then
   check_xerces
   if [ -n "$FORCE_XERCES" -o $? -eq 0 ]; then
     ## Build xerces
-    tar xzf ../$XERCES.tar.gz
+    if [ ! -r $XERCES/CMakeLists.txt ]; then
+      tar xzf ../$XERCES.tar.gz
+    fi
     cd $XERCES
     export CC="$XCODE_BIN/clang -miphoneos-version-min=12.0 -arch $XCODE_ARCH"
     export CXX="$XCODE_BIN/clang++ -miphoneos-version-min=12.0 -arch $XCODE_ARCH"
@@ -114,14 +123,17 @@ if [ $? -eq 0 ]; then
       --macros=IPHONE_TARGET=$OPENDDS_TARGET \
       --openssl=$MIDDLEWARE/ios-openssl \
       --xerces3=$MIDDLEWARE/ios-xerces
-    ACE_CONFIG=build/target/ACE_TAO/ACE/ace/config.h
-    if [ -z "`grep ACE_HAS_CPP11 $ACE_CONFIG`" ]; then
-      echo '#undef ACE_HAS_CPP11' >> $ACE_CONFIG
-    fi
+  fi
+  ## Building the smartlock_idl_plugin with ACE_HAS_CPP11 defined causes
+  ## the app to crash during initialization.
+  ACE_CONFIG=build/target/ACE_TAO/ACE/ace/config.h
+  if [ -z "`grep ACE_HAS_CPP11 $ACE_CONFIG`" ]; then
+    echo '#undef ACE_HAS_CPP11' >> $ACE_CONFIG
   fi
   make
 
   ## Install ACE/TAO/OpenDDS
+  rm -rf $MIDDLEWARE/ACE_TAO $MIDDLEWARE/OpenDDS
   . build/target/setenv.sh
   cd $ACE_ROOT/ace
   make INSTALL_PREFIX=$MIDDLEWARE/ACE_TAO install
@@ -133,5 +145,5 @@ if [ $? -eq 0 ]; then
   ## Build the IDL
   cd $SMARTLOCK_DIR/flutter/Idl
   $ACE_ROOT/bin/mwc.pl -type gnuace
-  make depend && make
+  make clean all
 fi
