@@ -27,12 +27,12 @@ A new Flutter FFI plugin project.
     'DEFINES_MODULE' => 'YES',
     'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'i386',
     'GCC_PREPROCESSOR_DEFINITIONS' => [
-      '__ACE_INLINE__', 'OPENDDS_SECURITY',
-      'OPENDDS_RAPIDJSON', 'ACE_AS_STATIC_LIBS', 'TAO_AS_STATIC_LIBS',
+      '__ACE_INLINE__', 'ACE_AS_STATIC_LIBS', 'TAO_AS_STATIC_LIBS',
       'ACE_HAS_IOS', 'ACE_HAS_CUSTOM_EXPORT_MACROS=0'
+      'OPENDDS_SECURITY', 'OPENDDS_RAPIDJSON',
     ],
     'HEADER_SEARCH_PATHS' => [
-      '/Users/taoadmin/Development/flutter/bin/cache/dart-sdk/include',
+      '$FLUTTER_ROOT/bin/cache/dart-sdk/include',
       '../../../../Idl',
       '../../../../middleware/ACE_TAO/include',
       '../../../../middleware/OpenDDS/include'
@@ -55,7 +55,7 @@ A new Flutter FFI plugin project.
        '../../../../middleware/ACE_TAO/lib/libACE.a',
        '../../../../middleware/ios-openssl/lib/libcrypto.a',
        '../../../../middleware/ios-openssl/lib/libssl.a',
-       '../../../../middleware/ios-xerces3/lib/libxerces-c.a',
+       '../../../../middleware/ios-xerces/lib/libxerces-c.a',
     ],
     'ARCHS' => 'x86_64'
   }
