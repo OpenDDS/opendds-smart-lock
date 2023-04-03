@@ -163,3 +163,59 @@ jobs:
             ABI=x86
             ABI_PREFIX=i686-linux-android
             PLATFORM=android-x86
+
+  build-pi-app:
+    runs-on: ubuntu-22.04
+
+    steps:
+    - name: checkout opendds-smart-lock
+      uses: actions/checkout@v3
+      with:
+        path: opendds-smart-lock
+    - name: build app
+      run: |
+        cd opendds-smart-lock
+        ./smart-lock pi get-github-image
+        ./smart-lock pi compile
+
+  build-android-arm64-app:
+    runs-on: ubuntu-22.04
+
+    steps:
+    - name: checkout opendds-smart-lock
+      uses: actions/checkout@v3
+      with:
+        path: opendds-smart-lock
+    - name: build android arm64 app
+      run: |
+        cd opendds-smart-lock
+        ./smart-lock android get-github-image-arm64
+        ./smart-lock android compile
+
+  build-android-arm-app:
+    runs-on: ubuntu-22.04
+
+    steps:
+    - name: checkout opendds-smart-lock
+      uses: actions/checkout@v3
+      with:
+        path: opendds-smart-lock
+    - name: build android arm app
+      run: |
+        cd opendds-smart-lock
+        ./smart-lock android get-github-image-arm
+        ./smart-lock android compile
+
+  build-android-x86-app:
+    runs-on: ubuntu-22.04
+
+    steps:
+    - name: checkout opendds-smart-lock
+      uses: actions/checkout@v3
+      with:
+        path: opendds-smart-lock
+    - name: build android x86 app
+      run: |
+        cd opendds-smart-lock
+        ./smart-lock android get-github-image-x86
+        ./smart-lock android compile
