@@ -89,7 +89,7 @@ if [ $? -eq 0 ]; then
     pushd $MIDDLEWARE/ios-openssl
     rm -rf bin include lib share ssl
     mv usr/local/* .
-    rm -rf usr
+    rm -rf usr lib/*.dylib
     popd
     cd ..
   fi
