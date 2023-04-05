@@ -45,12 +45,13 @@ else
   XCODE_SDK=$XCODE/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk
 fi
 
-function check_xerces {
+function check_lib {
+  lib=$1
+  file=$2
   status=0
-  if [ -r $MIDDLEWARE/ios-xerces/lib/libxerces-c.a ]; then
+  if [ -r $lib ]; then
     pushd $TMPDIR
-    file=PosixFileMgr.cpp.o
-    tar xf $MIDDLEWARE/ios-xerces/lib/libxerces-c.a $file
+    tar xf $lib $file
     if [ -n "`file $file 2> /dev/null | grep $XCODE_ARCH`" ]; then
       status=1
     fi
@@ -76,7 +77,8 @@ cd $TARGET
 if [ $? -eq 0 ]; then
   mkdir -p $MIDDLEWARE
 
-  if [ -n "$FORCE_OPENSSL" -o -z "`file $MIDDLEWARE/ios-openssl/lib/libcrypto.dylib 2> /dev/null | grep $XCODE_ARCH`" ]; then
+  check_lib $MIDDLEWARE/ios-openssl/lib/libssl.a tls_srp.o
+  if [ -n "$FORCE_OPENSSL" -o $? -eq 0 ]; then
     ## Build OpenSSL
     if [ ! -r $OPENSSL/Configure ]; then
       tar xzf ../$OPENSSL.tar.gz
@@ -94,7 +96,7 @@ if [ $? -eq 0 ]; then
     cd ..
   fi
 
-  check_xerces
+  check_lib $MIDDLEWARE/ios-xerces/lib/libxerces-c.a PosixFileMgr.cpp.o
   if [ -n "$FORCE_XERCES" -o $? -eq 0 ]; then
     ## Build xerces
     if [ ! -r $XERCES/CMakeLists.txt ]; then
@@ -119,11 +121,11 @@ if [ $? -eq 0 ]; then
   else
     git clone --depth=1 -b $OPENDDS_BRANCH $OPENDDS_GIT_REPO ios-opendds
     cd ios-opendds
-    ./configure --ace-github-latest --security --target=ios \
-      --macros=IPHONE_TARGET=$OPENDDS_TARGET \
-      --openssl=$MIDDLEWARE/ios-openssl \
-      --xerces3=$MIDDLEWARE/ios-xerces
   fi
+  ./configure --ace-github-latest --security --target=ios \
+    --macros=IPHONE_TARGET=$OPENDDS_TARGET \
+    --openssl=$MIDDLEWARE/ios-openssl \
+    --xerces3=$MIDDLEWARE/ios-xerces
   ## Building the smartlock_idl_plugin with ACE_HAS_CPP11 defined causes
   ## the app to crash during initialization.
   ACE_CONFIG=build/target/ACE_TAO/ACE/ace/config.h
