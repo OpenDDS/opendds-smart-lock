@@ -30,6 +30,10 @@ done
 
 if [ -n "$usage" ]; then
   echo "Usage: `basename $0` [--simulator]"
+  echo ""
+  echo "Build OpenSSL, Xerces3, ACE/TAO/OpenDDS, and the flutter Idl for iOS."
+  echo "OpenSSL, Xerces3, ACE/TAO/OpenDDS get installed into"
+  echo "$SMARTLOCK_DIR/flutter/middleware"
   exit 1
 fi
 
