@@ -44,6 +44,7 @@ dependencies:
   shared_preferences: ^2.0.15
   flutter_launcher_icons: ^0.12.0
   flutter_colorpicker: ^1.0.3
+  encrypted_shared_preferences: ^3.0.1
   smartlock_idl_plugin:
     path: ../smartlock_idl_plugin
 

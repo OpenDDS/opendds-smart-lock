@@ -35,8 +35,6 @@ class _LockStatus {
 class _HomeState extends State<Home> {
   // Data for downloading certs.
   static const String _apiURL = "https://dpm.unityfoundation.io/api";
-  static const String _username = "54";
-  static const String _password = "WNg97wLeR7Rk5eHz";
   static const String _nonce = "mobile";
 
   // The SmartLock bridge and associated locks
@@ -44,67 +42,111 @@ class _HomeState extends State<Home> {
   final Map<String, _LockStatus> _locks = {};
   final String _prefsLockKey = "locks";
 
-  Future<Map<String, String>> _downloadCerts(String directory) async {
-    _snack("Beginning to download the certs.");
-
-    // Download all of the required certs and return them in a map.
+  Future<Map<String, String>> _downloadCerts(
+      String directory, bool force) async {
     Map<String, String> certs = {};
-    try {
-      final dio = Dio();
-      dio.interceptors.add(CookieManager(CookieJar()));
+    Map entries = {
+      "id_ca": [true, "applications/identity_ca.pem"],
+      "perm_ca": [true, "applications/permissions_ca.pem"],
+      "perm_gov": [true, "applications/governance.xml.p7s"],
+      "perm_perms": [true, "applications/permissions.xml.p7s?nonce=$_nonce"],
+      "id_cert": [false, "id_cert.pem"],
+      "id_private": [false, "id_private.pem"],
+    };
 
-      var response = await dio.post("$_apiURL/login",
-          options: Options(
-            followRedirects: false,
-            headers: {"Content-Type": "application/json"},
-            validateStatus: (status) => status! < 400,
-          ),
-          data: {"username": _username, "password": _password});
-      if (response.statusCode == 303) {
-        Map<String, dynamic> headers = {"Content-Type": "text/plain"};
-        for (var entry in {
-          "id_ca": "applications/identity_ca.pem",
-          "perm_ca": "applications/permissions_ca.pem",
-          "perm_gov": "applications/governance.xml.p7s",
-          "perm_perms": "applications/permissions.xml.p7s?nonce=$_nonce",
-        }.entries) {
-          String filename = join(directory, basename(entry.value));
-          final int index = filename.indexOf('?');
-          if (index >= 0) {
-            filename = filename.substring(0, index);
-          }
-          response = await dio.download("$_apiURL/${entry.value}", filename,
-              options: Options(headers: headers));
-          if (response.statusCode == 200) {
-            certs[entry.key] = filename;
-          }
-        }
-        final filename = join(directory, "keypair.json");
-        response = await dio.download(
-            "$_apiURL/applications/key_pair?nonce=$_nonce", filename,
-            options: Options(headers: headers));
-        if (response.statusCode == 200) {
-          final fp = File(filename);
-          Map keyPair = json.decode(fp.readAsStringSync());
-          fp.delete();
+    // Nested function to get the filename from the url path
+    entryPath(String part) {
+      String filename = join(directory, basename(part));
+      final int index = filename.indexOf('?');
+      if (index >= 0) {
+        filename = filename.substring(0, index);
+      }
+      return filename;
+    }
 
-          final cert = File(join(directory, "id_cert.pem"));
-          cert.writeAsStringSync(keyPair['public']);
-          final privateKey = File(join(directory, "id_private.pem"));
-          privateKey.writeAsStringSync(keyPair['private']);
-          certs['id_cert'] = cert.path;
-          certs['id_private'] = privateKey.path;
-
-          _snack("All of the certs have been downloaded.");
+    bool download = force;
+    if (!force) {
+      for (var entry in entries.entries) {
+        final file = File(entryPath(entry.value[1]));
+        if (!file.existsSync()) {
+          download = true;
+          break;
         }
       }
-    } catch (err) {
-      _snack(err.toString());
+    }
+
+    if (download) {
+      _snack("Beginning to download the certs.");
+
+      // Download all of the required certs and return them in a map.
+      try {
+        final dio = Dio();
+        dio.interceptors.add(CookieManager(CookieJar()));
+
+        var response = await dio.post("$_apiURL/login",
+            options: Options(
+              followRedirects: false,
+              headers: {"Content-Type": "application/json"},
+              validateStatus: (status) => status! < 400,
+            ),
+            data: {
+              "username": Settings.username.value,
+              "password": Settings.password.value
+            });
+        if (response.statusCode == 303) {
+          Map<String, dynamic> headers = {"Content-Type": "text/plain"};
+          for (var entry in entries.entries) {
+            if (entry.value[0]) {
+              final String part = entry.value[1];
+              final String filename = entryPath(part);
+              response = await dio.download("$_apiURL/$part", filename,
+                  options: Options(headers: headers));
+              if (response.statusCode == 200) {
+                certs[entry.key] = filename;
+              }
+            }
+          }
+          final filename = join(directory, "keypair.json");
+          response = await dio.download(
+              "$_apiURL/applications/key_pair?nonce=$_nonce", filename,
+              options: Options(headers: headers));
+          if (response.statusCode == 200) {
+            final fp = File(filename);
+            Map keyPair = json.decode(fp.readAsStringSync());
+            fp.delete();
+
+            String key = "id_cert";
+            final cert = File(entryPath(entries[key][1]));
+            cert.writeAsStringSync(keyPair['public']);
+            certs[key] = cert.path;
+
+            key = "id_private";
+            final privateKey = File(entryPath(entries[key][1]));
+            privateKey.writeAsStringSync(keyPair['private']);
+            certs[key] = privateKey.path;
+
+            _snack("All of the certs have been downloaded.");
+          }
+        }
+      } catch (err) {
+        _snack(err.toString());
+      }
+    } else {
+      _snack("Using previously downloaded certs.");
+      for (var key in entries.keys) {
+        certs[key] = entryPath(entries[key][1]);
+      }
     }
     return certs;
   }
 
-  void _startBridge() async {
+  void _restartBridge() async {
+    smartlock_idl.Bridge.shutdown();
+    _bridge?.dispose();
+    await _startBridge(true);
+  }
+
+  Future<void> _startBridge(bool forceDownload) async {
     // Read the ini config file from the assets and write it to a local file.
     final Directory documentsDirectory =
         await getApplicationDocumentsDirectory();
@@ -114,10 +156,11 @@ class _HomeState extends State<Home> {
         await rootBundle.loadString('assets/opendds_config.ini'));
 
     // Download the certs from the permissions manager.
-    final certs = await _downloadCerts(path);
+    final certs = await _downloadCerts(path, forceDownload);
 
     // Start the bridge if we have all of the certs.
     if (certs.containsKey('id_private')) {
+      _bridge = smartlock_idl.Bridge();
       _bridge?.start(
           _snack,
           _addOrUpdateLock,
@@ -213,6 +256,7 @@ class _HomeState extends State<Home> {
               Expanded(
                 child: Switch(
                   value: locked,
+                  activeColor: Theme.of(context).colorScheme.primary,
                   onChanged: _locks[id]!.enabled
                       ? (bool value) {
                           // Tell our lock display that the action is pending.
@@ -268,7 +312,8 @@ class _HomeState extends State<Home> {
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => const Settings()),
+            MaterialPageRoute(
+                builder: (context) => Settings(restart: _restartBridge)),
           );
         },
       ),
@@ -284,8 +329,7 @@ class _HomeState extends State<Home> {
   void initState() {
     super.initState();
     _loadLocks();
-    _bridge = smartlock_idl.Bridge();
-    _startBridge();
+    _startBridge(false);
   }
 
   @override

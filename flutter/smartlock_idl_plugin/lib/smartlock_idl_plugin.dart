@@ -31,7 +31,7 @@ typedef LockUpdate = Function(bool, String, LockState);
 
 class Bridge {
   late Pointer<OpenDdsBridge> bridge;
-  static ReceivePort port = ReceivePort();
+  late ReceivePort port;
   static SnackCallback snack = (message) {};
   static LockUpdate update = (enabled, id, state) {};
   static bool _init = false;
@@ -66,6 +66,7 @@ class Bridge {
       String permPerms,
       String idCert,
       String idPrivateKey) async {
+    port = ReceivePort();
     port.listen((dynamic data) => _lockUpdate(data));
 
     // Keep a reference to these functions for use in our own static methods

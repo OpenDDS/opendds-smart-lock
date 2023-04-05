@@ -10,6 +10,8 @@ void main() async {
   await Settings.theme.getStored();
   await Settings.lightSeed.getStored();
   await Settings.darkSeed.getStored();
+  await Settings.username.getStored();
+  await Settings.password.getStored();
   runApp(const MyApp());
 }
 
