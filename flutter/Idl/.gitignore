@@ -3,7 +3,7 @@ GNUmakefile*
 .obj
 .shobj
 lib*
-SmartLockTypeSupport.idl
+*.idl
 *.cpp
 *.h
 *.inl

@@ -146,6 +146,7 @@ if [ $? -eq 0 ]; then
 
   ## Build the IDL
   cd $SMARTLOCK_DIR/flutter/Idl
+  cp ../../src/Idl/SmartLock.idl .
   $ACE_ROOT/bin/mwc.pl -type gnuace
   make clean all
 fi
