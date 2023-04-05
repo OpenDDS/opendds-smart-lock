@@ -7,7 +7,7 @@ project(smartlock_idl_plugin_library VERSION 0.0.1 LANGUAGES CXX C)
 
 set(ACE_ROOT ../../middleware/ACE_TAO/include)
 set(DDS_ROOT ../../middleware/OpenDDS/include)
-set(FLUTTER_ROOT $ENV{FLUTTER_ROOT})
+string(REGEX REPLACE "\\\\" "/" FLUTTER_ROOT $ENV{FLUTTER_ROOT})
 
 set(TARGET smartlock_idl_plugin)
 

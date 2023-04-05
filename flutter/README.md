@@ -1,6 +1,6 @@
 # Getting Started
 
-Set your FLUTTER_ROOT environment to the full path of the Flutter installation (use forward slashes on Windows).
+Set your FLUTTER_ROOT environment to the full path of the Flutter installation.
 
 # Building for Android
 
