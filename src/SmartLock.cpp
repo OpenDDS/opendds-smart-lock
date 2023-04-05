@@ -829,7 +829,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[])
       ACE_ERROR_RETURN((LM_ERROR,
                         ACE_TEXT("ERROR: %N:%l: main() -")
                         ACE_TEXT(" create_topic %s failed!\n"),
-                        status_topic_name),
+                        status_topic_name.c_str()),
                        -1);
     }
 
@@ -847,7 +847,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[])
       ACE_ERROR_RETURN((LM_ERROR,
                         ACE_TEXT("ERROR: %N:%l: main() -")
                         ACE_TEXT(" create_topic %s failed!\n"),
-                        control_topic_name),
+                        control_topic_name.c_str()),
                        -1);
     }
 
