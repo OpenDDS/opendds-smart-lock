@@ -275,7 +275,7 @@ function pi-compile {
 
     COMPILE="${_SMART_LOCK_DIR}/dockerfiles/pi-opendds-cross/pi-compile"
     local -r toolchain_image=`current-pi-image`
-    MSYS_NO_PATHCONV=1 ${DOCKER_COMMAND} run --rm -it -v "${_SMART_LOCK_DIR}/src:/home/pi/smartlock" -w "/home/pi/smartlock" "${toolchain_image}" bash -c "$(tr '\n' ';' < ${COMPILE} | sed 's/\r//g')"
+    MSYS_NO_PATHCONV=1 ${DOCKER_COMMAND} run --rm -v "${_SMART_LOCK_DIR}/src:/home/pi/smartlock" -w "/home/pi/smartlock" -it ${toolchain_image} bash -c "$(tr '\n' ';' < ${COMPILE} | sed 's/\r//g')"
 }
 
 declare dpm_password
