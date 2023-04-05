@@ -1,4 +1,4 @@
-#!/bin/sh -x
+#!/bin/sh
 
 SMARTLOCK_DIR=`dirname $0`/..
 SMARTLOCK_DIR=`realpath $SMARTLOCK_DIR`
