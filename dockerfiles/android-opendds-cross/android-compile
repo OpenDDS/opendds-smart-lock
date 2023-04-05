@@ -8,6 +8,7 @@ cp -p ../../src/Idl/SmartLock.idl .
 mwc.pl -type gnuace
 make
 cd $HOME/smartlock/flutter/Idl
+cp -p ../../src/Idl/SmartLock.idl .
 mwc.pl -type gnuace
 make
 $DDS_ROOT/java/build_scripts/javac_wrapper.pl -sourcepath . -d classes -classpath . -implicit:none -classpath $DDS_ROOT/lib/i2jrt_corba.jar -classpath $DDS_ROOT/lib/i2jrt.jar -classpath $DDS_ROOT/lib/OpenDDS_DCPS.jar ${APP_NAME}/*
