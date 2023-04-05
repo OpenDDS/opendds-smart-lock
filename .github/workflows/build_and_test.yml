@@ -54,10 +54,13 @@ jobs:
       uses: actions/checkout@v3
       with:
         path: opendds-smart-lock
-    - name: build pi
+    - name: build toolchain
       run: |
         cd opendds-smart-lock
         ./smart-lock pi build-toolchain
+    - name: compile pi
+      run: |
+        cd opendds-smart-lock
         ./smart-lock pi compile
 
   build_android_arm64:
@@ -69,10 +72,13 @@ jobs:
       uses: actions/checkout@v3
       with:
         path: opendds-smart-lock
-    - name: build android arm64
+    - name: build toolchain
       run: |
         cd opendds-smart-lock
         ./smart-lock android build-toolchain-arm64
+    - name: compile android
+      run: |
+        cd opendds-smart-lock
         ./smart-lock android compile
 
   build_android_arm:
@@ -84,10 +90,13 @@ jobs:
       uses: actions/checkout@v3
       with:
         path: opendds-smart-lock
-    - name: build android arm
+    - name: build toolchain
       run: |
         cd opendds-smart-lock
         ./smart-lock android build-toolchain-arm
+    - name: compile android
+      run: |
+        cd opendds-smart-lock
         ./smart-lock android compile
 
   build_android_x86:
@@ -99,8 +108,11 @@ jobs:
       uses: actions/checkout@v3
       with:
         path: opendds-smart-lock
-    - name: build android x86
+    - name: build toolchain
       run: |
         cd opendds-smart-lock
         ./smart-lock android build-toolchain-x86
+    - name: compile android
+      run: |
+        cd opendds-smart-lock
         ./smart-lock android compile
