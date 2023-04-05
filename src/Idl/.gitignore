@@ -1,5 +1,9 @@
 SmartLockC.h
 *.dll
 *.lib
+lib*.so
+lib*.dylib
 Debug
 Release
+.shobj
+.obj

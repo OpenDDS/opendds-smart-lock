@@ -8,7 +8,6 @@ cp -p ../../src/Idl/SmartLock.idl .
 mwc.pl -type gnuace
 make
 cd $HOME/smartlock/flutter/Idl
-cp -p ../../src/Idl/SmartLock.idl .
 mwc.pl -type gnuace
 make
 $DDS_ROOT/java/build_scripts/javac_wrapper.pl -sourcepath . -d classes -classpath . -implicit:none -classpath $DDS_ROOT/lib/i2jrt_corba.jar -classpath $DDS_ROOT/lib/i2jrt.jar -classpath $DDS_ROOT/lib/OpenDDS_DCPS.jar ${APP_NAME}/*
@@ -21,7 +20,7 @@ cp libACE.so libACE_XML_Utils.so libc++_shared.so libOpenDDS_Dcps.so libOpenDDS_
 cp $HOME/smartlock/flutter/Idl/libSmartLock_Idl_Flutter.so $HOME/smartlock/flutter/smartlock_idl_plugin/android/src/main/jniLibs/${ANDROID_ABI}/
 mkdir -p $HOME/smartlock/flutter/middleware/OpenDDS
 cd $HOME/droid-opendds/build/target/ACE_TAO/ACE/ace
-make -f GNUmakefile.ACE INSTALL_PREFIX=$HOME/smartlock/flutter/middleware/ACE_TAO install
+make INSTALL_PREFIX=$HOME/smartlock/flutter/middleware/ACE_TAO install
 cd ../../TAO/tao
 make INSTALL_PREFIX=$HOME/smartlock/flutter/middleware/ACE_TAO install
 cd ../../../dds
