@@ -24,3 +24,5 @@
 *.exe
 smartlock
 smartlock_env
+certs
+rtps.ini

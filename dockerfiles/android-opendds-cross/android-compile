@@ -21,7 +21,7 @@ cp libACE.so libACE_XML_Utils.so libc++_shared.so libOpenDDS_Dcps.so libOpenDDS_
 cp $HOME/smartlock/flutter/Idl/libSmartLock_Idl_Flutter.so $HOME/smartlock/flutter/smartlock_idl_plugin/android/src/main/jniLibs/${ANDROID_ABI}/
 mkdir -p $HOME/smartlock/flutter/middleware/OpenDDS
 cd $HOME/droid-opendds/build/target/ACE_TAO/ACE/ace
-make -f GNUmakefile.ACE INSTALL_PREFIX=$HOME/smartlock/flutter/middleware/ACE_TAO install
+make INSTALL_PREFIX=$HOME/smartlock/flutter/middleware/ACE_TAO install
 cd ../../TAO/tao
 make INSTALL_PREFIX=$HOME/smartlock/flutter/middleware/ACE_TAO install
 cd ../../../dds
