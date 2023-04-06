@@ -267,6 +267,16 @@ function pi-install-dependencies {
     ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "pi@${!ip_var}" 'tar xzf pi-opendds.tar.gz; tar xzf pi-openssl.tar.gz; tar xzf pi-xerces.tar.gz; tar xzf pigpio.tar.gz'
 }
 
+function pi-compile-original {
+    #Cross-compile the SmartLock Demo application
+    #ex: ./smart-lock pi compile
+    match-keyword 'compile'
+    expected-end-of-input
+
+    COMPILE="${_SMART_LOCK_DIR}/dockerfiles/pi-opendds-cross/pi-compile"
+    MSYS_NO_PATHCONV=1 ${DOCKER_COMMAND} run --rm -it -v "${_SMART_LOCK_DIR}/src:/home/pi/smartlock" -w "/home/pi/smartlock" pi-opendds-cross bash -c "$(tr '\n' ';' < ${COMPILE} | sed 's/\r//g')"
+}
+
 function pi-compile {
     #Cross-compile the SmartLock Demo application
     #ex: ./smart-lock pi compile
@@ -275,7 +285,8 @@ function pi-compile {
 
     COMPILE="${_SMART_LOCK_DIR}/dockerfiles/pi-opendds-cross/pi-compile"
     local -r toolchain_image=`current-pi-image`
-    MSYS_NO_PATHCONV=1 ${DOCKER_COMMAND} run --rm -v "${_SMART_LOCK_DIR}/src:/home/pi/smartlock" -w "/home/pi/smartlock" -it ${toolchain_image} bash -c "$(tr '\n' ';' < ${COMPILE} | sed 's/\r//g')"
+    echo "Current pi image is: ${toolchain_image}"
+    MSYS_NO_PATHCONV=1 ${DOCKER_COMMAND} run --rm -v "${_SMART_LOCK_DIR}/src:/home/pi/smartlock" -w "/home/pi/smartlock" -it "${toolchain_image}" bash -c "$(tr '\n' ';' < ${COMPILE} | sed 's/\r//g')"
 }
 
 declare dpm_password
@@ -484,6 +495,9 @@ EOF
             ;;
         compile)
             pi-compile
+            ;;
+        compile-orig)
+            pi-compile-original
             ;;
         install-dependencies)
             pi-install-dependencies
