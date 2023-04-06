@@ -62,7 +62,16 @@ class _HomeState extends State<Home> {
     }
 
     bool download = force;
-    if (!force) {
+    if (force) {
+      for (var entry in entries.entries) {
+        final file = File(entryPath(entry.value[1]));
+        try {
+          file.deleteSync();
+        } catch(_) {
+          // Ignored.
+        }
+      }
+    } else {
       for (var entry in entries.entries) {
         final file = File(entryPath(entry.value[1]));
         if (!file.existsSync()) {
