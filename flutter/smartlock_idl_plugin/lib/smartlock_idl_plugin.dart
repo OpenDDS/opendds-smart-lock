@@ -65,7 +65,9 @@ class Bridge {
       String permGov,
       String permPerms,
       String idCert,
-      String idPrivateKey) async {
+      String idPrivateKey,
+      String topicPrefix,
+      int domainId) async {
     port = ReceivePort();
     port.listen((dynamic data) => _lockUpdate(data));
 
@@ -85,6 +87,8 @@ class Bridge {
     config.ref.id_pkey = idPrivateKey.toNativeUtf8().cast<Char>();
     config.ref.receiver = Pointer.fromFunction(_receive);
     config.ref.send_port = port.sendPort.nativePort;
+    config.ref.topic_prefix = topicPrefix.toNativeUtf8().cast<Char>();
+    config.ref.domain_id = domainId;
 
     _bindings.startOpenDdsBridge(bridge, config);
 

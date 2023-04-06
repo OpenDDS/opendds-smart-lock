@@ -57,6 +57,9 @@ typedef struct {
   // must be done through a mechanism that can be forced through
   // the main thread.  We will be using Dart_PostCObject_DL().
   int64_t send_port;
+
+  const char* topic_prefix;
+  int32_t domain_id;
 } OpenDdsBridgeConfig;
 
 FFI_PLUGIN_EXPORT OpenDdsBridge* createOpenDdsBridge();

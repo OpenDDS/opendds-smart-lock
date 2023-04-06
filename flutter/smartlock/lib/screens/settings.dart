@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:encrypted_shared_preferences/encrypted_shared_preferences.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
@@ -94,6 +95,20 @@ abstract class SimpleSetting<T> extends Setting<T, T> {
   bool valid(T index) => true;
 }
 
+class IntSetting extends SimpleSetting<int> {
+  IntSetting(super.key, super.value);
+
+  @override
+  Future<bool> store(prefs) async => await prefs.setInt(key, access(value));
+}
+
+class StringSetting extends SimpleSetting<String> {
+  StringSetting(super.key, super.value);
+
+  @override
+  Future<bool> store(prefs) async => await prefs.setString(key, access(value));
+}
+
 class EncryptedStringSetting extends SimpleSetting<String> {
   EncryptedStringSetting(super.key, super.value);
 
@@ -102,7 +117,7 @@ class EncryptedStringSetting extends SimpleSetting<String> {
 
   @override
   Future<String?> read(dynamic prefs) async {
-    // Because the EncryptedSharedPreferences object return an empty string
+    // Because the EncryptedSharedPreferences object returns an empty string
     // if it is unable to read a string from the preferences, we will change
     // that to null (as the caller expects).
     final String s = await prefs.getString(key);
@@ -142,9 +157,24 @@ class Settings extends StatefulWidget {
   static ColorSetting darkSeed = ColorSetting("darkSeed", _darkColors[4]);
   static var username = EncryptedStringSetting("username", "54");
   static var password = EncryptedStringSetting("password", "WNg97wLeR7Rk5eHz");
+  static var apiURL =
+      StringSetting("apiURL", "https://dpm.unityfoundation.io/api");
+  static var topicPrefix = StringSetting("topicPrefix", "C.53.");
+  static var domainId = IntSetting("domainId", 1);
 
-  final Function() restart;
-  const Settings({super.key, required this.restart});
+  static Future<void> load() async {
+    await theme.getStored();
+    await lightSeed.getStored();
+    await darkSeed.getStored();
+    await username.getStored();
+    await password.getStored();
+    await apiURL.getStored();
+    await topicPrefix.getStored();
+    await domainId.getStored();
+  }
+
+  final Function() download;
+  const Settings({super.key, required this.download});
 
   @override
   State<Settings> createState() => _SettingsState();
@@ -152,10 +182,16 @@ class Settings extends StatefulWidget {
 
 class _SettingsState extends State<Settings> {
   Color? _selected;
+  bool _restartChanges = false;
   final _usernameController =
       TextEditingController(text: Settings.username.value);
   final _passwordController =
       TextEditingController(text: Settings.password.value);
+  final _apiURLController = TextEditingController(text: Settings.apiURL.value);
+  final _topicPrefixController =
+      TextEditingController(text: Settings.topicPrefix.value);
+  final _domainIdController =
+      TextEditingController(text: Settings.domainId.value.toString());
 
   void _updateThemeMode(ThemeMode? value) {
     Settings.theme.setStored(value);
@@ -251,17 +287,21 @@ class _SettingsState extends State<Settings> {
             children: [
               const Padding(
                 padding: Style.columnPadding,
-                child: Text(
-                  "Credentials",
-                  style: Style.titleText,
+                child: Text("Credentials", style: Style.titleText),
+              ),
+              Padding(
+                padding: Style.textPadding,
+                child: TextField(
+                  controller: _apiURLController,
+                  decoration: Style.hintDecoration('API URL'),
+                  onChanged: (s) => Settings.apiURL.setStored(s),
                 ),
               ),
               Padding(
                 padding: Style.textPadding,
                 child: TextField(
                   controller: _usernameController,
-                  decoration: const InputDecoration(
-                      border: OutlineInputBorder(), hintText: 'Username'),
+                  decoration: Style.hintDecoration('Username'),
                   onChanged: (s) => Settings.username.setStored(s),
                 ),
               ),
@@ -269,8 +309,7 @@ class _SettingsState extends State<Settings> {
                 padding: Style.textPadding,
                 child: TextField(
                   controller: _passwordController,
-                  decoration: const InputDecoration(
-                      border: OutlineInputBorder(), hintText: 'Password'),
+                  decoration: Style.hintDecoration('Password'),
                   onChanged: (s) => Settings.password.setStored(s),
                   obscureText: true,
                 ),
@@ -278,8 +317,32 @@ class _SettingsState extends State<Settings> {
               Padding(
                 padding: Style.textPadding,
                 child: ElevatedButton(
-                  onPressed: widget.restart,
-                  child: const Text("Restart Bridge"),
+                  onPressed: widget.download,
+                  child: const Text("Download"),
+                ),
+              ),
+              const Padding(
+                padding: Style.columnPadding,
+                child: Text("Topic Prefix/Domain Id", style: Style.titleText),
+              ),
+              Padding(
+                padding: Style.textPadding,
+                child: TextField(
+                  controller: _topicPrefixController,
+                  decoration: Style.hintDecoration('Topic Prefix'),
+                  onChanged: (s) => Settings.topicPrefix.setStored(s),
+                ),
+              ),
+              Padding(
+                padding: Style.textPadding,
+                child: TextField(
+                  keyboardType: TextInputType.number,
+                  controller: _domainIdController,
+                  decoration: Style.hintDecoration('Domain Id'),
+                  onChanged: (s) => Settings.domainId.setStored(int.parse(s)),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'[0-9]'))
+                  ],
                 ),
               ),
               const Padding(
@@ -337,11 +400,42 @@ class _SettingsState extends State<Settings> {
     );
   }
 
+  Future<bool> _onWillPop() async {
+    if (_restartChanges) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content:
+                Text("Changes will take effect after the app is restarted.")),
+      );
+    }
+    return true;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Set the change function to indicate that changes will take affect on
+    // restart.  The change function is only called if the setting changes.
+    for (var setting in [
+      Settings.username,
+      Settings.password,
+      Settings.apiURL,
+      Settings.topicPrefix
+    ]) {
+      setting.change = (v) => _restartChanges = true;
+    }
+    Settings.domainId.change = (v) => _restartChanges = true;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text("Settings")),
-      body: SafeArea(child: _renderContent()),
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: Scaffold(
+        appBar: AppBar(title: const Text("Settings")),
+        body: SafeArea(child: _renderContent()),
+      ),
     );
   }
 }

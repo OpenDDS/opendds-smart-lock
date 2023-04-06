@@ -33,10 +33,6 @@ class _LockStatus {
 }
 
 class _HomeState extends State<Home> {
-  // Data for downloading certs.
-  static const String _apiURL = "https://dpm.unityfoundation.io/api";
-  static const String _nonce = "mobile";
-
   // The SmartLock bridge and associated locks
   smartlock_idl.Bridge? _bridge;
   final Map<String, _LockStatus> _locks = {};
@@ -44,12 +40,13 @@ class _HomeState extends State<Home> {
 
   Future<Map<String, String>> _downloadCerts(
       String directory, bool force) async {
+    const String nonce = "mobile";
     Map<String, String> certs = {};
     Map entries = {
       "id_ca": [true, "applications/identity_ca.pem"],
       "perm_ca": [true, "applications/permissions_ca.pem"],
       "perm_gov": [true, "applications/governance.xml.p7s"],
-      "perm_perms": [true, "applications/permissions.xml.p7s?nonce=$_nonce"],
+      "perm_perms": [true, "applications/permissions.xml.p7s?nonce=$nonce"],
       "id_cert": [false, "id_cert.pem"],
       "id_private": [false, "id_private.pem"],
     };
@@ -83,7 +80,8 @@ class _HomeState extends State<Home> {
         final dio = Dio();
         dio.interceptors.add(CookieManager(CookieJar()));
 
-        var response = await dio.post("$_apiURL/login",
+        final String apiURL = Settings.apiURL.value;
+        var response = await dio.post("$apiURL/login",
             options: Options(
               followRedirects: false,
               headers: {"Content-Type": "application/json"},
@@ -99,7 +97,7 @@ class _HomeState extends State<Home> {
             if (entry.value[0]) {
               final String part = entry.value[1];
               final String filename = entryPath(part);
-              response = await dio.download("$_apiURL/$part", filename,
+              response = await dio.download("$apiURL/$part", filename,
                   options: Options(headers: headers));
               if (response.statusCode == 200) {
                 certs[entry.key] = filename;
@@ -108,7 +106,7 @@ class _HomeState extends State<Home> {
           }
           final filename = join(directory, "keypair.json");
           response = await dio.download(
-              "$_apiURL/applications/key_pair?nonce=$_nonce", filename,
+              "$apiURL/applications/key_pair?nonce=$nonce", filename,
               options: Options(headers: headers));
           if (response.statusCode == 200) {
             final fp = File(filename);
@@ -140,10 +138,11 @@ class _HomeState extends State<Home> {
     return certs;
   }
 
-  void _restartBridge() async {
-    smartlock_idl.Bridge.shutdown();
-    _bridge?.dispose();
-    await _startBridge(true);
+  Future<void> _download() async {
+    final Directory documentsDirectory =
+        await getApplicationDocumentsDirectory();
+    final String path = documentsDirectory.path;
+    await _downloadCerts(path, true);
   }
 
   Future<void> _startBridge(bool forceDownload) async {
@@ -162,15 +161,18 @@ class _HomeState extends State<Home> {
     if (certs.containsKey('id_private')) {
       _bridge = smartlock_idl.Bridge();
       _bridge?.start(
-          _snack,
-          _addOrUpdateLock,
-          ini.path,
-          certs['id_ca']!,
-          certs['perm_ca']!,
-          certs['perm_gov']!,
-          certs['perm_perms']!,
-          certs['id_cert']!,
-          certs['id_private']!);
+        _snack,
+        _addOrUpdateLock,
+        ini.path,
+        certs['id_ca']!,
+        certs['perm_ca']!,
+        certs['perm_gov']!,
+        certs['perm_perms']!,
+        certs['id_cert']!,
+        certs['id_private']!,
+        Settings.topicPrefix.value,
+        Settings.domainId.value,
+      );
     } else {
       _snack("The OpenDDS Bridge has not been started.");
     }
@@ -313,7 +315,7 @@ class _HomeState extends State<Home> {
           Navigator.push(
             context,
             MaterialPageRoute(
-                builder: (context) => Settings(restart: _restartBridge)),
+                builder: (context) => Settings(download: _download)),
           );
         },
       ),

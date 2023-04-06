@@ -151,6 +151,7 @@ public:
     }
     dw = nullptr;
     TheServiceParticipant->shutdown();
+    participantFactory = nullptr;
   }
 
   void updateLockState(const SmartLockStatus* status) {
@@ -184,6 +185,14 @@ public:
   }
 
   static notifier send;
+
+  void setTopicPrefix(const char* prefix) {
+    topic_prefix = prefix;
+  }
+
+  void setDomainId(int id) {
+    domain = id;
+  }
 
 private:
   void initParticipantFactory(const OpenDdsBridgeConfig* config) {
@@ -517,7 +526,10 @@ void startOpenDdsBridge(OpenDdsBridge* bridge,
   OpenDdsBridgeImpl::send = config->receiver;
   DataReaderListenerImpl::setPort(config->send_port);
   if (bridge != nullptr) {
-    reinterpret_cast<OpenDdsBridgeImpl*>(bridge->ptr)->run(config);
+    OpenDdsBridgeImpl* impl = reinterpret_cast<OpenDdsBridgeImpl*>(bridge->ptr);
+    impl->setTopicPrefix(config->topic_prefix);
+    impl->setDomainId(config->domain_id);
+    impl->run(config);
   }
 }
 
