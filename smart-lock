@@ -195,8 +195,11 @@ function pi-build-toolchain {
     match-keyword 'build-toolchain'
     expected-end-of-input
 
+    echo "`docker --version`"
     #add --no-cache if needed: "docker build --no-cache ..."
     ${DOCKER_COMMAND} build "${_SMART_LOCK_DIR}/dockerfiles/pi-opendds-cross" -f "${_SMART_LOCK_DIR}/dockerfiles/pi-opendds-cross/Dockerfile" -t ${PI_LOCAL_IMAGE}
+    echo "All images after build:"
+    echo "`docker images`"
 }
 
 function pi-get-github-image {
@@ -276,6 +279,8 @@ function pi-compile-original {
     match-keyword 'compile-orig'
     expected-end-of-input
 
+    echo "All images:"
+    echo "`docker images`"
     COMPILE="${_SMART_LOCK_DIR}/dockerfiles/pi-opendds-cross/pi-compile"
     MSYS_NO_PATHCONV=1 ${DOCKER_COMMAND} run --rm -it -v "${_SMART_LOCK_DIR}/src:/home/pi/smartlock" -w "/home/pi/smartlock" pi-opendds-cross bash -c "$(tr '\n' ';' < ${COMPILE} | sed 's/\r//g')"
 }
@@ -286,6 +291,8 @@ function pi-compile {
     match-keyword 'compile'
     expected-end-of-input
 
+    echo "All images:"
+    echo "`docker images`"
     COMPILE="${_SMART_LOCK_DIR}/dockerfiles/pi-opendds-cross/pi-compile"
     local -r toolchain_image=`current-pi-image`
     echo "Current pi image is: ${toolchain_image}"
