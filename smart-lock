@@ -270,7 +270,7 @@ function pi-install-dependencies {
 function pi-compile-original {
     #Cross-compile the SmartLock Demo application
     #ex: ./smart-lock pi compile
-    match-keyword 'compile'
+    match-keyword 'compile-orig'
     expected-end-of-input
 
     COMPILE="${_SMART_LOCK_DIR}/dockerfiles/pi-opendds-cross/pi-compile"
