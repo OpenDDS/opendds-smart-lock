@@ -228,6 +228,9 @@ function pi-clean-toolchain {
 }
 
 function current-pi-image {
+    echo "`docker images ${PI_LOCAL_IMAGE}`"
+    echo
+    echo "`docker images ${PI_GITHUB_IMAGE}`"
     local -r local_image_exists=$((`docker images ${PI_LOCAL_IMAGE} | wc -l`-1))
     local -r github_image_exists=$((`docker images ${PI_GITHUB_IMAGE} | wc -l`-1))
     if [ $local_image_exists -eq 1 ]
