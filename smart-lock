@@ -195,8 +195,6 @@ function pi-build-toolchain {
     match-keyword 'build-toolchain'
     expected-end-of-input
 
-    echo "Docker or Podman version:"
-    echo "`${DOCKER_COMMAND} version`"
     #add --no-cache if needed: "docker build --no-cache ..."
     ${DOCKER_COMMAND} build "${_SMART_LOCK_DIR}/dockerfiles/pi-opendds-cross" -f "${_SMART_LOCK_DIR}/dockerfiles/pi-opendds-cross/Dockerfile" -t ${PI_LOCAL_IMAGE}
     echo "All docker images after build:"
@@ -234,11 +232,8 @@ function pi-clean-toolchain {
 }
 
 function current-pi-image {
-    echo "`docker images ${PI_LOCAL_IMAGE}`"
-    echo
-    echo "`docker images ${PI_GITHUB_IMAGE}`"
-    local -r local_image_exists=$((`docker images ${PI_LOCAL_IMAGE} | wc -l`-1))
-    local -r github_image_exists=$((`docker images ${PI_GITHUB_IMAGE} | wc -l`-1))
+    local -r local_image_exists=$((`${DOCKER_COMMAND} images ${PI_LOCAL_IMAGE} | wc -l`-1))
+    local -r github_image_exists=$((`${DOCKER_COMMAND} images ${PI_GITHUB_IMAGE} | wc -l`-1))
     if [ $local_image_exists -eq 1 ]
     then
         echo ${PI_LOCAL_IMAGE}
@@ -308,7 +303,7 @@ function pi-compile {
     COMPILE="${_SMART_LOCK_DIR}/dockerfiles/pi-opendds-cross/pi-compile"
     local -r toolchain_image=`current-pi-image`
     echo "Current pi image is: ${toolchain_image}"
-    MSYS_NO_PATHCONV=1 ${DOCKER_COMMAND} run --rm -v "${_SMART_LOCK_DIR}/src:/home/pi/smartlock" -w "/home/pi/smartlock" -it "${toolchain_image}" bash -c "$(tr '\n' ';' < ${COMPILE} | sed 's/\r//g')"
+    MSYS_NO_PATHCONV=1 ${DOCKER_COMMAND} run --rm --it -v "${_SMART_LOCK_DIR}/src:/home/pi/smartlock" -w "/home/pi/smartlock" "${toolchain_image}" bash -c "$(tr '\n' ';' < ${COMPILE} | sed 's/\r//g')"
 }
 
 declare dpm_password
@@ -657,10 +652,10 @@ function android-clean-toolchain {
 }
 
 function current-android-image {
-    local -r local_image_exists=$((`docker images ${ANDROID_LOCAL_IMAGE} | wc -l`-1))
-    local -r github_image_exists_arm64=$((`docker images ${ANDROID_GITHUB_IMAGE_ARM64} | wc -l`-1))
-    local -r github_image_exists_arm=$((`docker images ${ANDROID_GITHUB_IMAGE_ARM} | wc -l`-1))
-    local -r github_image_exists_x86=$((`docker images ${ANDROID_GITHUB_IMAGE_X86} | wc -l`-1))
+    local -r local_image_exists=$((`${DOCKER_COMMAND} images ${ANDROID_LOCAL_IMAGE} | wc -l`-1))
+    local -r github_image_exists_arm64=$((`${DOCKER_COMMAND} images ${ANDROID_GITHUB_IMAGE_ARM64} | wc -l`-1))
+    local -r github_image_exists_arm=$((`${DOCKER_COMMAND} images ${ANDROID_GITHUB_IMAGE_ARM} | wc -l`-1))
+    local -r github_image_exists_x86=$((`${DOCKER_COMMAND} images ${ANDROID_GITHUB_IMAGE_X86} | wc -l`-1))
     if [ $local_image_exists -eq 1 ]
     then
         echo ${ANDROID_LOCAL_IMAGE}
