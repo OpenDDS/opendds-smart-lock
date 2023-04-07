@@ -317,7 +317,15 @@ class _SettingsState extends State<Settings> {
               Padding(
                 padding: Style.textPadding,
                 child: ElevatedButton(
-                  onPressed: widget.download,
+                  onPressed: () async {
+                    if (await widget.download()) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text(
+                                "Please restart the app to use the new certificates.")),
+                      );
+                    }
+                  },
                   child: const Text("Download"),
                 ),
               ),
@@ -341,7 +349,7 @@ class _SettingsState extends State<Settings> {
                   decoration: Style.hintDecoration('Domain Id'),
                   onChanged: (s) => Settings.domainId.setStored(int.parse(s)),
                   inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'[0-9]'))
+                    FilteringTextInputFormatter.allow(RegExp(r'\d'))
                   ],
                 ),
               ),

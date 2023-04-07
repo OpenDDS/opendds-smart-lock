@@ -37,6 +37,7 @@ class _HomeState extends State<Home> {
   smartlock_idl.Bridge? _bridge;
   final Map<String, _LockStatus> _locks = {};
   final String _prefsLockKey = "locks";
+  final String _lastCert = "id_private";
 
   Future<Map<String, String>> _downloadCerts(
       String directory, bool force) async {
@@ -147,11 +148,12 @@ class _HomeState extends State<Home> {
     return certs;
   }
 
-  Future<void> _download() async {
+  Future<bool> _download() async {
     final Directory documentsDirectory =
         await getApplicationDocumentsDirectory();
     final String path = documentsDirectory.path;
-    await _downloadCerts(path, true);
+    final certs = await _downloadCerts(path, true);
+    return certs.containsKey(_lastCert);
   }
 
   Future<void> _startBridge(bool forceDownload) async {
@@ -167,7 +169,7 @@ class _HomeState extends State<Home> {
     final certs = await _downloadCerts(path, forceDownload);
 
     // Start the bridge if we have all of the certs.
-    if (certs.containsKey('id_private')) {
+    if (certs.containsKey(_lastCert)) {
       _bridge = smartlock_idl.Bridge();
       _bridge?.start(
         _snack,
