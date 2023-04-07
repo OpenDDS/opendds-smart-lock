@@ -195,11 +195,14 @@ function pi-build-toolchain {
     match-keyword 'build-toolchain'
     expected-end-of-input
 
-    echo "`docker --version`"
+    echo "Docker or Podman version:"
+    echo "`${DOCKER_COMMAND} version`"
     #add --no-cache if needed: "docker build --no-cache ..."
     ${DOCKER_COMMAND} build "${_SMART_LOCK_DIR}/dockerfiles/pi-opendds-cross" -f "${_SMART_LOCK_DIR}/dockerfiles/pi-opendds-cross/Dockerfile" -t ${PI_LOCAL_IMAGE}
-    echo "All images after build:"
-    echo "`docker images`"
+    echo "All docker images after build:"
+    echo "`docker images -a`"
+    echo "All podman images after build:"
+    echo "`podman images -a`"
 }
 
 function pi-get-github-image {
@@ -279,10 +282,15 @@ function pi-compile-original {
     match-keyword 'compile-orig'
     expected-end-of-input
 
-    echo "All images:"
-    echo "`docker images`"
-    echo "Get info for pi-opendds-cross image:"
+    echo "All images from docker:"
+    echo "`docker images -a`"
+    echo "Get info for pi-opendds-cross image from docker:"
     echo "`docker images pi-opendds-cross`"
+
+    echo "All images from podman:"
+    echo "`podman images -a`"
+    echo "Get info for pi-opendds-cross image from podman:"
+    echo "`podman images pi-opendds-cross`"
     COMPILE="${_SMART_LOCK_DIR}/dockerfiles/pi-opendds-cross/pi-compile"
     MSYS_NO_PATHCONV=1 ${DOCKER_COMMAND} run --rm -it -v "${_SMART_LOCK_DIR}/src:/home/pi/smartlock" -w "/home/pi/smartlock" pi-opendds-cross bash -c "$(tr '\n' ';' < ${COMPILE} | sed 's/\r//g')"
 }
@@ -293,8 +301,10 @@ function pi-compile {
     match-keyword 'compile'
     expected-end-of-input
 
-    echo "All images:"
-    echo "`docker images`"
+    echo "All images from docker:"
+    echo "`docker images -a`"
+    echo "All images from podman:"
+    echo "`podman images -a`"
     COMPILE="${_SMART_LOCK_DIR}/dockerfiles/pi-opendds-cross/pi-compile"
     local -r toolchain_image=`current-pi-image`
     echo "Current pi image is: ${toolchain_image}"
