@@ -4,12 +4,14 @@ import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.Network;
 
+import androidx.annotation.NonNull;
 import androidx.fragment.app.FragmentTransaction;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.ImageButton;
 import android.widget.LinearLayout;
 
 import org.opendds.smartlock.ui.login.LoginFragment;
@@ -49,6 +51,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void addLogin(Context context) {
+        setAddLoginButtonVisibility(false);
         LinearLayout container = new LinearLayout(context);
         int container_id = View.generateViewId();
         container.setId(container_id);
@@ -62,9 +65,15 @@ public class MainActivity extends AppCompatActivity {
         parentLinearLayout.addView(container, parentLinearLayout.getChildCount() - 1);
     }
 
+    private void setAddLoginButtonVisibility(boolean visible) {
+        final ImageButton button = findViewById(R.id.showLoginButton);
+        button.setVisibility(visible ? View.VISIBLE : View.GONE);
+    }
+
     public void removeLogin(){
         Log.d(LOG_TAG, "removeLogin");
         parentLinearLayout.removeAllViews();
+        setAddLoginButtonVisibility(true);
     }
 
     private void addLock(Context context, SmartLockStatus status) {
@@ -94,7 +103,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void tryToUpdateLock(SmartLockStatus status) {
-        Log.i(LOG_TAG, "tryToUpdatelock ");
+        Log.i(LOG_TAG, "tryToUpdateLock ");
         if (locksLock.tryLock()) {
             updateLock(status);
         }
@@ -126,18 +135,21 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         parentLinearLayout = findViewById(R.id.list);
 
+        final Context context = this;
+        final ImageButton button = findViewById(R.id.showLoginButton);
+        button.setOnClickListener(v -> addLogin(context));
+
         if (savedInstanceState == null) {
             OpenDDSSec.setMainActivity(this);
             OpenDDSSec.setCacheDir(getBaseContext().getCacheDir());
             if (!OpenDDSSec.hasFiles()) {
-                addLogin(this);
+                addLogin(context);
             } else {
                 startDDSBridge();
             }
         } else {
             if (ddsBridge == null) {
                 Log.e(LOG_TAG, "onCreate() DDS reference is null");
-                boolean flag = false;
             }
         }
     }
@@ -189,7 +201,7 @@ public class MainActivity extends AppCompatActivity {
 
     // screen orientation change handling if needed
     @Override
-    protected void onSaveInstanceState(final Bundle outState) {
+    protected void onSaveInstanceState(@NonNull final Bundle outState) {
         super.onSaveInstanceState(outState);
         Log.i(LOG_TAG, "onSaveInstanceState()");
     }
