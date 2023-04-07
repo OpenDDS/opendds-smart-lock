@@ -281,6 +281,8 @@ function pi-compile-original {
 
     echo "All images:"
     echo "`docker images`"
+    echo "Get info for pi-opendds-cross image:"
+    echo "`docker images pi-opendds-cross`"
     COMPILE="${_SMART_LOCK_DIR}/dockerfiles/pi-opendds-cross/pi-compile"
     MSYS_NO_PATHCONV=1 ${DOCKER_COMMAND} run --rm -it -v "${_SMART_LOCK_DIR}/src:/home/pi/smartlock" -w "/home/pi/smartlock" pi-opendds-cross bash -c "$(tr '\n' ';' < ${COMPILE} | sed 's/\r//g')"
 }
