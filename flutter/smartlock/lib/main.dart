@@ -7,9 +7,7 @@ void main() async {
   // This must be called before attempting to load shared preferences.
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Settings.theme.getStored();
-  await Settings.lightSeed.getStored();
-  await Settings.darkSeed.getStored();
+  await Settings.load();
   runApp(const MyApp());
 }
 

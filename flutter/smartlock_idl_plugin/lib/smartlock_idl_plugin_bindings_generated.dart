@@ -146,6 +146,11 @@ class OpenDdsBridgeConfig extends ffi.Struct {
   /// the main thread.  We will be using Dart_PostCObject_DL().
   @ffi.Int64()
   external int send_port;
+
+  external ffi.Pointer<ffi.Char> topic_prefix;
+
+  @ffi.Int32()
+  external int domain_id;
 }
 
 typedef notifier

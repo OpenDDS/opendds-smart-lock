@@ -125,7 +125,9 @@ class _HomeState extends State<Home> {
           certs['perm_gov']!,
           certs['perm_perms']!,
           certs['id_cert']!,
-          certs['id_private']!);
+          certs['id_private']!,
+          "C.53.",
+          1);
       setState(() => _state = InitState.started);
     }
   }
@@ -141,14 +143,15 @@ class _HomeState extends State<Home> {
     }
   }
 
-  void _tryToUpdateLock(bool enabled, String id, smartlock_idl.LockState state) {
+  void _tryToUpdateLock(
+      bool enabled, String id, smartlock_idl.LockState state) {
     setState(() {
       _text.add("$enabled - $id - $state");
     });
   }
 
   String _getStateMessage() {
-    switch(_state) {
+    switch (_state) {
       case InitState.begin:
         return "We began, but haven't progressed any further.";
       case InitState.downloading:

@@ -18,6 +18,9 @@ class Style {
   static const borderRadius = BorderRadius.all(Radius.circular(cornerRadius));
   static const inputDecoration = InputDecoration(border: OutlineInputBorder());
 
+  static hintDecoration(String hint) =>
+      InputDecoration(border: const OutlineInputBorder(), hintText: hint);
+
   static bottomBarDecoration(context) => BoxDecoration(
         border: Border(
           top: BorderSide(

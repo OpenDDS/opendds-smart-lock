@@ -31,7 +31,7 @@ typedef LockUpdate = Function(bool, String, LockState);
 
 class Bridge {
   late Pointer<OpenDdsBridge> bridge;
-  static ReceivePort port = ReceivePort();
+  late ReceivePort port;
   static SnackCallback snack = (message) {};
   static LockUpdate update = (enabled, id, state) {};
   static bool _init = false;
@@ -65,7 +65,10 @@ class Bridge {
       String permGov,
       String permPerms,
       String idCert,
-      String idPrivateKey) async {
+      String idPrivateKey,
+      String topicPrefix,
+      int domainId) async {
+    port = ReceivePort();
     port.listen((dynamic data) => _lockUpdate(data));
 
     // Keep a reference to these functions for use in our own static methods
@@ -84,6 +87,8 @@ class Bridge {
     config.ref.id_pkey = idPrivateKey.toNativeUtf8().cast<Char>();
     config.ref.receiver = Pointer.fromFunction(_receive);
     config.ref.send_port = port.sendPort.nativePort;
+    config.ref.topic_prefix = topicPrefix.toNativeUtf8().cast<Char>();
+    config.ref.domain_id = domainId;
 
     _bindings.startOpenDdsBridge(bridge, config);
 
