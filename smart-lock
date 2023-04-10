@@ -184,15 +184,28 @@ function to-pi {
     consume
 }
 
+declare -r PI_LOCAL_IMAGE="pi-opendds-cross"
+declare -r PI_GITHUB_IMAGE="ghcr.io/opendds/opendds-smart-lock:master-pi"
+
+#Either pi-build-toolchain or pi-get-github-image must be run first to
+#build the image for the toolchain or pull the existing image from GitHub.
 function pi-build-toolchain {
     #Build a Docker image containing a cross-compiler and cross-compiled dependencies
-    #Must be run first before other pi commands can be executed
     #ex: ./smart-lock pi build-toolchain
     match-keyword 'build-toolchain'
     expected-end-of-input
 
     #add --no-cache if needed: "docker build --no-cache ..."
-    ${DOCKER_COMMAND} build "${_SMART_LOCK_DIR}/dockerfiles/pi-opendds-cross" -f "${_SMART_LOCK_DIR}/dockerfiles/pi-opendds-cross/Dockerfile" -t pi-opendds-cross
+    ${DOCKER_COMMAND} build "${_SMART_LOCK_DIR}/dockerfiles/pi-opendds-cross" -f "${_SMART_LOCK_DIR}/dockerfiles/pi-opendds-cross/Dockerfile" -t ${PI_LOCAL_IMAGE}
+}
+
+function pi-get-github-image {
+    #Use the container image from GitHub Container Registry for the toolchain
+    #ex: ./smart-lock pi get-github-image
+    match-keyword 'get-github-image'
+    expected-end-of-input
+
+    ${DOCKER_COMMAND} pull ${PI_GITHUB_IMAGE}
 }
 
 function pi-clean-toolchain {
@@ -201,7 +214,31 @@ function pi-clean-toolchain {
     match-keyword 'clean-toolchain'
     expected-end-of-input
 
-    ${DOCKER_COMMAND} rmi pi-opendds-cross
+    local -r local_image_exists=$((`docker images ${PI_LOCAL_IMAGE} | wc -l`-1))
+    if [ $local_image_exists -eq 1 ]
+    then
+        ${DOCKER_COMMAND} rmi ${PI_LOCAL_IMAGE}
+    fi
+
+    local -r github_image_exists=$((`docker images ${PI_GITHUB_IMAGE} | wc -l`-1))
+    if [ $github_image_exists -eq 1 ]
+    then
+        ${DOCKER_COMMAND} rmi ${PI_GITHUB_IMAGE}
+    fi
+}
+
+function current-pi-image {
+    local -r local_image_exists=$((`${DOCKER_COMMAND} images ${PI_LOCAL_IMAGE} | wc -l`-1))
+    local -r github_image_exists=$((`${DOCKER_COMMAND} images ${PI_GITHUB_IMAGE} | wc -l`-1))
+    if [ $local_image_exists -eq 1 ]
+    then
+        echo ${PI_LOCAL_IMAGE}
+    elif [ $github_image_exists -eq 1 ]
+    then
+        echo ${PI_GITHUB_IMAGE}
+    else
+        echo "Image for pi not found!"
+    fi
 }
 
 function pi-install-dependencies {
@@ -217,14 +254,14 @@ function pi-install-dependencies {
     # Copy the dependencies out of the docker image.
     rm -rf "${_SMART_LOCK_DIR}/libs"
     mkdir -p "${_SMART_LOCK_DIR}/libs"
-    ${DOCKER_COMMAND} run -d --name piopendds pi-opendds-cross
-    ${DOCKER_COMMAND} cp piopendds:/home/pi/pi-opendds.tar.gz  libs
-    ${DOCKER_COMMAND} cp piopendds:/home/pi/pi-openssl.tar.gz  libs
+    local -r toolchain_image=`current-pi-image`
+    ${DOCKER_COMMAND} run -d --name piopendds ${toolchain_image}
+    ${DOCKER_COMMAND} cp piopendds:/home/pi/pi-opendds.tar.gz libs
+    ${DOCKER_COMMAND} cp piopendds:/home/pi/pi-openssl.tar.gz libs
     ${DOCKER_COMMAND} cp piopendds:/home/pi/pi-xerces.tar.gz libs
     ${DOCKER_COMMAND} cp piopendds:/home/pi/pigpio.tar.gz libs
     ${DOCKER_COMMAND} stop piopendds
     ${DOCKER_COMMAND} rm piopendds
-    #${DOCKER_COMMAND} run --rm -ti -v "${_SMART_LOCK_DIR}:/home/pi/outer" -w "/home/pi" pi-opendds-cross bash -c "mkdir -p outer/libs; cp pi-opendds.tar.gz pi-openssl.tar.gz pi-xerces.tar.gz outer/libs"    # Copy them to the pi.
     scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "${_SMART_LOCK_DIR}/libs/pi-opendds.tar.gz" "${_SMART_LOCK_DIR}/libs/pi-openssl.tar.gz" "${_SMART_LOCK_DIR}/libs/pi-xerces.tar.gz" "${_SMART_LOCK_DIR}/libs/pigpio.tar.gz" "pi@${!ip_var}:"
     # Unzip them.
     ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "pi@${!ip_var}" 'tar xzf pi-opendds.tar.gz; tar xzf pi-openssl.tar.gz; tar xzf pi-xerces.tar.gz; tar xzf pigpio.tar.gz'
@@ -237,7 +274,8 @@ function pi-compile {
     expected-end-of-input
 
     COMPILE="${_SMART_LOCK_DIR}/dockerfiles/pi-opendds-cross/pi-compile"
-    MSYS_NO_PATHCONV=1 ${DOCKER_COMMAND} run --rm -it -v "${_SMART_LOCK_DIR}/src:/home/pi/smartlock" -w "/home/pi/smartlock" pi-opendds-cross bash -c "$(tr '\n' ';' < ${COMPILE} | sed 's/\r//g')"
+    local -r toolchain_image=`current-pi-image`
+    MSYS_NO_PATHCONV=1 ${DOCKER_COMMAND} run --rm -it -v "${_SMART_LOCK_DIR}/src:/home/pi/smartlock" -w "/home/pi/smartlock" "${toolchain_image}" bash -c "$(tr '\n' ';' < ${COMPILE} | sed 's/\r//g')"
 }
 
 declare dpm_password
@@ -267,9 +305,8 @@ function pi-install {
 
     cp "${_SMART_LOCK_DIR}/src/rtps.ini.template" "${_SMART_LOCK_DIR}/src/rtps.ini"
     if [ -n "${RTPS_RELAY_IP_PI:-}" ]; then
-	let "RTPS_RELAY_PORT_PI_SEDP = RTPS_RELAY_PORT_PI + 1"
-	let "RTPS_RELAY_PORT_PI_DATA = RTPS_RELAY_PORT_PI + 2"
-    #    sed -e "s/#SPDP_RTPS_RELAY_ADDRESS_LINE/SpdpRtpsRelayAddress=${RTPS_RELAY_IP_PI}:4444/g" -e "s/#SEDP_RTPS_RELAY_ADDRESS_LINE/SedpRtpsRelayAddress=${RTPS_RELAY_IP_PI}:4445/g" -e "s/#DATA_RTPS_RELAY_ADDRESS_LINE/DataRtpsRelayAddress=${RTPS_RELAY_IP_PI}:4446/g" -i'' "${_SMART_LOCK_DIR}/src/rtps.ini"
+	      let "RTPS_RELAY_PORT_PI_SEDP = RTPS_RELAY_PORT_PI + 1"
+	      let "RTPS_RELAY_PORT_PI_DATA = RTPS_RELAY_PORT_PI + 2"
         sed -e "s/#SPDP_RTPS_RELAY_ADDRESS_LINE/SpdpRtpsRelayAddress=${RTPS_RELAY_IP_PI}:${RTPS_RELAY_PORT_PI}/g" -e "s/#SEDP_RTPS_RELAY_ADDRESS_LINE/SedpRtpsRelayAddress=${RTPS_RELAY_IP_PI}:${RTPS_RELAY_PORT_PI_SEDP}/g" -e "s/#DATA_RTPS_RELAY_ADDRESS_LINE/DataRtpsRelayAddress=${RTPS_RELAY_IP_PI}:${RTPS_RELAY_PORT_PI_DATA}/g" -i'' "${_SMART_LOCK_DIR}/src/rtps.ini"
     fi
 
@@ -408,6 +445,8 @@ Usage: $(command-prefix) COMMAND [OPTION ...]
 Commands:
   build-toolchain              Build a Docker image containing a cross-compiler
                                and cross-compiled dependencies
+  get-github-image             Use an existing Docker image from GitHub Container
+                               Registry instead of building a local image
   clean-toolchain              Remove the Docker image containing a
                                cross-compiler and cross-compiled dependencies
   compile                      Cross-compile the SmartLock Demo application
@@ -436,6 +475,9 @@ EOF
     case "${token}" in
         build-toolchain)
             pi-build-toolchain
+            ;;
+        get-github-image)
+            pi-get-github-image
             ;;
         clean-toolchain)
             pi-clean-toolchain
@@ -476,6 +518,11 @@ EOF
     esac
 }
 
+declare -r ANDROID_LOCAL_IMAGE="android-opendds-cross"
+declare -r ANDROID_GITHUB_IMAGE_ARM64="ghcr.io/opendds/opendds-smart-lock:master-android-arm64"
+declare -r ANDROID_GITHUB_IMAGE_ARM="ghcr.io/opendds/opendds-smart-lock:master-android-arm"
+declare -r ANDROID_GITHUB_IMAGE_X86="ghcr.io/opendds/opendds-smart-lock:master-android-x86"
+
 function android-build-toolchain-arm64 {
     local commit='master'
     match-keyword 'build-toolchain-arm64'
@@ -488,7 +535,14 @@ function android-build-toolchain-arm64 {
     expected-end-of-input
 
     #add --no-cache if needed: "docker build --no-cache ..."
-    ${DOCKER_COMMAND} build --build-arg "OPENDDS_BRANCH=${commit}" "${_SMART_LOCK_DIR}/dockerfiles/android-opendds-cross" -f "${_SMART_LOCK_DIR}/dockerfiles/android-opendds-cross/Dockerfile" -t android-opendds-cross
+    ${DOCKER_COMMAND} build --build-arg "OPENDDS_BRANCH=${commit}" "${_SMART_LOCK_DIR}/dockerfiles/android-opendds-cross" -f "${_SMART_LOCK_DIR}/dockerfiles/android-opendds-cross/Dockerfile" -t ${ANDROID_LOCAL_IMAGE}
+}
+
+function android-get-github-image-arm64 {
+    match-keyword 'get-github-image-arm64'
+    expected-end-of-input
+
+    ${DOCKER_COMMAND} pull ${ANDROID_GITHUB_IMAGE_ARM64}
 }
 
 function android-build-toolchain-arm {
@@ -503,7 +557,14 @@ function android-build-toolchain-arm {
     expected-end-of-input
 
     #add --no-cache if needed: "docker build --no-cache ..."
-    ${DOCKER_COMMAND} build --build-arg ABI=armeabi-v7a --build-arg ABI_PREFIX=armv7a-linux-androideabi --build-arg RUNTIME_ROOT=arm-linux-androideabi --build-arg PLATFORM=android-arm --build-arg "OPENDDS_BRANCH=${commit}" "${_SMART_LOCK_DIR}/dockerfiles/android-opendds-cross" -f "${_SMART_LOCK_DIR}/dockerfiles/android-opendds-cross/Dockerfile" -t android-opendds-cross
+    ${DOCKER_COMMAND} build --build-arg ABI=armeabi-v7a --build-arg ABI_PREFIX=armv7a-linux-androideabi --build-arg RUNTIME_ROOT=arm-linux-androideabi --build-arg PLATFORM=android-arm --build-arg "OPENDDS_BRANCH=${commit}" "${_SMART_LOCK_DIR}/dockerfiles/android-opendds-cross" -f "${_SMART_LOCK_DIR}/dockerfiles/android-opendds-cross/Dockerfile" -t ${ANDROID_LOCAL_IMAGE}
+}
+
+function android-get-github-image-arm {
+    match-keyword 'get-github-image-arm'
+    expected-end-of-input
+
+    ${DOCKER_COMMAND} pull ${ANDROID_GITHUB_IMAGE_ARM}
 }
 
 function android-build-toolchain-x86 {
@@ -518,7 +579,14 @@ function android-build-toolchain-x86 {
     expected-end-of-input
 
     #add --no-cache if needed: "docker build --no-cache ..."
-    ${DOCKER_COMMAND} build --build-arg ABI=x86 --build-arg ABI_PREFIX=i686-linux-android --build-arg PLATFORM=android-x86 --build-arg "OPENDDS_BRANCH=${commit}" "${_SMART_LOCK_DIR}/dockerfiles/android-opendds-cross" -f "${_SMART_LOCK_DIR}/dockerfiles/android-opendds-cross/Dockerfile" -t android-opendds-cross
+    ${DOCKER_COMMAND} build --build-arg ABI=x86 --build-arg ABI_PREFIX=i686-linux-android --build-arg PLATFORM=android-x86 --build-arg "OPENDDS_BRANCH=${commit}" "${_SMART_LOCK_DIR}/dockerfiles/android-opendds-cross" -f "${_SMART_LOCK_DIR}/dockerfiles/android-opendds-cross/Dockerfile" -t ${ANDROID_LOCAL_IMAGE}
+}
+
+function android-get-github-image-x86 {
+    match-keyword 'get-github-image-x86'
+    expected-end-of-input
+
+    ${DOCKER_COMMAND} pull ${ANDROID_GITHUB_IMAGE_X86}
 }
 
 function android-clean-toolchain {
@@ -527,7 +595,51 @@ function android-clean-toolchain {
     match-keyword 'clean-toolchain'
     expected-end-of-input
 
-    ${DOCKER_C0MMAND} rmi android-opendds-cross
+    local -r local_image_exists=$((`docker images ${ANDROID_LOCAL_IMAGE} | wc -l`-1))
+    if [ $local_image_exists -eq 1 ]
+    then
+        ${DOCKER_COMMAND} rmi ${ANDROID_LOCAL_IMAGE}
+    fi
+
+    local -r github_image_exists_arm64=$((`docker images ${ANDROID_GITHUB_IMAGE_ARM64} | wc -l`-1))
+    if [ $github_image_exists_arm64 -eq 1 ]
+    then
+        ${DOCKER_COMMAND} rmi ${ANDROID_GITHUB_IMAGE_ARM64}
+    fi
+
+    local -r github_image_exists_arm=$((`docker images ${ANDROID_GITHUB_IMAGE_ARM} | wc -l`-1))
+    if [ $github_image_exists_arm -eq 1 ]
+    then
+        ${DOCKER_COMMAND} rmi ${ANDROID_GITHUB_IMAGE_ARM}
+    fi
+
+    local -r github_image_exists_x86=$((`docker images ${ANDROID_GITHUB_IMAGE_X86} | wc -l`-1))
+    if [ $github_image_exists_x86 -eq 1 ]
+    then
+        ${DOCKER_COMMAND} rmi ${ANDROID_GITHUB_IMAGE_X86}
+    fi
+}
+
+function current-android-image {
+    local -r local_image_exists=$((`${DOCKER_COMMAND} images ${ANDROID_LOCAL_IMAGE} | wc -l`-1))
+    local -r github_image_exists_arm64=$((`${DOCKER_COMMAND} images ${ANDROID_GITHUB_IMAGE_ARM64} | wc -l`-1))
+    local -r github_image_exists_arm=$((`${DOCKER_COMMAND} images ${ANDROID_GITHUB_IMAGE_ARM} | wc -l`-1))
+    local -r github_image_exists_x86=$((`${DOCKER_COMMAND} images ${ANDROID_GITHUB_IMAGE_X86} | wc -l`-1))
+    if [ $local_image_exists -eq 1 ]
+    then
+        echo ${ANDROID_LOCAL_IMAGE}
+    elif [ $github_image_exists_arm64 -eq 1 ]
+    then
+        echo ${ANDROID_GITHUB_IMAGE_ARM64}
+    elif [ $github_image_exists_arm -eq 1 ]
+    then
+        echo ${ANDROID_GITHUB_IMAGE_ARM}
+    elif [ $github_image_exists_x86 -eq 1 ]
+    then
+        echo ${ANDROID_GITHUB_IMAGE_X86}
+    else
+        echo "Image for android not found!"
+    fi
 }
 
 function android-compile {
@@ -573,7 +685,8 @@ function android-compile {
     ## directory within the .mpc file, the TypeSupport.idl file contents
     ## cannot be determined due to a limitation within the idl2jni helper.
     COMPILE="${_SMART_LOCK_DIR}/dockerfiles/android-opendds-cross/android-compile"
-    MSYS_NO_PATHCONV=1 ${DOCKER_COMMAND} run --rm -ti -v "${_SMART_LOCK_DIR}:/home/droid/smartlock" -w '/home/droid' android-opendds-cross bash -c "$(tr '\n' ';' < ${COMPILE} | sed 's/\r//g')"
+    local -r toolchain_image=`current-android-image`
+    MSYS_NO_PATHCONV=1 ${DOCKER_COMMAND} run --rm -ti -v "${_SMART_LOCK_DIR}:/home/droid/smartlock" -w '/home/droid' ${toolchain_image} bash -c "$(tr '\n' ';' < ${COMPILE} | sed 's/\r//g')"
 
     (
         cd "${_SMART_LOCK_DIR}/android/SmartLock"
@@ -588,7 +701,8 @@ function android-clean {
     expected-end-of-input
 
     load-config
-    MSYS_NO_PATHCONV=1 ${DOCKER_COMMAND} run --rm -ti -v "${_SMART_LOCK_DIR}:/home/droid/smartlock" -w '/home/droid' android-opendds-cross bash -c '
+    local -r toolchain_image=`current-android-image`
+    MSYS_NO_PATHCONV=1 ${DOCKER_COMMAND} run --rm -ti -v "${_SMART_LOCK_DIR}:/home/droid/smartlock" -w '/home/droid' ${toolchain_image} bash -c '
 APP_MPC_NAME=SmartLock_Idl_Java;
 APP_NAME=SmartLock;
 DDS_ROOT=/home/droid/droid-opendds;
@@ -689,8 +803,11 @@ Usage: $(command-prefix) COMMAND [OPTION ...]
 
 Commands:
         build-toolchain-arm64 [commit]  Build a Docker image containing arm64-v8a cross-compiler and cross-compiled dependencies
+        get-github-image-arm64          Use an existing Docker image from GitHub Container Registry for arm64 instead of building a local image
         build-toolchain-arm   [commit]  Build a Docker image containing arm cross-compiler and cross-compiled dependencies
+        get-github-image-arm            Use an existing Docker image from GitHub Container Registry for arm instead of building a local image
         build-toolchain-x86   [commit]  Build a Docker image containing x86 cross-compiler and cross-compiled dependencies
+        get-github-image-x86            Use an existing Docker image from GitHub Container Registry for x86 instead of building a local image
         clean-toolchain                 Remove the Docker image containing a cross-compiler and cross-compiled dependencies
         compile                         Cross-compile the SmartLock Demo application
         clean                           Remove the compiled application
@@ -709,11 +826,20 @@ EOF
         build-toolchain-arm64)
             android-build-toolchain-arm64
             ;;
+        get-github-image-arm64)
+            android-get-github-image-arm64
+            ;;
         build-toolchain-arm)
             android-build-toolchain-arm
             ;;
+        get-github-image-arm)
+            android-get-github-image-arm
+            ;;
         build-toolchain-x86)
             android-build-toolchain-x86
+            ;;
+        get-github-image-x86)
+            android-get-github-image-x86
             ;;
         clean-toolchain)
             android-clean-toolchain
