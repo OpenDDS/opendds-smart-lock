@@ -20,4 +20,6 @@
     <string name="default_dpm_url">dpm.unityfoundation.io</string>
     <string name="default_username">54</string>
     <string name="default_password">WNg97wLeR7Rk5eHz</string>
+    <string name="show_login">Show Login</string>
+    <string name="show_login_info">Show the login information.</string>
 </resources>
