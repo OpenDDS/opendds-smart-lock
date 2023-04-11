@@ -161,6 +161,7 @@ class Settings extends StatefulWidget {
       StringSetting("apiURL", "https://dpm.unityfoundation.io/api");
   static var topicPrefix = StringSetting("topicPrefix", "C.53.");
   static var domainId = IntSetting("domainId", 1);
+  static var group = StringSetting("group", "");
 
   static Future<void> load() async {
     await theme.getStored();
@@ -192,6 +193,8 @@ class _SettingsState extends State<Settings> {
       TextEditingController(text: Settings.topicPrefix.value);
   final _domainIdController =
       TextEditingController(text: Settings.domainId.value.toString());
+  final _groupController =
+      TextEditingController(text: Settings.group.value);
 
   void _updateThemeMode(ThemeMode? value) {
     Settings.theme.setStored(value);
@@ -331,7 +334,15 @@ class _SettingsState extends State<Settings> {
               ),
               const Padding(
                 padding: Style.columnPadding,
-                child: Text("Topic Prefix/Domain Id", style: Style.titleText),
+                child: Text("Group/Topic Prefix/Domain Id", style: Style.titleText),
+              ),
+              Padding(
+                padding: Style.textPadding,
+                child: TextField(
+                  controller: _groupController,
+                  decoration: Style.hintDecoration('Group'),
+                  onChanged: (s) => Settings.group.setStored(s),
+                ),
               ),
               Padding(
                 padding: Style.textPadding,
@@ -429,7 +440,8 @@ class _SettingsState extends State<Settings> {
       Settings.username,
       Settings.password,
       Settings.apiURL,
-      Settings.topicPrefix
+      Settings.topicPrefix,
+      Settings.group,
     ]) {
       setting.change = (v) => _restartChanges = true;
     }

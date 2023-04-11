@@ -84,22 +84,19 @@ public:
   }
 
 private:
-  static void dart_finalizer(void* data, void* peer) {}
   static void update(const SmartLockStatus* status) {
-    Dart_CObject state = {
-      .type = Dart_CObject_kInt32, .value.as_int32 = status->state
-    };
-    Dart_CObject enabled = {
-      .type = Dart_CObject_kBool,
-      .value.as_bool = static_cast<bool>(status->enabled)
-    };
-    Dart_CObject id = {
-      .type = Dart_CObject_kString,
-      .value.as_string = const_cast<char*>(status->id)
-    };
+    Dart_CObject state = { Dart_CObject_kInt32 };
+    state.value.as_int32 = status->state;
+
+    Dart_CObject enabled = { Dart_CObject_kBool };
+    enabled.value.as_bool = static_cast<bool>(status->enabled);
+
+    Dart_CObject id = { Dart_CObject_kString };
+    id.value.as_string = const_cast<char*>(status->id);
+
     Dart_CObject* values[] = { &state, &enabled, &id };
 
-    Dart_CObject msg = { .type = Dart_CObject_kArray };
+    Dart_CObject msg = { Dart_CObject_kArray };
     msg.value.as_array.length = sizeof(values) / sizeof(values[0]);
     msg.value.as_array.values = values;
     Dart_PostCObject_DL(send_port, &msg);
@@ -128,8 +125,7 @@ public:
   void run(const OpenDdsBridgeConfig* config) {
     startDds(config);
     try {
-      initParticipant();
-      if (send != nullptr) {
+      if (initParticipant() && send != nullptr) {
         send("The OpenDDS Bridge is running");
       }
     }
@@ -199,6 +195,12 @@ public:
     domain = id;
   }
 
+  void addGroup(const char* group) {
+    if (group != 0 && strcmp(group, "") != 0) {
+      groups.push_back(group);
+    }
+  }
+
 private:
   void initParticipantFactory(const OpenDdsBridgeConfig* config) {
     if (participantFactory != nullptr) {
@@ -215,8 +217,22 @@ private:
     args.push_back(config->ini);
 
     if (secure) {
+      args.push_back("-DCPSSecurityDebug");
+      args.push_back("bookkeeping");
       args.push_back("-DCPSSecurity");
       args.push_back("1");
+      args.push_back("-ID_CA");
+      args.push_back(config->id_ca);
+      args.push_back("-ID_CERT");
+      args.push_back(config->id_cert);
+      args.push_back("-ID_PKEY");
+      args.push_back(config->id_pkey);
+      args.push_back("-PERM_CA");
+      args.push_back(config->perm_ca);
+      args.push_back("-PERM_GOV");
+      args.push_back(config->perm_gov);
+      args.push_back("-PERM_PERMS");
+      args.push_back(config->perm_perms);
     }
 
     int argc = args.size();
@@ -251,7 +267,6 @@ private:
   }
 
   void startDds(const OpenDdsBridgeConfig* config) {
-    error_message.clear();
     if (participant == nullptr) {
       try {
         initParticipantFactory(config);
@@ -266,10 +281,9 @@ private:
     }
   }
 
-  void initParticipant() {
-    error_message.clear();
+  bool initParticipant() {
     if (participant != nullptr) {
-      return;
+      return true;
     }
 
     if (participantFactory != nullptr) {
@@ -289,7 +303,7 @@ private:
       if (send != nullptr) {
         send(error_message.c_str());
       }
-      return;
+      return false;
     }
 
     SmartLock::StatusTypeSupport_var status_ts =
@@ -303,9 +317,10 @@ private:
       if (send != nullptr) {
         send(error_message.c_str());
       }
-      return;
+      return false;
     }
 
+    ACE_DEBUG((LM_NOTICE, "%s\n", topic_prefix.c_str()));
     const std::string status_topic_name = topic_prefix + "SmartLock Status";
     CORBA::String_var type_name = status_ts->get_type_name();
     DDS::Topic_var status_topic =
@@ -325,11 +340,12 @@ private:
       if (send != nullptr) {
         send(error_message.c_str());
       }
-      return;
+      return false;
     }
 
     DDS::SubscriberQos sub_qos;
     participant->get_default_subscriber_qos(sub_qos);
+    groups_to_partitions(sub_qos.partition);
 
     DDS::Subscriber_var sub = participant->create_subscriber(sub_qos, nullptr,
       OpenDDS::DCPS::DEFAULT_STATUS_MASK);
@@ -342,7 +358,7 @@ private:
       if (send != nullptr) {
         send(error_message.c_str());
       }
-      return;
+      return false;
     }
 
     // Create DataReader
@@ -365,7 +381,7 @@ private:
       if (send != nullptr) {
         send(error_message.c_str());
       }
-      return;
+      return false;
     }
 
     DDS::Subscriber_var builtinSubscriber = participant->get_builtin_subscriber();
@@ -378,7 +394,7 @@ private:
       if (send != nullptr) {
         send(error_message.c_str());
       }
-      return;
+      return false;
     }
 
     DDS::DataReader_var bitDr =
@@ -393,7 +409,7 @@ private:
       if (send != nullptr) {
         send(error_message.c_str());
       }
-      return;
+      return false;
     }
 
     // TODO: locationListener?
@@ -412,7 +428,7 @@ private:
       if (send != nullptr) {
         send(error_message.c_str());
       }
-      return;
+      return false;
     }
 
     const std::string control_topic_name = topic_prefix + "SmartLock Control";
@@ -435,11 +451,13 @@ private:
       if (send != nullptr) {
         send(error_message.c_str());
       }
-      return;
+      return false;
     }
 
     DDS::PublisherQos pub_qos;
     participant->get_default_publisher_qos(pub_qos);
+    groups_to_partitions(pub_qos.partition);
+
     DDS::Publisher_var publisher =
       participant->create_publisher(pub_qos,
                                     nullptr,
@@ -453,7 +471,7 @@ private:
       if (send != nullptr) {
         send(error_message.c_str());
       }
-      return;
+      return false;
     }
 
     DDS::DataWriterQos writer_qos;
@@ -471,7 +489,16 @@ private:
       if (send != nullptr) {
         send(error_message.c_str());
       }
-      return;
+      return false;
+    }
+
+    return true;
+  }
+
+  void groups_to_partitions(DDS::PartitionQosPolicy& dest) const {
+    dest.name.length(groups.size());
+    for(CORBA::ULong i = 0; i < dest.name.length(); ++i) {
+      dest.name[i] = groups[i].c_str();
     }
   }
 
@@ -534,6 +561,7 @@ void startOpenDdsBridge(OpenDdsBridge* bridge,
     OpenDdsBridgeImpl* impl = reinterpret_cast<OpenDdsBridgeImpl*>(bridge->ptr);
     impl->setTopicPrefix(config->topic_prefix);
     impl->setDomainId(config->domain_id);
+    impl->addGroup(config->group);
     impl->run(config);
   }
 }

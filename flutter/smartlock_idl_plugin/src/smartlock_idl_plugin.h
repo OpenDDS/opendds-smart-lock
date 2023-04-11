@@ -58,6 +58,8 @@ typedef struct {
   // the main thread.  We will be using Dart_PostCObject_DL().
   int64_t send_port;
 
+  // Configuration Items.
+  const char* group;
   const char* topic_prefix;
   int32_t domain_id;
 } OpenDdsBridgeConfig;
