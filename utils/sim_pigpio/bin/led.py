@@ -136,5 +136,8 @@ if __name__ == '__main__':
     if (args.port < 0 or args.port > 65535):
         print("The port must be between 0-65535.")
     else:
-        ## Run the server
-        server_program(args.port)
+        try:
+            ## Run the server
+            server_program(args.port)
+        except KeyboardInterrupt:
+            pass
