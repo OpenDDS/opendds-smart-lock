@@ -174,7 +174,8 @@ class Settings extends StatefulWidget {
   }
 
   final Function() download;
-  const Settings({super.key, required this.download});
+  final Function() restart;
+  const Settings({super.key, required this.download, required this.restart});
 
   @override
   State<Settings> createState() => _SettingsState();
@@ -319,11 +320,7 @@ class _SettingsState extends State<Settings> {
                 child: ElevatedButton(
                   onPressed: () async {
                     if (await widget.download()) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text(
-                                "Please restart the app to use the new certificates.")),
-                      );
+                      _restartChanges = true;
                     }
                   },
                   child: const Text("Download"),
@@ -413,8 +410,9 @@ class _SettingsState extends State<Settings> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
             content:
-                Text("Changes will take effect after the app is restarted.")),
+                Text("Restarting the connection...")),
       );
+      widget.restart();
     }
     return true;
   }

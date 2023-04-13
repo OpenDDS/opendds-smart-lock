@@ -68,7 +68,7 @@ class _HomeState extends State<Home> {
         final file = File(entryPath(entry.value[1]));
         try {
           file.deleteSync();
-        } catch(_) {
+        } catch (_) {
           // Ignored.
         }
       }
@@ -156,7 +156,13 @@ class _HomeState extends State<Home> {
     return certs.containsKey(_lastCert);
   }
 
-  Future<void> _startBridge(bool forceDownload) async {
+  Future<void> _restart() async {
+    smartlock_idl.Bridge.shutdown();
+    _bridge?.dispose();
+    _startBridge();
+  }
+
+  Future<void> _startBridge() async {
     // Read the ini config file from the assets and write it to a local file.
     final Directory documentsDirectory =
         await getApplicationDocumentsDirectory();
@@ -166,7 +172,7 @@ class _HomeState extends State<Home> {
         await rootBundle.loadString('assets/opendds_config.ini'));
 
     // Download the certs from the permissions manager.
-    final certs = await _downloadCerts(path, forceDownload);
+    final certs = await _downloadCerts(path, false);
 
     // Start the bridge if we have all of the certs.
     if (certs.containsKey(_lastCert)) {
@@ -326,7 +332,8 @@ class _HomeState extends State<Home> {
           Navigator.push(
             context,
             MaterialPageRoute(
-                builder: (context) => Settings(download: _download)),
+                builder: (context) =>
+                    Settings(download: _download, restart: _restart)),
           );
         },
       ),
@@ -342,7 +349,7 @@ class _HomeState extends State<Home> {
   void initState() {
     super.initState();
     _loadLocks();
-    _startBridge(false);
+    _startBridge();
   }
 
   @override
