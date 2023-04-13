@@ -344,6 +344,7 @@ class _SettingsState extends State<Settings> {
               Padding(
                 padding: Style.textPadding,
                 child: TextField(
+                  readOnly: true,
                   keyboardType: TextInputType.number,
                   controller: _domainIdController,
                   decoration: Style.hintDecoration('Domain Id'),

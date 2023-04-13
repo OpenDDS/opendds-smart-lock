@@ -47,6 +47,7 @@ dependencies:
   encrypted_shared_preferences: ^3.0.1
   smartlock_idl_plugin:
     path: ../smartlock_idl_plugin
+  ini: ^2.1.0
 
 dev_dependencies:
   flutter_test:
