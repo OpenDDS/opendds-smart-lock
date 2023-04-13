@@ -4,7 +4,7 @@
 #include <dart_api_dl.h>
 #include <SmartLockTypeSupportImpl.h>
 
-#include <dds/DCPS/security/BuiltInPlugins.h>
+#include <dds/DCPS/security/BuiltInPluginLoader.h>
 #include <dds/DCPS/transport/rtps_udp/RtpsUdpLoader.h>
 #include <dds/DCPS/RTPS/RtpsDiscovery.h>
 
@@ -120,6 +120,17 @@ public:
      domain(1),
      groups(),
      init() {
+#if defined(ACE_AS_STATIC_LIBS)
+    // This is needed to force the OpenDDS_Rtps_Udp library to be linked in.
+    OpenDDS::DCPS::RtpsUdpLoader::load();
+
+    // This needs to be done because when we shut down, we unregister the
+    // security plugin.  But, it only gets registered during static
+    // initialization so we have to re-register it every time we want to start
+    // up again.
+    OpenDDS::Security::BuiltInPluginLoader security_loader;
+    security_loader.init(0, nullptr);
+#endif
   }
 
   void run(const OpenDdsBridgeConfig* config) {
