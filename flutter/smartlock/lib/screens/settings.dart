@@ -421,16 +421,10 @@ class _SettingsState extends State<Settings> {
   void initState() {
     super.initState();
 
-    // Set the change function to indicate that changes will take affect on
-    // restart.  The change function is only called if the setting changes.
-    for (var setting in [
-      Settings.username,
-      Settings.password,
-      Settings.apiURL,
-      Settings.topicPrefix
-    ]) {
-      setting.change = (v) => _restartChanges = true;
-    }
+    // Set the change function to indicate that changes requiring a restart have
+    // been made.  The change function is only called if the setting is changed
+    // via the UI and persisted.
+    Settings.topicPrefix.change = (v) => _restartChanges = true;
     Settings.domainId.change = (v) => _restartChanges = true;
   }
 
