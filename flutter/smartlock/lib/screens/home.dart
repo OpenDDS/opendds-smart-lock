@@ -68,7 +68,7 @@ class _HomeState extends State<Home> {
         final file = File(entryPath(entry.value[1]));
         try {
           file.deleteSync();
-        } catch(_) {
+        } catch (_) {
           // Ignored.
         }
       }
@@ -170,20 +170,24 @@ class _HomeState extends State<Home> {
 
     // Start the bridge if we have all of the certs.
     if (certs.containsKey(_lastCert)) {
-      _bridge = smartlock_idl.Bridge();
-      _bridge?.start(
-        _snack,
-        _addOrUpdateLock,
-        ini.path,
-        certs['id_ca']!,
-        certs['perm_ca']!,
-        certs['perm_gov']!,
-        certs['perm_perms']!,
-        certs['id_cert']!,
-        certs['id_private']!,
-        Settings.topicPrefix.value,
-        Settings.domainId.value,
-      );
+      try {
+        _bridge = smartlock_idl.Bridge();
+        _bridge?.start(
+          _snack,
+          _addOrUpdateLock,
+          ini.path,
+          certs['id_ca']!,
+          certs['perm_ca']!,
+          certs['perm_gov']!,
+          certs['perm_perms']!,
+          certs['id_cert']!,
+          certs['id_private']!,
+          Settings.topicPrefix.value,
+          Settings.domainId.value,
+        );
+      } catch (err) {
+        _snack(err.toString());
+      }
     } else {
       _snack("The OpenDDS Bridge has not been started.");
     }
