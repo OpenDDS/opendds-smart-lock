@@ -4,7 +4,7 @@
 #include <dart_api_dl.h>
 #include <SmartLockTypeSupportImpl.h>
 
-#include <dds/DCPS/security/BuiltInPlugins.h>
+#include <dds/DCPS/security/BuiltInPluginLoader.h>
 #include <dds/DCPS/transport/rtps_udp/RtpsUdpLoader.h>
 #include <dds/DCPS/RTPS/RtpsDiscovery.h>
 
@@ -84,22 +84,19 @@ public:
   }
 
 private:
-  static void dart_finalizer(void* data, void* peer) {}
   static void update(const SmartLockStatus* status) {
-    Dart_CObject state = {
-      .type = Dart_CObject_kInt32, .value.as_int32 = status->state
-    };
-    Dart_CObject enabled = {
-      .type = Dart_CObject_kBool,
-      .value.as_bool = static_cast<bool>(status->enabled)
-    };
-    Dart_CObject id = {
-      .type = Dart_CObject_kString,
-      .value.as_string = const_cast<char*>(status->id)
-    };
+    Dart_CObject state = { Dart_CObject_kInt32 };
+    state.value.as_int32 = status->state;
+
+    Dart_CObject enabled = { Dart_CObject_kBool };
+    enabled.value.as_bool = static_cast<bool>(status->enabled);
+
+    Dart_CObject id = { Dart_CObject_kString };
+    id.value.as_string = const_cast<char*>(status->id);
+
     Dart_CObject* values[] = { &state, &enabled, &id };
 
-    Dart_CObject msg = { .type = Dart_CObject_kArray };
+    Dart_CObject msg = { Dart_CObject_kArray };
     msg.value.as_array.length = sizeof(values) / sizeof(values[0]);
     msg.value.as_array.values = values;
     Dart_PostCObject_DL(send_port, &msg);
@@ -121,15 +118,25 @@ public:
      transport_debug_level("3"),
      topic_prefix("C.53."),
      domain(1),
-     groups() {
+     groups(),
+     init() {
+#if defined(ACE_AS_STATIC_LIBS)
+    // This is needed to force the OpenDDS_Rtps_Udp library to be linked in.
     OpenDDS::DCPS::RtpsUdpLoader::load();
+
+    // This needs to be done because when we shut down, we unregister the
+    // security plugin.  But, it only gets registered during static
+    // initialization so we have to re-register it every time we want to start
+    // up again.
+    OpenDDS::Security::BuiltInPluginLoader security_loader;
+    security_loader.init(0, nullptr);
+#endif
   }
 
   void run(const OpenDdsBridgeConfig* config) {
     startDds(config);
     try {
-      initParticipant();
-      if (send != nullptr) {
+      if (initParticipant() && send != nullptr) {
         send("The OpenDDS Bridge is running");
       }
     }
@@ -156,6 +163,13 @@ public:
     }
     dw = nullptr;
     TheServiceParticipant->shutdown();
+
+    // Once the Service_Participant has been shut down, we need to clear out
+    // the listener.  It gets deleted, but the Service_Participant retains
+    // a reference.
+    OpenDDS::DCPS::RcHandle<OpenDDS::DCPS::ShutdownListener> listener;
+    TheServiceParticipant->set_shutdown_listener(listener);
+
     participantFactory = nullptr;
   }
 
@@ -251,7 +265,6 @@ private:
   }
 
   void startDds(const OpenDdsBridgeConfig* config) {
-    error_message.clear();
     if (participant == nullptr) {
       try {
         initParticipantFactory(config);
@@ -266,10 +279,9 @@ private:
     }
   }
 
-  void initParticipant() {
-    error_message.clear();
+  bool initParticipant() {
     if (participant != nullptr) {
-      return;
+      return true;
     }
 
     if (participantFactory != nullptr) {
@@ -289,7 +301,7 @@ private:
       if (send != nullptr) {
         send(error_message.c_str());
       }
-      return;
+      return false;
     }
 
     SmartLock::StatusTypeSupport_var status_ts =
@@ -303,7 +315,7 @@ private:
       if (send != nullptr) {
         send(error_message.c_str());
       }
-      return;
+      return false;
     }
 
     const std::string status_topic_name = topic_prefix + "SmartLock Status";
@@ -325,7 +337,7 @@ private:
       if (send != nullptr) {
         send(error_message.c_str());
       }
-      return;
+      return false;
     }
 
     DDS::SubscriberQos sub_qos;
@@ -342,7 +354,7 @@ private:
       if (send != nullptr) {
         send(error_message.c_str());
       }
-      return;
+      return false;
     }
 
     // Create DataReader
@@ -365,7 +377,7 @@ private:
       if (send != nullptr) {
         send(error_message.c_str());
       }
-      return;
+      return false;
     }
 
     DDS::Subscriber_var builtinSubscriber = participant->get_builtin_subscriber();
@@ -378,7 +390,7 @@ private:
       if (send != nullptr) {
         send(error_message.c_str());
       }
-      return;
+      return false;
     }
 
     DDS::DataReader_var bitDr =
@@ -393,7 +405,7 @@ private:
       if (send != nullptr) {
         send(error_message.c_str());
       }
-      return;
+      return false;
     }
 
     // TODO: locationListener?
@@ -412,7 +424,7 @@ private:
       if (send != nullptr) {
         send(error_message.c_str());
       }
-      return;
+      return false;
     }
 
     const std::string control_topic_name = topic_prefix + "SmartLock Control";
@@ -435,7 +447,7 @@ private:
       if (send != nullptr) {
         send(error_message.c_str());
       }
-      return;
+      return false;
     }
 
     DDS::PublisherQos pub_qos;
@@ -453,7 +465,7 @@ private:
       if (send != nullptr) {
         send(error_message.c_str());
       }
-      return;
+      return false;
     }
 
     DDS::DataWriterQos writer_qos;
@@ -471,8 +483,10 @@ private:
       if (send != nullptr) {
         send(error_message.c_str());
       }
-      return;
+      return false;
     }
+
+    return true;
   }
 
   std::string error_message;
@@ -492,6 +506,10 @@ private:
   std::string topic_prefix;
   int domain;
   std::vector<std::string> groups;
+
+  // When the bridge has been shut down, we need to have the RtpsDiscovery
+  // reinitialize to allow the bridge to start up again.
+  OpenDDS::RTPS::RtpsDiscovery::StaticInitializer init;
 };
 
 notifier OpenDdsBridgeImpl::send;

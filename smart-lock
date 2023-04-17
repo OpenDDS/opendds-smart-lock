@@ -909,9 +909,110 @@ EOF
     esac
 }
 
+function ios-build-toolchain-arm64 {
+  match-keyword 'build-toolchain-arm64'
+  expected-end-of-input
+
+  cd $_SMART_LOCK_DIR/ios
+  ./build.sh --toolchain
+}
+
+function ios-build-toolchain-sim {
+  match-keyword 'build-toolchain-sim'
+  expected-end-of-input
+
+  cd $_SMART_LOCK_DIR/ios
+  ./build.sh --toolchain --simulator
+}
+
+function ios-compile-arm64 {
+  match-keyword 'compile-arm64'
+  expected-end-of-input
+
+  cd $_SMART_LOCK_DIR/ios
+  ./build.sh
+
+  cd $_SMART_LOCK_DIR/flutter/smartlock
+  flutter build ios
+}
+
+function ios-compile-sim {
+  match-keyword 'compile-sim'
+  expected-end-of-input
+
+  cd $_SMART_LOCK_DIR/ios
+  ./build.sh --simulator
+
+  cd $_SMART_LOCK_DIR/flutter/smartlock
+  flutter build ios --simulator
+}
+
+function ios-clean-toolchain {
+  match-keyword 'clean-toolchain'
+  expected-end-of-input
+
+  cd $_SMART_LOCK_DIR/ios
+  ./build.sh --toolchain --clean
+}
+
+function ios-clean {
+  match-keyword 'clean'
+  expected-end-of-input
+
+  cd $_SMART_LOCK_DIR/ios
+  ./build.sh --clean
+}
+
+function ios {
+    #Maps commands to a ios version
+    #ex: ./smart-lock ios help
+    match-keyword 'ios'
+    local -r h=$(cat <<EOF
+$(command-prefix) - Development tool for iOS in the SmartLock Demo
+
+Usage: $(command-prefix) COMMAND [OPTION ...]
+
+Commands:
+       build-toolchain-arm64  Build the arm64 cross-compiled dependencies
+       build-toolchain-sim    Build the simulator cross-compiled dependencies
+       clean-toolchain        Remove the arm64 & sim cross-compiled dependencies
+       compile-arm64          Cross-compile the arm64 SmartLock Demo application
+       compile-sim            Cross-compile the arm64 SmartLock Demo application
+       clean                  Remove the compiled application
+       help                   Print this help
+EOF
+                 )
+    set-help "${h}"
+
+    local -r token="$(peek)"
+    case "${token}" in
+        build-toolchain-arm64)
+            ios-build-toolchain-arm64
+            ;;
+        build-toolchain-sim)
+            ios-build-toolchain-sim
+            ;;
+        clean-toolchain)
+            ios-clean-toolchain
+            ;;
+        compile-arm64)
+            ios-compile-arm64
+            ;;
+        compile-sim)
+            ios-compile-sim
+            ;;
+        clean)
+            ios-clean
+	    ;;
+        *)
+            expected-keywords build-toolchain-arm64 build-toolchain-sim clean-toolchain compile-arm64 compile-sim clean
+            ;;
+    esac
+}
+
 function top-level-command {
     #sets up the command tree
-    # first branches are pi / android / help / config
+    # first branches are pi / android / ios / help / config
     local -r h=$(cat <<EOF
 $(command-prefix) - Development tool for the SmartLock Demo
 
@@ -923,6 +1024,7 @@ Options:
 Commands:
         pi              Work with the Raspberry Pi
         android         Work with the Android
+        ios             Work with the iOS
         help            Print this help
 EOF
                    )
@@ -940,8 +1042,12 @@ EOF
             android
             return
             ;;
+        ios)
+            ios
+            return
+            ;;
         *)
-            expected-keywords ${_no_config+config} pi android
+            expected-keywords ${_no_config+config} pi android ios
             ;;
     esac
 
