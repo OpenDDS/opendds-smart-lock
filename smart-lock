@@ -758,7 +758,9 @@ function android-install {
     (
         load-config
         cd "${_SMART_LOCK_DIR}/flutter/smartlock"
-        "${ANDROID_SDK_ROOT}/platform-tools/adb" -d install build/app/outputs/apk/debug/app-debug.apk
+        local -r toolchain_image=`current-android-image`
+        local -r abi=`${DOCKER_COMMAND} run --rm -ti ${toolchain_image} bash -c 'echo $ANDROID_ABI'`
+        "${ANDROID_SDK_ROOT}/platform-tools/adb" -d install build/app/outputs/flutter-apk/app-$abi-release.apk
     )
 }
 
