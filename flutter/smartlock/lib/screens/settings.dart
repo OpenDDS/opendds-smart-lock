@@ -183,6 +183,8 @@ class Settings extends StatefulWidget {
 class _SettingsState extends State<Settings> {
   Color? _selected;
   bool _restartChanges = false;
+  bool _obscurePassword = true;
+  IconData _eye = Icons.remove_red_eye;
   final _usernameController =
       TextEditingController(text: Settings.username.value);
   final _passwordController =
@@ -307,11 +309,30 @@ class _SettingsState extends State<Settings> {
               ),
               Padding(
                 padding: Style.textPadding,
-                child: TextField(
-                  controller: _passwordController,
-                  decoration: Style.hintDecoration('Password'),
-                  onChanged: (s) => Settings.password.setStored(s),
-                  obscureText: true,
+                child: Row(
+                  children: [
+                    Expanded(
+                      flex: 11,
+                      child: TextField(
+                        controller: _passwordController,
+                        decoration: Style.hintDecoration('Password'),
+                        onChanged: (s) => Settings.password.setStored(s),
+                        obscureText: _obscurePassword,
+                      ),
+                    ),
+                    Expanded(
+                      child: IconButton(
+                        onPressed: () => setState(() {
+                          // Flip the obscure flag and switch the icon.
+                          _obscurePassword ^= true;
+                          _eye = _obscurePassword
+                              ? Icons.remove_red_eye
+                              : Icons.remove_red_eye_outlined;
+                        }),
+                        icon: Icon(_eye),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               Padding(
