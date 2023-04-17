@@ -68,15 +68,15 @@ jobs:
     - name: install flutter
       shell: bash
       run: |
-        sudo git clone https://github.com/flutter/flutter.git /usr/local/flutter
-        /usr/local/flutter/bin/flutter doctor
+        git clone https://github.com/flutter/flutter.git
+        flutter/bin/flutter doctor
     - name: checkout opendds-smart-lock
       uses: actions/checkout@v3
       with:
         path: opendds-smart-lock
     - name: build android arm64
       run: |
-        PATH="$PATH:/usr/local/flutter/bin"
+        PATH="$PATH:`pwd`/flutter/bin"
         cd opendds-smart-lock
         ./smart-lock android build-toolchain-arm64
         ./smart-lock android compile
