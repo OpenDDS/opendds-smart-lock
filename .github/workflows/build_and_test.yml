@@ -68,7 +68,7 @@ jobs:
     - name: install flutter
       shell: bash
       run: |
-        git clone https://github.com/flutter/flutter.git /usr/local/flutter
+        sudo git clone https://github.com/flutter/flutter.git /usr/local/flutter
         /usr/local/flutter/bin/flutter doctor
     - name: checkout opendds-smart-lock
       uses: actions/checkout@v3
