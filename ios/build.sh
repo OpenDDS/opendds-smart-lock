@@ -11,6 +11,13 @@ XCODE_BIN=$XCODE/Toolchains/XcodeDefault.xctoolchain/usr/bin
 OPENDDS_BRANCH=master
 OPENDDS_GIT_REPO=https://github.com/objectcomputing/OpenDDS
 MIDDLEWARE=$SMARTLOCK_DIR/flutter/middleware
+TOOLCHAIN_ONLY=0
+CLEAN=0
+
+if [ "`uname`" != "Darwin" ]; then
+  echo "This must be run in MacOS."
+  exit 1
+fi
 
 while [ $# -ne 0 ]; do
   arg="$1"
@@ -22,6 +29,12 @@ while [ $# -ne 0 ]; do
     --simulator)
       TARGET=simulator
       ;;
+    --toolchain)
+      TOOLCHAIN_ONLY=1
+      ;;
+    --clean)
+      CLEAN=1
+      ;;
     *)
       usage=1
       ;;
@@ -29,12 +42,27 @@ while [ $# -ne 0 ]; do
 done
 
 if [ -n "$usage" ]; then
-  echo "Usage: `basename $0` [--simulator]"
+  echo "Usage: `basename $0` [--simulator] [--toolchain] [--clean]"
   echo ""
   echo "Build OpenSSL, Xerces3, ACE/TAO/OpenDDS, and the flutter Idl for iOS."
   echo "OpenSSL, Xerces3, ACE/TAO/OpenDDS get installed into"
   echo "$SMARTLOCK_DIR/flutter/middleware"
+  echo ""
+  echo "--toolchain implies work only with the toolchain."
   exit 1
+fi
+
+if [ $CLEAN -eq 1 ]; then
+  ## Clean up and exit
+  if [ $TOOLCHAIN_ONLY -eq 1 ]; then
+    rm -rf arm64 simulator
+  else
+    cd $SMARTLOCK_DIR/flutter/Idl
+    if [ -r GNUmakefile ]; then
+      make realclean
+    fi
+  fi
+  exit $?
 fi
 
 if [ "$TARGET" = "simulator" ]; then
@@ -126,6 +154,7 @@ if [ $? -eq 0 ]; then
     git clone --depth=1 -b $OPENDDS_BRANCH $OPENDDS_GIT_REPO ios-opendds
     cd ios-opendds
   fi
+  unset ACE_ROOT TAO_ROOT DDS_ROOT
   ./configure --ace-github-latest --security --target=ios \
     --macros=IPHONE_TARGET=$OPENDDS_TARGET \
     --openssl=$MIDDLEWARE/ios-openssl \
@@ -138,19 +167,21 @@ if [ $? -eq 0 ]; then
   fi
   make
 
-  ## Install ACE/TAO/OpenDDS
-  rm -rf $MIDDLEWARE/ACE_TAO $MIDDLEWARE/OpenDDS
-  . build/target/setenv.sh
-  cd $ACE_ROOT/ace
-  make INSTALL_PREFIX=$MIDDLEWARE/ACE_TAO install
-  cd $TAO_ROOT/tao
-  make INSTALL_PREFIX=$MIDDLEWARE/ACE_TAO install
-  cd $DDS_ROOT/dds
-  make INSTALL_PREFIX=$MIDDLEWARE/OpenDDS install
+  if [ $TOOLCHAIN_ONLY -eq 0 ]; then
+    ## Install ACE/TAO/OpenDDS
+    rm -rf $MIDDLEWARE/ACE_TAO $MIDDLEWARE/OpenDDS
+    . build/target/setenv.sh
+    cd $ACE_ROOT/ace
+    make INSTALL_PREFIX=$MIDDLEWARE/ACE_TAO install
+    cd $TAO_ROOT/tao
+    make INSTALL_PREFIX=$MIDDLEWARE/ACE_TAO install
+    cd $DDS_ROOT/dds
+    make INSTALL_PREFIX=$MIDDLEWARE/OpenDDS install
 
-  ## Build the IDL
-  cd $SMARTLOCK_DIR/flutter/Idl
-  cp ../../src/Idl/SmartLock.idl .
-  $ACE_ROOT/bin/mwc.pl -type gnuace
-  make clean all
+    ## Build the IDL
+    cd $SMARTLOCK_DIR/flutter/Idl
+    cp ../../src/Idl/SmartLock.idl .
+    $ACE_ROOT/bin/mwc.pl -type gnuace
+    make clean all
+  fi
 fi
