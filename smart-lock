@@ -696,6 +696,7 @@ function android-compile {
 
     (
         cd "${_SMART_LOCK_DIR}/flutter/smartlock"
+        sed -i "s% abiFilter% //abiFilter%g; s%//abiFilter \"$abi\"%abiFilter \"$abi\"%" ../smartlock_idl_plugin/android/build.gradle
         flutter build apk --split-per-abi --release --target-platform $target
     )
 }
