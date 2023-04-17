@@ -157,6 +157,12 @@ class _HomeState extends State<Home> {
     return certs.containsKey(_lastCert);
   }
 
+  Future<void> _restart() async {
+    smartlock_idl.Bridge.shutdown();
+    _bridge?.dispose();
+    _startBridge();
+  }
+
   void _updateDomainFromINI(String contents) {
     final config = Config.fromString(contents);
     const String target = "domain/";
@@ -174,7 +180,7 @@ class _HomeState extends State<Home> {
     }
   }
 
-  Future<void> _startBridge(bool forceDownload) async {
+  Future<void> _startBridge() async {
     // Read the ini config file from the assets and write it to a local file.
     final Directory documentsDirectory =
         await getApplicationDocumentsDirectory();
@@ -185,7 +191,7 @@ class _HomeState extends State<Home> {
     _updateDomainFromINI(contents);
 
     // Download the certs from the permissions manager.
-    final certs = await _downloadCerts(path, forceDownload);
+    final certs = await _downloadCerts(path, false);
 
     // Start the bridge if we have all of the certs.
     if (certs.containsKey(_lastCert)) {
@@ -345,7 +351,8 @@ class _HomeState extends State<Home> {
           Navigator.push(
             context,
             MaterialPageRoute(
-                builder: (context) => Settings(download: _download)),
+                builder: (context) =>
+                    Settings(download: _download, restart: _restart)),
           );
         },
       ),
@@ -361,7 +368,7 @@ class _HomeState extends State<Home> {
   void initState() {
     super.initState();
     _loadLocks();
-    _startBridge(false);
+    _startBridge();
   }
 
   @override
