@@ -6,7 +6,7 @@ cp -p ../../src/Idl/SmartLock.idl .
 mwc.pl -type gnuace
 make realclean all
 cd $HOME/libs
-mkdir -p $HOME/smartlock/android/src/main/jniLibs/${ANDROID_ABI}
+mkdir -p $HOME/smartlock/flutter/smartlock_idl_plugin/android/src/main/jniLibs/${ANDROID_ABI}
 cp libACE.so libACE_XML_Utils.so libc++_shared.so libOpenDDS_Dcps.so libOpenDDS_Rtps.so libOpenDDS_Rtps_Udp.so libOpenDDS_Security.so libTAO.so libTAO_AnyTypeCode.so libTAO_BiDirGIOP.so libTAO_CodecFactory.so libTAO_PI.so libTAO_PortableServer.so libTAO_Valuetype.so libxerces-c-3.2.so $HOME/smartlock/flutter/smartlock_idl_plugin/android/src/main/jniLibs/${ANDROID_ABI}
 cp $HOME/smartlock/flutter/Idl/libSmartLock_Idl_Flutter.so $HOME/smartlock/flutter/smartlock_idl_plugin/android/src/main/jniLibs/${ANDROID_ABI}/
 mkdir -p $HOME/smartlock/flutter/middleware/OpenDDS
