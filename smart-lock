@@ -710,32 +710,6 @@ function android-clean {
     load-config
     local -r toolchain_image=`current-android-image`
     MSYS_NO_PATHCONV=1 ${DOCKER_COMMAND} run --rm -ti -v "${_SMART_LOCK_DIR}:/home/droid/smartlock" -w '/home/droid' ${toolchain_image} bash -c '
-APP_MPC_NAME=SmartLock_Idl_Java;
-APP_NAME=SmartLock;
-DDS_ROOT=/home/droid/droid-opendds;
-source $DDS_ROOT/build/target/setenv.sh;
-echo $HOME
-cd $HOME/flutter/Idl;
-make clean
-rm $HOME/flutter/smartlock_idl_plugin/android/src/main/jniLibs/${ANDROID_ABI}/*.so;'
-
-    (
-        cd "${_SMART_LOCK_DIR}/flutter/smartlock"
-        flutter clean
-    )
-}
-
-function android-clean {
-    #Remove the compiled application
-    #ex: ./smart-lock android clean
-    match-keyword 'clean'
-    expected-end-of-input
-
-    load-config
-    local -r toolchain_image=`current-android-image`
-    MSYS_NO_PATHCONV=1 ${DOCKER_COMMAND} run --rm -ti -v "${_SMART_LOCK_DIR}:/home/droid/smartlock" -w '/home/droid' ${toolchain_image} bash -c '
-APP_MPC_NAME=SmartLock_Idl_Java;
-APP_NAME=SmartLock;
 DDS_ROOT=/home/droid/droid-opendds;
 source $DDS_ROOT/build/target/setenv.sh;
 echo $HOME
