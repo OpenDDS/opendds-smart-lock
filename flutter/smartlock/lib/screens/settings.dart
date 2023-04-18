@@ -458,6 +458,7 @@ class _SettingsState extends State<Settings> {
     // Set the change function to indicate that changes requiring a restart have
     // been made.  The change function is only called if the setting is changed
     // via the UI and persisted.
+    Settings.group.change = (v) => _restartChanges = true;
     Settings.topicPrefix.change = (v) => _restartChanges = true;
     Settings.domainId.change = (v) => _restartChanges = true;
   }
