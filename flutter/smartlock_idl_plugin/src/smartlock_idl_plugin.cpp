@@ -214,7 +214,7 @@ public:
   }
 
   void addGroup(const char* group) {
-    if (group != 0 && strcmp(group, "") != 0) {
+    if (group != nullptr && strcmp(group, "") != 0) {
       groups.push_back(group);
     }
   }
@@ -338,7 +338,6 @@ private:
       return false;
     }
 
-    ACE_DEBUG((LM_NOTICE, "%s\n", topic_prefix.c_str()));
     const std::string status_topic_name = topic_prefix + "SmartLock Status";
     CORBA::String_var type_name = status_ts->get_type_name();
     DDS::Topic_var status_topic =
