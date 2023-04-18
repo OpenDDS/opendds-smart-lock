@@ -1,12 +1,12 @@
 [common]
 DCPSGlobalTransportConfig=$file
 DCPSDefaultDiscovery=DEFAULT_RTPS
-DCPSSecurity=0
+DCPSSecurity=1
 
 [transport/the_rtps_transport]
 transport_type=rtps_udp
-
 #DATA_RTPS_RELAY_ADDRESS_LINE
+UseRtpsRelay=1
 
 [domain/1]
 DiscoveryConfig=DiscoveryConfig1
