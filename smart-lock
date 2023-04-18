@@ -720,9 +720,9 @@ function android-clean {
 DDS_ROOT=/home/droid/droid-opendds;
 source $DDS_ROOT/build/target/setenv.sh;
 echo $HOME
-cd $HOME/flutter/Idl;
+cd $HOME/smartlock/flutter/Idl;
 make clean
-rm $HOME/flutter/smartlock_idl_plugin/android/src/main/jniLibs/${ANDROID_ABI}/*.so;'
+rm $HOME/smartlock/flutter/smartlock_idl_plugin/android/src/main/jniLibs/${ANDROID_ABI}/*.so;'
 
     (
         cd "${_SMART_LOCK_DIR}/flutter/smartlock"
