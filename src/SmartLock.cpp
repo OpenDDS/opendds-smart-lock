@@ -103,6 +103,9 @@ protected:
     DDS::PublisherQos qos;
     dp->get_default_publisher_qos(qos);
 
+    groups_to_partitions(groups, partition_);
+    qos.partition = partition_;
+
     publisher_ = dp->create_publisher(qos, 0, OpenDDS::DCPS::DEFAULT_STATUS_MASK);
 
     if (! publisher_) {
@@ -127,6 +130,9 @@ protected:
   {
     DDS::SubscriberQos qos;
     dp->get_default_subscriber_qos(qos);
+
+    groups_to_partitions(groups, partition_);
+    qos.partition = partition_;
 
     subscriber_ = dp->create_subscriber(qos, 0, OpenDDS::DCPS::DEFAULT_STATUS_MASK);
 
@@ -654,6 +660,12 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[])
 
   try {
     dpf = TheParticipantFactoryWithArgs(argc, argv);
+    if (!dpf) {
+      ACE_ERROR_RETURN((LM_ERROR,
+        ACE_TEXT("ERROR: %N:%l: main() -")
+        ACE_TEXT(" TheParticipantFactoryWithArgs failed!\n")),
+        -1);
+    }
 
     std::vector<std::string> groups;
     SmartLock::lock_t lock;
@@ -754,6 +766,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[])
     std::cout << "group_str=" << group_str << std::endl;
 
     OpenDDS::DCPS::SequenceBackInsertIterator<DDS::PropertySeq> props(part_qos.property.value);
+    *props = {"OpenDDS.RtpsRelay.Groups", group_str.c_str(), true};
 
 #if defined(OPENDDS_SECURITY)
     if (TheServiceParticipant->get_security()) {
