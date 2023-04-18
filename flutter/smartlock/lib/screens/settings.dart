@@ -172,6 +172,7 @@ class Settings extends StatefulWidget {
     await apiURL.getStored();
     await topicPrefix.getStored();
     await domainId.getStored();
+    await group.getStored();
   }
 
   final Function() download;
