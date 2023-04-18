@@ -698,9 +698,13 @@ function android-compile {
     esac
 
     (
-        cd "${_SMART_LOCK_DIR}/flutter/smartlock"
-        sed -i "s% abiFilter% //abiFilter%g; s%//abiFilter \"$abi\"%abiFilter \"$abi\"%" ../smartlock_idl_plugin/android/build.gradle
-        flutter build apk --split-per-abi --release --target-platform $target
+        if [ "$abi" = "x86" ]; then
+            echo "INFORMATION: A release apk cannot be built for x86"
+        else
+            cd "${_SMART_LOCK_DIR}/flutter/smartlock"
+            sed -i "s% abiFilter% //abiFilter%g; s%//abiFilter \"$abi\"%abiFilter \"$abi\"%" ../smartlock_idl_plugin/android/build.gradle
+            flutter build apk --split-per-abi --release --target-platform $target
+        fi
     )
 }
 
