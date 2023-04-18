@@ -175,7 +175,8 @@ class Settings extends StatefulWidget {
   }
 
   final Function() download;
-  const Settings({super.key, required this.download});
+  final Function() restart;
+  const Settings({super.key, required this.download, required this.restart});
 
   @override
   State<Settings> createState() => _SettingsState();
@@ -184,6 +185,8 @@ class Settings extends StatefulWidget {
 class _SettingsState extends State<Settings> {
   Color? _selected;
   bool _restartChanges = false;
+  bool _obscurePassword = true;
+  IconData _eye = Icons.remove_red_eye;
   final _usernameController =
       TextEditingController(text: Settings.username.value);
   final _passwordController =
@@ -310,11 +313,30 @@ class _SettingsState extends State<Settings> {
               ),
               Padding(
                 padding: Style.textPadding,
-                child: TextField(
-                  controller: _passwordController,
-                  decoration: Style.hintDecoration('Password'),
-                  onChanged: (s) => Settings.password.setStored(s),
-                  obscureText: true,
+                child: Row(
+                  children: [
+                    Expanded(
+                      flex: 11,
+                      child: TextField(
+                        controller: _passwordController,
+                        decoration: Style.hintDecoration('Password'),
+                        onChanged: (s) => Settings.password.setStored(s),
+                        obscureText: _obscurePassword,
+                      ),
+                    ),
+                    Expanded(
+                      child: IconButton(
+                        onPressed: () => setState(() {
+                          // Flip the obscure flag and switch the icon.
+                          _obscurePassword ^= true;
+                          _eye = _obscurePassword
+                              ? Icons.remove_red_eye
+                              : Icons.remove_red_eye_outlined;
+                        }),
+                        icon: Icon(_eye),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               Padding(
@@ -322,11 +344,7 @@ class _SettingsState extends State<Settings> {
                 child: ElevatedButton(
                   onPressed: () async {
                     if (await widget.download()) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text(
-                                "Please restart the app to use the new certificates.")),
-                      );
+                      _restartChanges = true;
                     }
                   },
                   child: const Text("Download"),
@@ -355,6 +373,7 @@ class _SettingsState extends State<Settings> {
               Padding(
                 padding: Style.textPadding,
                 child: TextField(
+                  readOnly: true,
                   keyboardType: TextInputType.number,
                   controller: _domainIdController,
                   decoration: Style.hintDecoration('Domain Id'),
@@ -424,8 +443,9 @@ class _SettingsState extends State<Settings> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
             content:
-                Text("Changes will take effect after the app is restarted.")),
+                Text("Restarting the connection...")),
       );
+      widget.restart();
     }
     return true;
   }
@@ -434,17 +454,10 @@ class _SettingsState extends State<Settings> {
   void initState() {
     super.initState();
 
-    // Set the change function to indicate that changes will take affect on
-    // restart.  The change function is only called if the setting changes.
-    for (var setting in [
-      Settings.username,
-      Settings.password,
-      Settings.apiURL,
-      Settings.topicPrefix,
-      Settings.group,
-    ]) {
-      setting.change = (v) => _restartChanges = true;
-    }
+    // Set the change function to indicate that changes requiring a restart have
+    // been made.  The change function is only called if the setting is changed
+    // via the UI and persisted.
+    Settings.topicPrefix.change = (v) => _restartChanges = true;
     Settings.domainId.change = (v) => _restartChanges = true;
   }
 

@@ -4,7 +4,7 @@
 #include <dart_api_dl.h>
 #include <SmartLockTypeSupportImpl.h>
 
-#include <dds/DCPS/security/BuiltInPlugins.h>
+#include <dds/DCPS/security/BuiltInPluginLoader.h>
 #include <dds/DCPS/transport/rtps_udp/RtpsUdpLoader.h>
 #include <dds/DCPS/RTPS/RtpsDiscovery.h>
 
@@ -118,8 +118,19 @@ public:
      transport_debug_level("3"),
      topic_prefix("C.53."),
      domain(1),
-     groups() {
+     groups(),
+     init() {
+#if defined(ACE_AS_STATIC_LIBS)
+    // This is needed to force the OpenDDS_Rtps_Udp library to be linked in.
     OpenDDS::DCPS::RtpsUdpLoader::load();
+
+    // This needs to be done because when we shut down, we unregister the
+    // security plugin.  But, it only gets registered during static
+    // initialization so we have to re-register it every time we want to start
+    // up again.
+    OpenDDS::Security::BuiltInPluginLoader security_loader;
+    security_loader.init(0, nullptr);
+#endif
   }
 
   void run(const OpenDdsBridgeConfig* config) {
@@ -152,6 +163,13 @@ public:
     }
     dw = nullptr;
     TheServiceParticipant->shutdown();
+
+    // Once the Service_Participant has been shut down, we need to clear out
+    // the listener.  It gets deleted, but the Service_Participant retains
+    // a reference.
+    OpenDDS::DCPS::RcHandle<OpenDDS::DCPS::ShutdownListener> listener;
+    TheServiceParticipant->set_shutdown_listener(listener);
+
     participantFactory = nullptr;
   }
 
@@ -519,6 +537,10 @@ private:
   std::string topic_prefix;
   int domain;
   std::vector<std::string> groups;
+
+  // When the bridge has been shut down, we need to have the RtpsDiscovery
+  // reinitialize to allow the bridge to start up again.
+  OpenDDS::RTPS::RtpsDiscovery::StaticInitializer init;
 };
 
 notifier OpenDdsBridgeImpl::send;

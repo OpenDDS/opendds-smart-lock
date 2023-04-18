@@ -8,6 +8,7 @@ import 'package:dio/dio.dart';
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:dio_cookie_manager/dio_cookie_manager.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:ini/ini.dart';
 
 import 'package:smartlock_idl_plugin/smartlock_idl_plugin.dart'
     as smartlock_idl;
@@ -68,7 +69,7 @@ class _HomeState extends State<Home> {
         final file = File(entryPath(entry.value[1]));
         try {
           file.deleteSync();
-        } catch(_) {
+        } catch (_) {
           // Ignored.
         }
       }
@@ -156,17 +157,41 @@ class _HomeState extends State<Home> {
     return certs.containsKey(_lastCert);
   }
 
-  Future<void> _startBridge(bool forceDownload) async {
+  Future<void> _restart() async {
+    smartlock_idl.Bridge.shutdown();
+    _bridge?.dispose();
+    _startBridge();
+  }
+
+  void _updateDomainFromINI(String contents) {
+    final config = Config.fromString(contents);
+    const String target = "domain/";
+    for(var section in config.sections()) {
+      if (section.startsWith(target)) {
+        // Update the domain setting with the value in the ini file.
+        final int? domainId = int.tryParse(section.substring(target.length));
+        if (domainId == null) {
+          _snack("The domain configuration in the .ini file is invalid.");
+        } else {
+          Settings.domainId.value = domainId;
+        }
+        break;
+      }
+    }
+  }
+
+  Future<void> _startBridge() async {
     // Read the ini config file from the assets and write it to a local file.
     final Directory documentsDirectory =
         await getApplicationDocumentsDirectory();
     final String path = documentsDirectory.path;
     final ini = File(join(path, 'opendds_config.ini'));
-    ini.writeAsStringSync(
-        await rootBundle.loadString('assets/opendds_config.ini'));
+    final contents = await rootBundle.loadString('assets/opendds_config.ini');
+    ini.writeAsStringSync(contents);
+    _updateDomainFromINI(contents);
 
     // Download the certs from the permissions manager.
-    final certs = await _downloadCerts(path, forceDownload);
+    final certs = await _downloadCerts(path, false);
 
     // Start the bridge if we have all of the certs.
     if (certs.containsKey(_lastCert)) {
@@ -327,7 +352,8 @@ class _HomeState extends State<Home> {
           Navigator.push(
             context,
             MaterialPageRoute(
-                builder: (context) => Settings(download: _download)),
+                builder: (context) =>
+                    Settings(download: _download, restart: _restart)),
           );
         },
       ),
@@ -343,7 +369,7 @@ class _HomeState extends State<Home> {
   void initState() {
     super.initState();
     _loadLocks();
-    _startBridge(false);
+    _startBridge();
   }
 
   @override
