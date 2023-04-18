@@ -692,6 +692,9 @@ function android-compile {
         x86_64)
             target=android-x64
             ;;
+        *)
+            echo "WARNING: '$abi' not recognized."
+            ;;
     esac
 
     (
