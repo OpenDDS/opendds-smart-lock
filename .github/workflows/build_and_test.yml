@@ -69,7 +69,6 @@ jobs:
       shell: bash
       run: |
         git clone https://github.com/flutter/flutter.git
-        flutter/bin/flutter doctor
     - name: checkout opendds-smart-lock
       uses: actions/checkout@v3
       with:
@@ -86,12 +85,17 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
+    - name: install flutter
+      shell: bash
+      run: |
+        git clone https://github.com/flutter/flutter.git
     - name: checkout opendds-smart-lock
       uses: actions/checkout@v3
       with:
         path: opendds-smart-lock
     - name: build android arm
       run: |
+        PATH="$PATH:`pwd`/flutter/bin"
         cd opendds-smart-lock
         ./smart-lock android build-toolchain-arm
         ./smart-lock android compile
@@ -101,12 +105,17 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
+    - name: install flutter
+      shell: bash
+      run: |
+        git clone https://github.com/flutter/flutter.git
     - name: checkout opendds-smart-lock
       uses: actions/checkout@v3
       with:
         path: opendds-smart-lock
     - name: build android x86
       run: |
+        PATH="$PATH:`pwd`/flutter/bin"
         cd opendds-smart-lock
         ./smart-lock android build-toolchain-x86
         ./smart-lock android compile
