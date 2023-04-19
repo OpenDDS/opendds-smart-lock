@@ -33,8 +33,9 @@ android {
     // the version in their app and to download a newer version of the NDK.
     ndkVersion "21.1.6352462"
 
-    // Temporarily only build for x86 and arm64-v8a.  Eventually, we will
-    // want to remove this section to build for all variants.
+    // Build for x86, arm64-v8a, and armeabi-v7a.  The smart-lock script will
+    // edit this file.  But, changes made by the smart-lock script relating to
+    // this section should not be checked in.
     flavorDimensions "only"
     productFlavors {
         abis {
@@ -42,6 +43,7 @@ android {
             ndk {
                 abiFilter "x86"
                 abiFilter "arm64-v8a"
+                abiFilter "armeabi-v7a"
             }
         }
     }

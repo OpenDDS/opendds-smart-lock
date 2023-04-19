@@ -109,13 +109,11 @@ RUN cd droid-opendds && \
       --macros=no_hidden_visibility=1 \
       --openssl=/home/droid/droid-openssl \
       --xerces3=/home/droid/droid-xerces \
-      --security \
-      --java
+      --security
 
 RUN cd droid-opendds/build/host && \
     make -j${OPENDDS_MAKE_JOBS} TAO_IDL_EXE && \
-    make -j${OPENDDS_MAKE_JOBS} opendds_idl && \
-    make -j${OPENDDS_MAKE_JOBS} idl2jni_codegen
+    make -j${OPENDDS_MAKE_JOBS} opendds_idl
 
 RUN cd droid-opendds/build/target && \
     make -j${OPENDDS_MAKE_JOBS}
