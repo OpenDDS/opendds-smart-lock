@@ -165,6 +165,7 @@ class _HomeState extends State<Home> {
       // the bridge, it will be shown when attempting to start it up again.
     }
     _bridge?.dispose();
+    _loadLocks();
     _startBridge();
   }
 
