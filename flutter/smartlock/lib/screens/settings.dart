@@ -95,6 +95,13 @@ abstract class SimpleSetting<T> extends Setting<T, T> {
   bool valid(T index) => true;
 }
 
+class BoolSetting extends SimpleSetting<bool> {
+  BoolSetting(super.key, super.value);
+
+  @override
+  Future<bool> store(prefs) async => await prefs.setBool(key, access(value));
+}
+
 class IntSetting extends SimpleSetting<int> {
   IntSetting(super.key, super.value);
 
@@ -161,6 +168,8 @@ class Settings extends StatefulWidget {
       StringSetting("apiURL", "https://dpm.unityfoundation.io/api");
   static var topicPrefix = StringSetting("topicPrefix", "C.53.");
   static var domainId = IntSetting("domainId", 1);
+  static var useRelay = BoolSetting("useRelay", false);
+  static var relayIP = StringSetting("relayIP", "35.224.27.187");
 
   static Future<void> load() async {
     await theme.getStored();
@@ -171,6 +180,22 @@ class Settings extends StatefulWidget {
     await apiURL.getStored();
     await topicPrefix.getStored();
     await domainId.getStored();
+    await useRelay.getStored();
+    await relayIP.getStored();
+  }
+
+  static bool validateIPAddress(String value) {
+    final RegExp regex = RegExp(r'^\s*(\d+)\.(\d+)\.(\d+)\.(\d+)');
+    final RegExpMatch? match = regex.firstMatch(value);
+    if (match != null) {
+      for (int i = 0; i < 4; i++) {
+        final int? octet = int.tryParse(match[i + 1]!);
+        if (octet == null || octet < 0 || octet > 255) {
+          return false;
+        }
+      }
+    }
+    return true;
   }
 
   final Function() download;
@@ -182,6 +207,7 @@ class Settings extends StatefulWidget {
 }
 
 class _SettingsState extends State<Settings> {
+  static const int _partialTextFlex = 11;
   Color? _selected;
   bool _restartChanges = false;
   bool _obscurePassword = true;
@@ -195,6 +221,9 @@ class _SettingsState extends State<Settings> {
       TextEditingController(text: Settings.topicPrefix.value);
   final _domainIdController =
       TextEditingController(text: Settings.domainId.value.toString());
+  final _relayIPController =
+      TextEditingController(text: Settings.relayIP.value);
+  TextStyle? _relayIPStyle;
 
   void _updateThemeMode(ThemeMode? value) {
     Settings.theme.setStored(value);
@@ -280,7 +309,39 @@ class _SettingsState extends State<Settings> {
     );
   }
 
+  void _updateRelayStyle() {
+    // Use the text style default color if the IP address is valid.  Use
+    // the theme error color, otherwise.
+    Color? relayIPColor = Settings.validateIPAddress(Settings.relayIP.value)
+        ? null
+        : Theme.of(context).errorColor;
+
+    // If we're using the relay, just use the color.  If we're not using the
+    // relay, make the text italic and a little lighter.
+    TextStyle style;
+    if (Settings.useRelay.value) {
+      style = TextStyle(color: relayIPColor);
+    } else {
+      style = TextStyle(
+        fontWeight: FontWeight.w300,
+        fontStyle: FontStyle.italic,
+        color: relayIPColor,
+      );
+    }
+
+    // The default text style for a TextField is subtitle1.  So, we will use
+    // that and merge in our additional style settings.
+    _relayIPStyle = Theme.of(context).textTheme.subtitle1!.merge(style);
+  }
+
   Widget _renderContent() {
+    if (_relayIPStyle == null) {
+      // _updateRelayStyle() cannot be called in initState().  But, we need
+      // to update the relay style before the first screen build.  So, do it
+      // here but only if we don't yet have a style.
+      _updateRelayStyle();
+    }
+
     return ListView(
       children: <Widget>[
         Padding(
@@ -313,7 +374,7 @@ class _SettingsState extends State<Settings> {
                 child: Row(
                   children: [
                     Expanded(
-                      flex: 11,
+                      flex: _partialTextFlex,
                       child: TextField(
                         controller: _passwordController,
                         decoration: Style.hintDecoration('Password'),
@@ -345,6 +406,40 @@ class _SettingsState extends State<Settings> {
                     }
                   },
                   child: const Text("Download"),
+                ),
+              ),
+              const Padding(
+                padding: Style.columnPadding,
+                child: Text("RTPS Relay", style: Style.titleText),
+              ),
+              Padding(
+                padding: Style.textPadding,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Checkbox(
+                        value: Settings.useRelay.value,
+                        activeColor: Theme.of(context).colorScheme.primary,
+                        onChanged: (bool? value) async {
+                          await Settings.useRelay.setStored(value);
+                          setState(() => _updateRelayStyle());
+                        },
+                      ),
+                    ),
+                    Expanded(
+                      flex: _partialTextFlex,
+                      child: TextField(
+                        enabled: Settings.useRelay.value,
+                        style: _relayIPStyle,
+                        controller: _relayIPController,
+                        decoration: Style.hintDecoration('Relay IP Address'),
+                        onChanged: (s) {
+                          Settings.relayIP.setStored(s);
+                          setState(() => _updateRelayStyle());
+                        },
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const Padding(
@@ -430,9 +525,7 @@ class _SettingsState extends State<Settings> {
   Future<bool> _onWillPop() async {
     if (_restartChanges) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content:
-                Text("Restarting the connection...")),
+        const SnackBar(content: Text("Restarting the connection...")),
       );
       widget.restart();
     }
@@ -448,6 +541,8 @@ class _SettingsState extends State<Settings> {
     // via the UI and persisted.
     Settings.topicPrefix.change = (v) => _restartChanges = true;
     Settings.domainId.change = (v) => _restartChanges = true;
+    Settings.useRelay.change = (v) => _restartChanges = true;
+    Settings.relayIP.change = (v) => _restartChanges = true;
   }
 
   @override
