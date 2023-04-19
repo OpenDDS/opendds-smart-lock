@@ -182,12 +182,17 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
+    - name: install flutter
+      shell: bash
+      run: |
+        git clone https://github.com/flutter/flutter.git
     - name: checkout opendds-smart-lock
       uses: actions/checkout@v3
       with:
         path: opendds-smart-lock
     - name: build android arm64 app
       run: |
+        PATH="$PATH:`pwd`/flutter/bin"
         cd opendds-smart-lock
         ./smart-lock android get-github-image-arm64
         ./smart-lock android compile
@@ -196,12 +201,17 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
+    - name: install flutter
+      shell: bash
+      run: |
+        git clone https://github.com/flutter/flutter.git
     - name: checkout opendds-smart-lock
       uses: actions/checkout@v3
       with:
         path: opendds-smart-lock
     - name: build android arm app
       run: |
+        PATH="$PATH:`pwd`/flutter/bin"
         cd opendds-smart-lock
         ./smart-lock android get-github-image-arm
         ./smart-lock android compile
@@ -210,12 +220,17 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
+    - name: install flutter
+      shell: bash
+      run: |
+        git clone https://github.com/flutter/flutter.git
     - name: checkout opendds-smart-lock
       uses: actions/checkout@v3
       with:
         path: opendds-smart-lock
     - name: build android x86 app
       run: |
+        PATH="$PATH:`pwd`/flutter/bin"
         cd opendds-smart-lock
         ./smart-lock android get-github-image-x86
         ./smart-lock android compile
