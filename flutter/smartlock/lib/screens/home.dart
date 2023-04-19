@@ -192,6 +192,9 @@ class _HomeState extends State<Home> {
     final String relay = Settings.useRelay.value ? "1" : "0";
     final String relayIP = Settings.relayIP.value;
     final bool valid = Settings.validateIPAddress(relayIP);
+    final int spdp = Settings.spdpPort.value;
+    final int sedp = Settings.sedpPort.value;
+    final int data = Settings.dataPort.value;
 
     // If the user wants to use the relay and the IP address is not valid,
     // let them know that we can't.
@@ -207,10 +210,10 @@ class _HomeState extends State<Home> {
         config.set(section, "UseRtpsRelay", relay);
         if (Settings.useRelay.value && valid) {
           if (section.startsWith(discovery)) {
-            config.set(section, "SpdpRtpsRelayAddress", "$relayIP:4444");
-            config.set(section, "SedpRtpsRelayAddress", "$relayIP:4445");
+            config.set(section, "SpdpRtpsRelayAddress", "$relayIP:$spdp");
+            config.set(section, "SedpRtpsRelayAddress", "$relayIP:$sedp");
           } else {
-            config.set(section, "DataRtpsRelayAddress", "$relayIP:4446");
+            config.set(section, "DataRtpsRelayAddress", "$relayIP:$data");
           }
         }
       }

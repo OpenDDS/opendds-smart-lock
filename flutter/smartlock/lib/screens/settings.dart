@@ -158,6 +158,19 @@ final List<Color> _darkColors = [
   Colors.purple.shade200,
 ];
 
+class _PortInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue, TextEditingValue newValue) {
+    if (newValue.text.isEmpty) {
+      return newValue;
+    } else {
+      final int? value = int.tryParse(newValue.text);
+      return value == null || value < 0 || value > 65535 ? oldValue : newValue;
+    }
+  }
+}
+
 class Settings extends StatefulWidget {
   static ThemeSetting theme = ThemeSetting("themeMode", ThemeMode.system);
   static ColorSetting lightSeed = ColorSetting("lightSeed", _lightColors[3]);
@@ -170,6 +183,9 @@ class Settings extends StatefulWidget {
   static var domainId = IntSetting("domainId", 1);
   static var useRelay = BoolSetting("useRelay", false);
   static var relayIP = StringSetting("relayIP", "35.224.27.187");
+  static var spdpPort = IntSetting("spdpPort", 4444);
+  static var sedpPort = IntSetting("sedpPort", 4445);
+  static var dataPort = IntSetting("dataPort", 4446);
 
   static Future<void> load() async {
     await theme.getStored();
@@ -182,6 +198,9 @@ class Settings extends StatefulWidget {
     await domainId.getStored();
     await useRelay.getStored();
     await relayIP.getStored();
+    await spdpPort.getStored();
+    await sedpPort.getStored();
+    await dataPort.getStored();
   }
 
   static bool validateIPAddress(String value) {
@@ -212,6 +231,7 @@ class _SettingsState extends State<Settings> {
   bool _restartChanges = false;
   bool _obscurePassword = true;
   IconData _eye = Icons.remove_red_eye;
+  final List<TextInputFormatter> _portInputFormatter = [_PortInputFormatter()];
   final _usernameController =
       TextEditingController(text: Settings.username.value);
   final _passwordController =
@@ -223,7 +243,15 @@ class _SettingsState extends State<Settings> {
       TextEditingController(text: Settings.domainId.value.toString());
   final _relayIPController =
       TextEditingController(text: Settings.relayIP.value);
+  final _spdpPortController =
+      TextEditingController(text: Settings.spdpPort.value.toString());
+  final _sedpPortController =
+      TextEditingController(text: Settings.sedpPort.value.toString());
+  final _dataPortController =
+      TextEditingController(text: Settings.dataPort.value.toString());
   TextStyle? _relayIPStyle;
+  TextStyle? _portStyle;
+  final List<int> _originalPorts = [];
 
   void _updateThemeMode(ThemeMode? value) {
     Settings.theme.setStored(value);
@@ -321,12 +349,13 @@ class _SettingsState extends State<Settings> {
     TextStyle style;
     if (Settings.useRelay.value) {
       style = TextStyle(color: relayIPColor);
+      _portStyle = null;
     } else {
-      style = TextStyle(
+      _portStyle = const TextStyle(
         fontWeight: FontWeight.w300,
         fontStyle: FontStyle.italic,
-        color: relayIPColor,
       );
+      style = _portStyle!.merge(TextStyle(color: relayIPColor));
     }
 
     // The default text style for a TextField is subtitle1.  So, we will use
@@ -426,21 +455,107 @@ class _SettingsState extends State<Settings> {
                         },
                       ),
                     ),
-                    Expanded(
+                    const Expanded(
                       flex: _partialTextFlex,
-                      child: TextField(
-                        enabled: Settings.useRelay.value,
-                        style: _relayIPStyle,
-                        controller: _relayIPController,
-                        decoration: Style.hintDecoration('Relay IP Address'),
-                        onChanged: (s) {
-                          Settings.relayIP.setStored(s);
-                          setState(() => _updateRelayStyle());
-                        },
-                      ),
+                      child: Text("Use the relay"),
                     ),
                   ],
                 ),
+              ),
+              Row(
+                children: [
+                  const Padding(
+                    padding: Style.columnPadding,
+                    child: Text("IP Address:"),
+                  ),
+                  Expanded(
+                    child: TextField(
+                      enabled: Settings.useRelay.value,
+                      style: _relayIPStyle,
+                      controller: _relayIPController,
+                      decoration: Style.hintDecoration('e.g., 35.224.27.187'),
+                      onChanged: (s) {
+                        Settings.relayIP.setStored(s);
+                        setState(() => _updateRelayStyle());
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              Row(
+                children: [
+                  Padding(
+                    padding: Style.columnPadding,
+                    child: Column(
+                      children: const [
+                        Padding(
+                          padding: EdgeInsets.only(bottom: 50),
+                          child: Text("Spdp Port:"),
+                        ),
+                        Text("Sedp Port:")
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: Padding(
+                      padding: Style.columnPadding,
+                      child: Column(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4, bottom: 4),
+                            child: TextField(
+                              keyboardType: TextInputType.number,
+                              style: _portStyle,
+                              controller: _spdpPortController,
+                              decoration: Style.hintDecoration("e.g., 4444"),
+                              onChanged: (s) =>
+                                  Settings.spdpPort.setStored(int.parse(s)),
+                              inputFormatters: _portInputFormatter,
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4, bottom: 4),
+                            child: TextField(
+                              keyboardType: TextInputType.number,
+                              style: _portStyle,
+                              controller: _sedpPortController,
+                              decoration: Style.hintDecoration("e.g., 4445"),
+                              onChanged: (s) =>
+                                  Settings.sedpPort.setStored(int.parse(s)),
+                              inputFormatters: _portInputFormatter,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: Style.columnPadding,
+                    child: Column(
+                      children: const [
+                        Text("Data Port:"),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: Padding(
+                      padding: Style.textPadding,
+                      child: Column(
+                        children: [
+                          TextField(
+                            keyboardType: TextInputType.number,
+                            style: _portStyle,
+                            controller: _dataPortController,
+                            decoration: Style.hintDecoration("e.g., 4446"),
+                            onChanged: (s) =>
+                                Settings.dataPort.setStored(int.parse(s)),
+                            inputFormatters: _portInputFormatter,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const Padding(
                 padding: Style.columnPadding,
@@ -462,9 +577,6 @@ class _SettingsState extends State<Settings> {
                   controller: _domainIdController,
                   decoration: Style.hintDecoration('Domain Id'),
                   onChanged: (s) => Settings.domainId.setStored(int.parse(s)),
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'\d'))
-                  ],
                 ),
               ),
               const Padding(
@@ -524,6 +636,29 @@ class _SettingsState extends State<Settings> {
 
   Future<bool> _onWillPop() async {
     if (_restartChanges) {
+      // See if we need to restore port values.
+      bool restored = false;
+      if (_spdpPortController.text.isEmpty) {
+        Settings.spdpPort.setStored(_originalPorts[0]);
+        restored = true;
+      }
+      if (_sedpPortController.text.isEmpty) {
+        Settings.sedpPort.setStored(_originalPorts[1]);
+        restored = true;
+      }
+      if (_dataPortController.text.isEmpty) {
+        Settings.dataPort.setStored(_originalPorts[2]);
+        restored = true;
+      }
+      if (restored) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text(
+                  "One or more of the relay ports were restored to the original value.")),
+        );
+      }
+
+      // Show the message indicating a restart.
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Restarting the connection...")),
       );
@@ -536,13 +671,27 @@ class _SettingsState extends State<Settings> {
   void initState() {
     super.initState();
 
+    // Save the original ports so that if the user leaves them empty, we can
+    // restore back to the original values.
+    _originalPorts.add(Settings.spdpPort.value);
+    _originalPorts.add(Settings.sedpPort.value);
+    _originalPorts.add(Settings.dataPort.value);
+
     // Set the change function to indicate that changes requiring a restart have
     // been made.  The change function is only called if the setting is changed
     // via the UI and persisted.
-    Settings.topicPrefix.change = (v) => _restartChanges = true;
-    Settings.domainId.change = (v) => _restartChanges = true;
+    for (var setting in [Settings.topicPrefix, Settings.relayIP]) {
+      setting.change = (v) => _restartChanges = true;
+    }
     Settings.useRelay.change = (v) => _restartChanges = true;
-    Settings.relayIP.change = (v) => _restartChanges = true;
+    for (var setting in [
+      Settings.domainId,
+      Settings.spdpPort,
+      Settings.sedpPort,
+      Settings.dataPort
+    ]) {
+      setting.change = (v) => _restartChanges = true;
+    }
   }
 
   @override
