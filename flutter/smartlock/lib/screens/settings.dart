@@ -95,6 +95,13 @@ abstract class SimpleSetting<T> extends Setting<T, T> {
   bool valid(T index) => true;
 }
 
+class BoolSetting extends SimpleSetting<bool> {
+  BoolSetting(super.key, super.value);
+
+  @override
+  Future<bool> store(prefs) async => await prefs.setBool(key, access(value));
+}
+
 class IntSetting extends SimpleSetting<int> {
   IntSetting(super.key, super.value);
 
@@ -151,6 +158,19 @@ final List<Color> _darkColors = [
   Colors.purple.shade200,
 ];
 
+class _PortInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue, TextEditingValue newValue) {
+    if (newValue.text.isEmpty) {
+      return newValue;
+    } else {
+      final int? value = int.tryParse(newValue.text);
+      return value == null || value < 0 || value > 65535 ? oldValue : newValue;
+    }
+  }
+}
+
 class Settings extends StatefulWidget {
   static ThemeSetting theme = ThemeSetting("themeMode", ThemeMode.system);
   static ColorSetting lightSeed = ColorSetting("lightSeed", _lightColors[3]);
@@ -161,6 +181,11 @@ class Settings extends StatefulWidget {
       StringSetting("apiURL", "https://dpm.unityfoundation.io/api");
   static var topicPrefix = StringSetting("topicPrefix", "C.53.");
   static var domainId = IntSetting("domainId", 1);
+  static var useRelay = BoolSetting("useRelay", false);
+  static var relayIP = StringSetting("relayIP", "35.224.27.187");
+  static var spdpPort = IntSetting("spdpPort", 4444);
+  static var sedpPort = IntSetting("sedpPort", 4445);
+  static var dataPort = IntSetting("dataPort", 4446);
 
   static Future<void> load() async {
     await theme.getStored();
@@ -171,6 +196,25 @@ class Settings extends StatefulWidget {
     await apiURL.getStored();
     await topicPrefix.getStored();
     await domainId.getStored();
+    await useRelay.getStored();
+    await relayIP.getStored();
+    await spdpPort.getStored();
+    await sedpPort.getStored();
+    await dataPort.getStored();
+  }
+
+  static bool validateIPAddress(String value) {
+    final RegExp regex = RegExp(r'^\s*(\d+)\.(\d+)\.(\d+)\.(\d+)');
+    final RegExpMatch? match = regex.firstMatch(value);
+    if (match != null) {
+      for (int i = 0; i < 4; i++) {
+        final int? octet = int.tryParse(match[i + 1]!);
+        if (octet == null || octet < 0 || octet > 255) {
+          return false;
+        }
+      }
+    }
+    return true;
   }
 
   final Function() download;
@@ -182,10 +226,12 @@ class Settings extends StatefulWidget {
 }
 
 class _SettingsState extends State<Settings> {
+  static const int _partialTextFlex = 11;
   Color? _selected;
   bool _restartChanges = false;
   bool _obscurePassword = true;
   IconData _eye = Icons.remove_red_eye;
+  final List<TextInputFormatter> _portInputFormatter = [_PortInputFormatter()];
   final _usernameController =
       TextEditingController(text: Settings.username.value);
   final _passwordController =
@@ -195,6 +241,17 @@ class _SettingsState extends State<Settings> {
       TextEditingController(text: Settings.topicPrefix.value);
   final _domainIdController =
       TextEditingController(text: Settings.domainId.value.toString());
+  final _relayIPController =
+      TextEditingController(text: Settings.relayIP.value);
+  final _spdpPortController =
+      TextEditingController(text: Settings.spdpPort.value.toString());
+  final _sedpPortController =
+      TextEditingController(text: Settings.sedpPort.value.toString());
+  final _dataPortController =
+      TextEditingController(text: Settings.dataPort.value.toString());
+  TextStyle? _relayIPStyle;
+  TextStyle? _portStyle;
+  final List<int> _originalPorts = [];
 
   void _updateThemeMode(ThemeMode? value) {
     Settings.theme.setStored(value);
@@ -280,7 +337,40 @@ class _SettingsState extends State<Settings> {
     );
   }
 
+  void _updateRelayStyle() {
+    // Use the text style default color if the IP address is valid.  Use
+    // the theme error color, otherwise.
+    Color? relayIPColor = Settings.validateIPAddress(Settings.relayIP.value)
+        ? null
+        : Theme.of(context).errorColor;
+
+    // If we're using the relay, just use the color.  If we're not using the
+    // relay, make the text italic and a little lighter.
+    TextStyle style;
+    if (Settings.useRelay.value) {
+      style = TextStyle(color: relayIPColor);
+      _portStyle = null;
+    } else {
+      _portStyle = const TextStyle(
+        fontWeight: FontWeight.w300,
+        fontStyle: FontStyle.italic,
+      );
+      style = _portStyle!.merge(TextStyle(color: relayIPColor));
+    }
+
+    // The default text style for a TextField is subtitle1.  So, we will use
+    // that and merge in our additional style settings.
+    _relayIPStyle = Theme.of(context).textTheme.subtitle1!.merge(style);
+  }
+
   Widget _renderContent() {
+    if (_relayIPStyle == null) {
+      // _updateRelayStyle() cannot be called in initState().  But, we need
+      // to update the relay style before the first screen build.  So, do it
+      // here but only if we don't yet have a style.
+      _updateRelayStyle();
+    }
+
     return ListView(
       children: <Widget>[
         Padding(
@@ -313,7 +403,7 @@ class _SettingsState extends State<Settings> {
                 child: Row(
                   children: [
                     Expanded(
-                      flex: 11,
+                      flex: _partialTextFlex,
                       child: TextField(
                         controller: _passwordController,
                         decoration: Style.hintDecoration('Password'),
@@ -349,6 +439,126 @@ class _SettingsState extends State<Settings> {
               ),
               const Padding(
                 padding: Style.columnPadding,
+                child: Text("RTPS Relay", style: Style.titleText),
+              ),
+              Padding(
+                padding: Style.textPadding,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Checkbox(
+                        value: Settings.useRelay.value,
+                        activeColor: Theme.of(context).colorScheme.primary,
+                        onChanged: (bool? value) async {
+                          await Settings.useRelay.setStored(value);
+                          setState(() => _updateRelayStyle());
+                        },
+                      ),
+                    ),
+                    const Expanded(
+                      flex: _partialTextFlex,
+                      child: Text("Use the relay"),
+                    ),
+                  ],
+                ),
+              ),
+              Row(
+                children: [
+                  const Padding(
+                    padding: Style.columnPadding,
+                    child: Text("IP Address:"),
+                  ),
+                  Expanded(
+                    child: TextField(
+                      enabled: Settings.useRelay.value,
+                      style: _relayIPStyle,
+                      controller: _relayIPController,
+                      decoration: Style.hintDecoration('e.g., 35.224.27.187'),
+                      onChanged: (s) {
+                        Settings.relayIP.setStored(s);
+                        setState(() => _updateRelayStyle());
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              Row(
+                children: [
+                  Padding(
+                    padding: Style.columnPadding,
+                    child: Column(
+                      children: const [
+                        Padding(
+                          padding: EdgeInsets.only(bottom: 50),
+                          child: Text("Spdp Port:"),
+                        ),
+                        Text("Sedp Port:")
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: Padding(
+                      padding: Style.columnPadding,
+                      child: Column(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4, bottom: 4),
+                            child: TextField(
+                              keyboardType: TextInputType.number,
+                              style: _portStyle,
+                              controller: _spdpPortController,
+                              decoration: Style.hintDecoration("e.g., 4444"),
+                              onChanged: (s) =>
+                                  Settings.spdpPort.setStored(int.parse(s)),
+                              inputFormatters: _portInputFormatter,
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4, bottom: 4),
+                            child: TextField(
+                              keyboardType: TextInputType.number,
+                              style: _portStyle,
+                              controller: _sedpPortController,
+                              decoration: Style.hintDecoration("e.g., 4445"),
+                              onChanged: (s) =>
+                                  Settings.sedpPort.setStored(int.parse(s)),
+                              inputFormatters: _portInputFormatter,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: Style.columnPadding,
+                    child: Column(
+                      children: const [
+                        Text("Data Port:"),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: Padding(
+                      padding: Style.textPadding,
+                      child: Column(
+                        children: [
+                          TextField(
+                            keyboardType: TextInputType.number,
+                            style: _portStyle,
+                            controller: _dataPortController,
+                            decoration: Style.hintDecoration("e.g., 4446"),
+                            onChanged: (s) =>
+                                Settings.dataPort.setStored(int.parse(s)),
+                            inputFormatters: _portInputFormatter,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const Padding(
+                padding: Style.columnPadding,
                 child: Text("Topic Prefix/Domain Id", style: Style.titleText),
               ),
               Padding(
@@ -367,9 +577,6 @@ class _SettingsState extends State<Settings> {
                   controller: _domainIdController,
                   decoration: Style.hintDecoration('Domain Id'),
                   onChanged: (s) => Settings.domainId.setStored(int.parse(s)),
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'\d'))
-                  ],
                 ),
               ),
               const Padding(
@@ -429,10 +636,31 @@ class _SettingsState extends State<Settings> {
 
   Future<bool> _onWillPop() async {
     if (_restartChanges) {
+      // See if we need to restore port values.
+      bool restored = false;
+      if (_spdpPortController.text.isEmpty) {
+        Settings.spdpPort.setStored(_originalPorts[0]);
+        restored = true;
+      }
+      if (_sedpPortController.text.isEmpty) {
+        Settings.sedpPort.setStored(_originalPorts[1]);
+        restored = true;
+      }
+      if (_dataPortController.text.isEmpty) {
+        Settings.dataPort.setStored(_originalPorts[2]);
+        restored = true;
+      }
+      if (restored) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text(
+                  "One or more of the relay ports were restored to the original value.")),
+        );
+      }
+
+      // Show the message indicating a restart.
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content:
-                Text("Restarting the connection...")),
+        const SnackBar(content: Text("Restarting the connection...")),
       );
       widget.restart();
     }
@@ -443,11 +671,27 @@ class _SettingsState extends State<Settings> {
   void initState() {
     super.initState();
 
+    // Save the original ports so that if the user leaves them empty, we can
+    // restore back to the original values.
+    _originalPorts.add(Settings.spdpPort.value);
+    _originalPorts.add(Settings.sedpPort.value);
+    _originalPorts.add(Settings.dataPort.value);
+
     // Set the change function to indicate that changes requiring a restart have
     // been made.  The change function is only called if the setting is changed
     // via the UI and persisted.
-    Settings.topicPrefix.change = (v) => _restartChanges = true;
-    Settings.domainId.change = (v) => _restartChanges = true;
+    for (var setting in [Settings.topicPrefix, Settings.relayIP]) {
+      setting.change = (v) => _restartChanges = true;
+    }
+    Settings.useRelay.change = (v) => _restartChanges = true;
+    for (var setting in [
+      Settings.domainId,
+      Settings.spdpPort,
+      Settings.sedpPort,
+      Settings.dataPort
+    ]) {
+      setting.change = (v) => _restartChanges = true;
+    }
   }
 
   @override
