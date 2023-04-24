@@ -158,15 +158,24 @@ class _HomeState extends State<Home> {
   }
 
   Future<void> _restart() async {
-    smartlock_idl.Bridge.shutdown();
+    try {
+      smartlock_idl.Bridge.shutdown();
+    } catch (_) {
+      // Ignore exceptions coming from this call.  If there is an issue with
+      // the bridge, it will be shown when attempting to start it up again.
+    }
     _bridge?.dispose();
+    _loadLocks();
     _startBridge();
   }
 
-  void _updateDomainFromINI(String contents) {
+  String _processINI(String contents) {
+    // Create a Config object from the string contents.
     final config = Config.fromString(contents);
+
+    // Search for the domain and update the setting value.
     const String target = "domain/";
-    for(var section in config.sections()) {
+    for (var section in config.sections()) {
       if (section.startsWith(target)) {
         // Update the domain setting with the value in the ini file.
         final int? domainId = int.tryParse(section.substring(target.length));
@@ -178,6 +187,40 @@ class _HomeState extends State<Home> {
         break;
       }
     }
+
+    const String discovery = "rtps_discovery/";
+    const String transport = "transport/";
+    final String relay = Settings.useRelay.value ? "1" : "0";
+    final String relayIP = Settings.relayIP.value;
+    final bool valid = Settings.validateIPAddress(relayIP);
+    final int spdp = Settings.spdpPort.value;
+    final int sedp = Settings.sedpPort.value;
+    final int data = Settings.dataPort.value;
+
+    // If the user wants to use the relay and the IP address is not valid,
+    // let them know that we can't.
+    if (Settings.useRelay.value && !valid) {
+      _snack(
+          "The RTPS Relay IP Address is invalid.  Using the previous value.");
+    }
+
+    // Update the RTPS discovery and transport sections based on the settings.
+    for (var section in config.sections()) {
+      if (section.startsWith(discovery) || section.startsWith(transport)) {
+        // Update the domain setting with the value in the ini file.
+        config.set(section, "UseRtpsRelay", relay);
+        if (Settings.useRelay.value && valid) {
+          if (section.startsWith(discovery)) {
+            config.set(section, "SpdpRtpsRelayAddress", "$relayIP:$spdp");
+            config.set(section, "SedpRtpsRelayAddress", "$relayIP:$sedp");
+          } else {
+            config.set(section, "DataRtpsRelayAddress", "$relayIP:$data");
+          }
+        }
+      }
+    }
+
+    return config.toString();
   }
 
   Future<void> _startBridge() async {
@@ -187,8 +230,7 @@ class _HomeState extends State<Home> {
     final String path = documentsDirectory.path;
     final ini = File(join(path, 'opendds_config.ini'));
     final contents = await rootBundle.loadString('assets/opendds_config.ini');
-    ini.writeAsStringSync(contents);
-    _updateDomainFromINI(contents);
+    ini.writeAsStringSync(_processINI(contents));
 
     // Download the certs from the permissions manager.
     final certs = await _downloadCerts(path, false);
