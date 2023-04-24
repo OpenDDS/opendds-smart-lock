@@ -239,18 +239,6 @@ private:
       args.push_back("bookkeeping");
       args.push_back("-DCPSSecurity");
       args.push_back("1");
-      args.push_back("-ID_CA");
-      args.push_back(config->id_ca);
-      args.push_back("-ID_CERT");
-      args.push_back(config->id_cert);
-      args.push_back("-ID_PKEY");
-      args.push_back(config->id_pkey);
-      args.push_back("-PERM_CA");
-      args.push_back(config->perm_ca);
-      args.push_back("-PERM_GOV");
-      args.push_back(config->perm_gov);
-      args.push_back("-PERM_PERMS");
-      args.push_back(config->perm_perms);
     }
 
     int argc = args.size();
