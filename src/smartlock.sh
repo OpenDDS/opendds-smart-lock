@@ -116,7 +116,6 @@ start() {
         -DCPSDebugLevel 5 \
         -DCPSTransportDebugLevel 5 \
         -lock ${LOCK} \
-        -groups house1 \
         -ini ${smartlock_ini} \
         ${SECURITY_ARGS} &
 
@@ -140,7 +139,6 @@ start-system() {
         -DCPSDebugLevel 5 \
         -DCPSTransportDebugLevel 5 \
         -lock ${LOCK} \
-        -groups house1 \
         -ini ${smartlock_ini} \
         ${SECURITY_ARGS}
 }

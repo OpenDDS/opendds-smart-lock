@@ -251,6 +251,7 @@ class _HomeState extends State<Home> {
           certs['id_private']!,
           Settings.topicPrefix.value,
           Settings.domainId.value,
+          Settings.group.value,
         );
       } catch (err) {
         _snack(err.toString());

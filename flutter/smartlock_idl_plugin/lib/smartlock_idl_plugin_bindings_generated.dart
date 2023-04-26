@@ -147,6 +147,9 @@ class OpenDdsBridgeConfig extends ffi.Struct {
   @ffi.Int64()
   external int send_port;
 
+  /// Configuration Items.
+  external ffi.Pointer<ffi.Char> group;
+
   external ffi.Pointer<ffi.Char> topic_prefix;
 
   @ffi.Int32()

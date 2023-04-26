@@ -14,3 +14,4 @@ DiscoveryConfig=DiscoveryConfig1
 [rtps_discovery/DiscoveryConfig1]
 #SPDP_RTPS_RELAY_ADDRESS_LINE
 #SEDP_RTPS_RELAY_ADDRESS_LINE
+UseRtpsRelay=1

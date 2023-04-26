@@ -186,6 +186,7 @@ class Settings extends StatefulWidget {
   static var spdpPort = IntSetting("spdpPort", 4444);
   static var sedpPort = IntSetting("sedpPort", 4445);
   static var dataPort = IntSetting("dataPort", 4446);
+  static var group = StringSetting("group", "");
 
   static Future<void> load() async {
     await theme.getStored();
@@ -201,6 +202,7 @@ class Settings extends StatefulWidget {
     await spdpPort.getStored();
     await sedpPort.getStored();
     await dataPort.getStored();
+    await group.getStored();
   }
 
   static bool validateIPAddress(String value) {
@@ -252,6 +254,8 @@ class _SettingsState extends State<Settings> {
   TextStyle? _relayIPStyle;
   TextStyle? _portStyle;
   final List<int> _originalPorts = [];
+  final _groupController =
+      TextEditingController(text: Settings.group.value);
 
   void _updateThemeMode(ThemeMode? value) {
     Settings.theme.setStored(value);
@@ -559,7 +563,15 @@ class _SettingsState extends State<Settings> {
               ),
               const Padding(
                 padding: Style.columnPadding,
-                child: Text("Topic Prefix/Domain Id", style: Style.titleText),
+                child: Text("Group/Topic Prefix/Domain Id", style: Style.titleText),
+              ),
+              Padding(
+                padding: Style.textPadding,
+                child: TextField(
+                  controller: _groupController,
+                  decoration: Style.hintDecoration('Group'),
+                  onChanged: (s) => Settings.group.setStored(s),
+                ),
               ),
               Padding(
                 padding: Style.textPadding,
@@ -680,7 +692,7 @@ class _SettingsState extends State<Settings> {
     // Set the change function to indicate that changes requiring a restart have
     // been made.  The change function is only called if the setting is changed
     // via the UI and persisted.
-    for (var setting in [Settings.topicPrefix, Settings.relayIP]) {
+    for (var setting in [Settings.topicPrefix, Settings.relayIP, Settings.group]) {
       setting.change = (v) => _restartChanges = true;
     }
     Settings.useRelay.change = (v) => _restartChanges = true;

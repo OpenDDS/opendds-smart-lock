@@ -1,0 +1,12 @@
+project: acelib {
+  // Make this a static only library
+  sharedname =
+
+  // Based on the layout of the real pigpio
+  libout   = ../lib
+  includes += ../include
+
+  Header_Files {
+    ../include
+  }
+}

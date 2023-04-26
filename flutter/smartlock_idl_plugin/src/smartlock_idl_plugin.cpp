@@ -213,6 +213,12 @@ public:
     domain = id;
   }
 
+  void addGroup(const char* group) {
+    if (group != nullptr && strcmp(group, "") != 0) {
+      groups.push_back(group);
+    }
+  }
+
 private:
   void initParticipantFactory(const OpenDdsBridgeConfig* config) {
     if (participantFactory != nullptr) {
@@ -229,6 +235,8 @@ private:
     args.push_back(config->ini);
 
     if (secure) {
+      args.push_back("-DCPSSecurityDebug");
+      args.push_back("bookkeeping");
       args.push_back("-DCPSSecurity");
       args.push_back("1");
     }
@@ -342,6 +350,7 @@ private:
 
     DDS::SubscriberQos sub_qos;
     participant->get_default_subscriber_qos(sub_qos);
+    groups_to_partitions(sub_qos.partition);
 
     DDS::Subscriber_var sub = participant->create_subscriber(sub_qos, nullptr,
       OpenDDS::DCPS::DEFAULT_STATUS_MASK);
@@ -452,6 +461,8 @@ private:
 
     DDS::PublisherQos pub_qos;
     participant->get_default_publisher_qos(pub_qos);
+    groups_to_partitions(pub_qos.partition);
+
     DDS::Publisher_var publisher =
       participant->create_publisher(pub_qos,
                                     nullptr,
@@ -487,6 +498,13 @@ private:
     }
 
     return true;
+  }
+
+  void groups_to_partitions(DDS::PartitionQosPolicy& dest) const {
+    dest.name.length(groups.size());
+    for(CORBA::ULong i = 0; i < dest.name.length(); ++i) {
+      dest.name[i] = groups[i].c_str();
+    }
   }
 
   std::string error_message;
@@ -552,6 +570,7 @@ void startOpenDdsBridge(OpenDdsBridge* bridge,
     OpenDdsBridgeImpl* impl = reinterpret_cast<OpenDdsBridgeImpl*>(bridge->ptr);
     impl->setTopicPrefix(config->topic_prefix);
     impl->setDomainId(config->domain_id);
+    impl->addGroup(config->group);
     impl->run(config);
   }
 }

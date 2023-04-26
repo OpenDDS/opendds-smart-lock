@@ -67,7 +67,8 @@ class Bridge {
       String idCert,
       String idPrivateKey,
       String topicPrefix,
-      int domainId) async {
+      int domainId,
+      [String group = ""]) async {
     port = ReceivePort();
     port.listen((dynamic data) => _lockUpdate(data));
 
@@ -89,6 +90,7 @@ class Bridge {
     config.ref.send_port = port.sendPort.nativePort;
     config.ref.topic_prefix = topicPrefix.toNativeUtf8().cast<Char>();
     config.ref.domain_id = domainId;
+    config.ref.group = group.toNativeUtf8().cast<Char>();
 
     _bindings.startOpenDdsBridge(bridge, config);
 
@@ -99,6 +101,8 @@ class Bridge {
     ffi.malloc.free(config.ref.perm_perms);
     ffi.malloc.free(config.ref.id_cert);
     ffi.malloc.free(config.ref.id_pkey);
+    ffi.malloc.free(config.ref.topic_prefix);
+    ffi.malloc.free(config.ref.group);
     ffi.malloc.free(config);
   }
 

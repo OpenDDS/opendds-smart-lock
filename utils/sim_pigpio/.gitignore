@@ -1,0 +1,4 @@
+GNUmakefile*
+*.sln
+.vs
+.depend*
