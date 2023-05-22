@@ -1,0 +1,16 @@
+// -*- MPC -*-
+// Created from 'DDS_TAOv2.mwc of OpenDDS
+
+workspace {
+  ACE_TAO_for_OpenDDS.mwc
+  dds
+  tools
+  SmartlockApp
+
+  exclude {
+    java/jms
+    // Run tools/modeling/tests/setup.pl to generate
+    // tools/modeling/tests/modeling_tests.mwc.
+    tools/modeling/tests
+  }
+}
