@@ -2,32 +2,42 @@ DESCRIPTION = "OpenDDS Smartlock application"
 LICENSE = "MIT"
 LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda2f7b4f302"
 
+inherit logging
+# inherit autotools
 
 SRC_URI = "file://SmartlockApp.tar.gz" 
 
-DOC_TAO2_VERSION = "6.5.19"
-DOC_TAO2_SHA256SUM = "e0d5faf9ec6fa457747776293eab2c71502109b6655de0e62f30dace04af809c"
-DOC_TAO2_URI = "https://github.com/DOCGroup/ACE_TAO/releases/download/ACE+TAO-${@'${DOC_TAO2_VERSION}'.replace('.','_')}/ACE+TAO-src-${DOC_TAO2_VERSION}.tar.gz"
-SRC_URI += "${DOC_TAO2_URI};name=ace_tao;"
-SRC_URI[ace_tao.sha256sum] = "${DOC_TAO2_SHA256SUM}"
+DEPENDS += "opendds opendds-native"
 
-DEPENDS += "opendds"
+NATIVE_INSTALL_PREFIX = "${WORKDIR}/recipe-sysroot-native/usr"
+TARGET_INSTALL_PREFIX = "${WORKDIR}/recipe-sysroot/usr"
 
-S = "${WORKDIR}"
-MPC_ROOT = "${S}/ACE_wrappers/MPC"
-DDS_ROOT = "${S}/recipe-sysroot/usr/share/dds"
-TAO_ROOT = "${S}/recipe-sysroot/usr/share/tao"
-ACE_ROOT = "${S}/recipe-sysroot/usr/share/ace"
+export MPC_ROOT = "${TARGET_INSTALL_PREFIX}/share/MPC"
+export ACE_ROOT = "${TARGET_INSTALL_PREFIX}/share/ace"
+export DDS_ROOT = "${TARGET_INSTALL_PREFIX}/share/dds"
+export TAO_ROOT = "${TARGET_INSTALL_PREFIX}/share/tao"
+
+export LIBCHECK_PREFIX = "${TARGET_INSTALL_PREFIX}"
+export INSTALL_PREFIX = "${TARGET_INSTALL_PREFIX}"
+
+export HOST_DDS = "${NATIVE_INSTALL_PREFIX}/bin/DDS_HOST_ROOT"
+export HOST_ACE = "${NATIVE_INSTALL_PREFIX}"
+
+# export TAO_IDL_PREPROCESSOR_ARGS = "-I${TARGET_INSTALL_PREFIX}/include"
+# export CPPFLAGS = "-I${TARGET_INSTALL_PREFIX}/include"
+
+S = "${WORKDIR}/SmartlockApp"
+B = "${S}"
 
 do_configure() {
-    ${ACE_ROOT}/bin/mwc.pl -type gnuace -features 'no_pigpio=1' 
+    ${NATIVE_INSTALL_PREFIX}/share/ace/bin/mwc.pl -type gnuace -features 'no_cxx11=0,no_pigpio=1' 
 }
 
 do_compile() {
-    oe_runmake
+    make
 }
 
-do_install() {
-    install -d ${D}${bindir}
-    install -m 0755 smartlock ${D}${bindir}
-}
+# do_install() {
+#     install -d ${D}${bindir}
+#     install -m 0755 smartlock ${D}${bindir}
+# }  
