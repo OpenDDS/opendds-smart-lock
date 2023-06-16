@@ -5,7 +5,12 @@ LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda
 inherit logging
 inherit autotools
 
-SRC_URI = "file://SmartlockApp.tar.gz"
+SRC_URI = "file://SmartlockApp.tar.gz \
+file://rtps.ini \
+file://smartlock.ini \
+file://dpm_password \
+file://smartlock.sh \
+"
 
 DEPENDS += "opendds opendds-native"
 
@@ -36,6 +41,12 @@ do_configure() {
 do_install() {
     install -d ${D}${bindir}
     install -m 0755 smartlock ${D}${bindir}
+    install -m 0755 ${WORKDIR}/smartlock.sh ${D}${bindir} 
+
+    install -d ${D}${sysconfdir}/smartlock
+    install -m 0644 ${WORKDIR}/rtps.ini ${D}${sysconfdir}/smartlock 
+    install -m 0644 ${WORKDIR}/smartlock.ini ${D}${sysconfdir}/smartlock 
+    install -m 0644 ${WORKDIR}/dpm_password ${D}${sysconfdir}/smartlock 
     
     install -d ${D}${libdir}
     cp Idl/libSmartLock_Idl.so.* ${D}${libdir}
