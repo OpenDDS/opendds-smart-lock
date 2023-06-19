@@ -3,8 +3,9 @@ use serde::{Deserialize, Serialize};
 use std::env;
 use std::fs;
 use std::io::Write;
+use std::process;
 
-struct Parameters {
+struct Config {
     api_url: String,
     username: String,
     password: String,
@@ -15,37 +16,47 @@ struct Parameters {
     perm_ca_subdir: String,
 }
 
+impl Config {
+    fn build(args: &Vec<String>) -> Result<Config, String> {
+        if args.len() != 9 {
+            let usage_msg = format!("Usage: cargo run <url> <username> <password> <nonce> <dir> <part_dir> <id_ca_dir> <perm_ca_dir>\n\
+                                     With:\n\
+                                     {0: <15} API URL of the DDS Permission Manager (DPM)\n\
+                                     {1: <15} Username of the application in DPM\n\
+                                     {2: <15} Password of the application in DPM\n\
+                                     {3: <15} A nonce string\n\
+                                     {4: <15} Top level directory to store the docs\n\
+                                     {5: <15} Subdirectory to store docs specific to this participant\n\
+                                     {6: <15} Subdirectory to store identity CA doc\n\
+                                     {7: <15} Subdirectory to store permission CA doc",
+                                    "<url>", "<username>", "<password>", "<nonce>", "<dir>", "<part_dir>", "<id_ca_dir>", "<perm_ca_dir>");
+            return Err(usage_msg);
+        }
+        Ok(Config {
+            api_url: args[1].clone(),
+            username: args[2].clone(),
+            password: args[3].clone(),
+            nonce: args[4].clone(),
+            directory: args[5].clone(),
+            part_subdir: args[6].clone(),
+            id_ca_subdir: args[7].clone(),
+            perm_ca_subdir: args[8].clone(),
+        })
+    }
+}
+
 fn main() {
     let args: Vec<String> = env::args().collect();
-    if args.len() != 9 {
-        println!("Usage: cargo run <url> <username> <password> <nonce> <dir> <part_dir> <id_ca_dir> <perm_ca_dir>");
-        println!("With:");
-        println!("{0: <15} API URL of the DDS Permission Manager (DPM)", "<url>");
-        println!("{0: <15} Username of the application in DPM", "<username>");
-        println!("{0: <15} Password of the application in DPM", "<password>");
-        println!("{0: <15} A nonce string", "<nonce>");
-        println!("{0: <15} Top level directory to store the docs", "<dir>");
-        println!("{0: <15} Subdirectory to store docs specific to this participant", "<part_dir>");
-        println!("{0: <15} Subdirectory to store identity CA doc", "<id_ca_dir>");
-        println!("{0: <15} Subdirectory to store permission CA doc", "<perm_ca_dir>");
-        return;
-    }
-    let para = Parameters {
-        api_url: args[1].clone(),
-        username: args[2].clone(),
-        password: args[3].clone(),
-        nonce: args[4].clone(),
-        directory: args[5].clone(),
-        part_subdir: args[6].clone(),
-        id_ca_subdir: args[7].clone(),
-        perm_ca_subdir: args[8].clone(),
-    };
+    let config = Config::build(&args).unwrap_or_else(|err| {
+        eprintln!("{err}");
+        process::exit(1);
+    });
 
-    let result = download_certs(&para);
+    let result = download_certs(&config);
     match result {
         Ok(_) => (),
         Err(err) => {
-            println!("download_certs failed: {:?}", err);
+            eprintln!("download_certs failed: {:?}", err);
         }
     }
 }
@@ -56,12 +67,12 @@ struct KeyPair {
     public: String,
 }
 
-fn download_certs(para: &Parameters) -> Result<(), Box<dyn std::error::Error>> {
+fn download_certs(config: &Config) -> Result<(), Box<dyn std::error::Error>> {
     let client = Client::builder().cookie_store(true).build().unwrap();
-    let login_url = format!("{}/login", para.api_url);
+    let login_url = format!("{}/login", config.api_url);
     let credential = format!(
         "{{\"username\":\"{}\", \"password\":\"{}\"}}",
-        para.username, para.password
+        config.username, config.password
     );
     let _auth_resp = client
         .post(login_url)
@@ -69,9 +80,9 @@ fn download_certs(para: &Parameters) -> Result<(), Box<dyn std::error::Error>> {
         .body(credential)
         .send();
 
-    let base_url = format!("{}/applications", para.api_url);
-    let id_ca_dir = format!("{}/{}", para.directory, para.id_ca_subdir);
-    let perm_ca_dir = format!("{}/{}", para.directory, para.perm_ca_subdir);
+    let base_url = format!("{}/applications", config.api_url);
+    let id_ca_dir = format!("{}/{}", config.directory, config.id_ca_subdir);
+    let perm_ca_dir = format!("{}/{}", config.directory, config.perm_ca_subdir);
     download_cert(
         &client,
         &base_url,
@@ -90,25 +101,25 @@ fn download_certs(para: &Parameters) -> Result<(), Box<dyn std::error::Error>> {
         &base_url,
         "governance.xml.p7s",
         None,
-        &para.directory,
+        &config.directory,
     )?;
     download_cert(
         &client,
         &base_url,
         "key_pair",
-        Some(&para.nonce),
-        &para.directory,
+        Some(&config.nonce),
+        &config.directory,
     )?;
-    let part_dir = format!("{}/{}", para.directory, para.part_subdir);
+    let part_dir = format!("{}/{}", config.directory, config.part_subdir);
     download_cert(
         &client,
         &base_url,
         "permissions.xml.p7s",
-        Some(&para.nonce),
+        Some(&config.nonce),
         &part_dir,
     )?;
 
-    let kp_file = format!("{}/key_pair", para.directory);
+    let kp_file = format!("{}/key_pair", config.directory);
     let kp_str = fs::read_to_string(&kp_file)?;
     let kp: KeyPair = serde_json::from_str(&kp_str)?;
 
