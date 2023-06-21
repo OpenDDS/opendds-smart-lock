@@ -9,36 +9,51 @@ pub struct Config {
     password: String,
     nonce: String,
     directory: String,
-    part_subdir: String,
-    id_ca_subdir: String,
-    perm_ca_subdir: String,
+    part_subdir: Option<String>,
+    id_ca_subdir: Option<String>,
+    perm_ca_subdir: Option<String>,
 }
 
 impl Config {
     pub fn build(args: &Vec<String>) -> Result<Config, String> {
-        if args.len() != 9 {
-            let usage_msg = format!("Usage: cargo run <url> <username> <password> <nonce> <dir> <part_dir> <id_ca_dir> <perm_ca_dir>\n\
+        if args.len() < 6 {
+            let usage_msg = format!("Usage: cargo run <url> <username> <password> <nonce> <dir> [part_dir] [id_ca_dir] [perm_ca_dir]\n\
                                      With:\n\
                                      {0: <15} API URL of the DDS Permission Manager (DPM)\n\
                                      {1: <15} Username of the application in DPM\n\
                                      {2: <15} Password of the application in DPM\n\
                                      {3: <15} A nonce string\n\
                                      {4: <15} Top level directory to store the docs\n\
-                                     {5: <15} Subdirectory to store docs specific to this participant\n\
-                                     {6: <15} Subdirectory to store identity CA doc\n\
-                                     {7: <15} Subdirectory to store permission CA doc",
-                                    "<url>", "<username>", "<password>", "<nonce>", "<dir>", "<part_dir>", "<id_ca_dir>", "<perm_ca_dir>");
+                                     {5: <15} Subdirectory to store docs specific to this participant (optional)\n\
+                                     {6: <15} Subdirectory to store identity CA doc (optional)\n\
+                                     {7: <15} Subdirectory to store permission CA doc (optional)",
+                                    "<url>", "<username>", "<password>", "<nonce>", "<dir>", "[part_dir]", "[id_ca_dir]", "[perm_ca_dir]");
             return Err(usage_msg);
         }
+        let part_subdir_arg = if args.len() >= 7 {
+            Some(args[6].clone())
+        } else {
+            None
+        };
+        let id_ca_subdir_arg = if args.len() >= 8 {
+            Some(args[7].clone())
+        } else {
+            None
+        };
+        let perm_ca_subdir_arg = if args.len() >= 9 {
+            Some(args[8].clone())
+        } else {
+            None
+        };
         Ok(Config {
             api_url: args[1].clone(),
             username: args[2].clone(),
             password: args[3].clone(),
             nonce: args[4].clone(),
             directory: args[5].clone(),
-            part_subdir: args[6].clone(),
-            id_ca_subdir: args[7].clone(),
-            perm_ca_subdir: args[8].clone(),
+            part_subdir: part_subdir_arg,
+            id_ca_subdir: id_ca_subdir_arg,
+            perm_ca_subdir: perm_ca_subdir_arg,
         })
     }
 }
@@ -63,43 +78,38 @@ pub fn download_certs(config: &Config) -> Result<(), Box<dyn std::error::Error>>
         .send();
 
     let base_url = format!("{}/applications", config.api_url);
-    let id_ca_dir = format!("{}/{}", config.directory, config.id_ca_subdir);
-    let perm_ca_dir = format!("{}/{}", config.directory, config.perm_ca_subdir);
-    download_cert(
-        &client,
-        &base_url,
-        "identity_ca.pem",
-        None,
-        &id_ca_dir,)?;
-    download_cert(
-        &client,
-        &base_url,
-        "permissions_ca.pem",
-        None,
-        &perm_ca_dir,
-    )?;
-    download_cert(
-        &client,
-        &base_url,
-        "governance.xml.p7s",
-        None,
-        &config.directory,
-    )?;
-    download_cert(
-        &client,
-        &base_url,
-        "key_pair",
-        Some(&config.nonce),
-        &config.directory,
-    )?;
-    let part_dir = format!("{}/{}", config.directory, config.part_subdir);
-    download_cert(
-        &client,
-        &base_url,
-        "permissions.xml.p7s",
-        Some(&config.nonce),
-        &part_dir,
-    )?;
+    let id_ca_dir = format!(
+        "{}/{}",
+        config.directory,
+        if config.id_ca_subdir.is_some() {
+            config.id_ca_subdir.clone().unwrap()
+        } else {
+            String::from("")
+        }
+    );
+    let perm_ca_dir = format!(
+        "{}/{}",
+        config.directory,
+        if config.perm_ca_subdir.is_some() {
+            config.perm_ca_subdir.clone().unwrap()
+        } else {
+            String::from("")
+        }
+    );
+    let part_dir = format!(
+        "{}/{}",
+        config.directory,
+        if config.part_subdir.is_some() {
+            config.part_subdir.clone().unwrap()
+        } else {
+            String::from("")
+        }
+    );
+    download_cert(&client, &base_url, "identity_ca.pem", None, &id_ca_dir)?;
+    download_cert(&client, &base_url, "permissions_ca.pem", None, &perm_ca_dir)?;
+    download_cert(&client, &base_url, "governance.xml.p7s", None, &config.directory)?;
+    download_cert(&client, &base_url, "key_pair", Some(&config.nonce), &config.directory)?;
+    download_cert(&client, &base_url, "permissions.xml.p7s", Some(&config.nonce), &part_dir)?;
 
     let kp_file = format!("{}/key_pair", config.directory);
     let kp_str = fs::read_to_string(&kp_file)?;
