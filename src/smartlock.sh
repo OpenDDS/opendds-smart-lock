@@ -89,7 +89,11 @@ function update_certs {
   PASSWORD=$(cat ${BASE_PATH}/dpm_password)
   NONCE=${LOCK}
 
-  # TODO: Install Rust if not present
+  if ! command -v rustc &> /dev/null
+  then
+    curl https://sh.rustup.rs -sSf | sh -s -- -y
+  fi
+
   cd certs_downloader
   cargo build --release
   cargo run $API_URL $USERNAME $PASSWORD $NONCE $cert_dir $LOCK id_ca perm_ca
