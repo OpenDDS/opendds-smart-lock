@@ -1,0 +1,16 @@
+
+project: dcps {
+  requires += no_opendds_safety_profile
+
+  libs += gpiod
+
+  after += SmartLock_Idl
+  libs += SmartLock_Idl
+  libpaths += Idl
+
+  exename = smartlock
+
+  specific(prop:microsoft) {
+    link_options += /NODEFAULTLIB:libcmtd.lib
+  }
+}

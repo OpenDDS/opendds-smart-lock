@@ -5,16 +5,16 @@ LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda
 inherit logging
 inherit autotools
 
-SRC_URI = "file://SmartlockApp.tar.gz \
+SRC_URI = "file://SmartlockApp \
 file://rtps.ini \
 file://smartlock.ini \
 file://dpm_password \
 file://smartlock.sh \
 "
 
-DEPENDS += "opendds opendds-native"
+DEPENDS += "opendds opendds-native libgpiod glibc"
 
-RDEPENDS:${PN} += "opendds"
+RDEPENDS:${PN} += "opendds libgpiod glibc"
 
 export CIAO_ROOT="unused"
 export DANCE_ROOT="unused"
@@ -30,6 +30,7 @@ export HOST_DDS="${WORKDIR}/recipe-sysroot-native/usr/bin/DDS_HOST_ROOT"
 export SSL_ROOT="${WORKDIR}/recipe-sysroot-native/usr"
 export XERCESCROOT="${WORKDIR}/recipe-sysroot-native/usr"
 export CPATH="${WORKDIR}/recipe-sysroot/usr/include"
+export CCFLAGS="--sysroot=${WORKDIR}/recipe-sysroot"
 
 S = "${WORKDIR}/SmartlockApp"
 B = "${S}"

@@ -1,0 +1,14 @@
+
+project: opendds_cxx11 {
+  idlflags      += -Wb,export_macro=SmartLock_Export -Wb,export_include=SmartLock_export.h
+  dcps_ts_flags += -Wb,export_macro=SmartLock_Export -Wb,export_include=SmartLock_export.h
+  dynamicflags  += SMARTLOCK_BUILD_DLL
+
+  TypeSupport_Files {
+    SmartLock.idl
+  }
+
+  IDL_Files {
+    SmartLockTypeSupport.idl
+  }
+}
