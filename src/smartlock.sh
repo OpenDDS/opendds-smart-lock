@@ -15,6 +15,7 @@ smartlock_ini=${BASE_PATH}/smartlock/smartlock.ini
 SECURITY=${SMARTLOCK_SECURE:-0}
 CMD=start
 LOCK=
+CURL_CERTS_DOWNLOADER=0
 while (( $# > 0 )); do
     case "$1" in
         --security)
@@ -22,12 +23,16 @@ while (( $# > 0 )); do
             shift
             ;;
         -h|--help)
-            echo "Usage: smartlock.sh [--security] [--lock LOCK_ID] start | stop | restart | start-system"
+            echo "Usage: smartlock.sh [--security] [--lock LOCK_ID] [--curl-certs-downloader] start | stop | restart | start-system"
             exit
             ;;
         --lock)
             LOCK="$2"
             shift 2
+            ;;
+        --curl-certs-downloader)
+            CURL_CERTS_DOWNLOADER=1
+            shift
             ;;
         start)
             CMD=start
@@ -83,7 +88,29 @@ fi
 
 echo "CMD: '$CMD', SECURITY: '$SECURITY', LOCK_ID: '$LOCK', SECURITY_ARGS: '$SECURITY_ARGS'"
 
-function update_certs {
+function update_certs_curl {
+  APP_PASSWORD=$(cat ${BASE_PATH}/dpm_password)
+  APP_NONCE=${LOCK}
+  API_URL=$(grep api_url ${smartlock_ini} | sed 's/api_url *= *"//; s/".*//')
+  USERNAME=$(grep username ${smartlock_ini} | sed 's/username *= *"//; s/".*//')
+
+  mkdir -p ${cert_dir}/id_ca ${cert_dir}/${LOCK} ${cert_dir}/perm_ca
+
+  curl -c cookies.txt -H'Content-Type: application/json' -d"{\"username\":\"${USERNAME}\",\"password\":\"$APP_PASSWORD\"}" ${API_URL}/login
+
+  curl --silent -b cookies.txt "${API_URL}/applications/identity_ca.pem" > ${ID_CA}
+  curl --silent -b cookies.txt "${API_URL}/applications/permissions_ca.pem" > ${PERM_CA}
+  curl --silent -b cookies.txt "${API_URL}/applications/governance.xml.p7s" > ${PERM_GOV}
+  curl --silent -b cookies.txt "${API_URL}/applications/key_pair?nonce=${APP_NONCE}" > key-pair
+  curl --silent -b cookies.txt "${API_URL}/applications/permissions.xml.p7s?nonce=${APP_NONCE}" > ${PERM_PERMS}
+
+  jq -r '.public' key-pair > ${ID_CERT}
+  jq -r '.private' key-pair > ${ID_PKEY}
+
+  rm -f cookies.txt key-pair
+}
+
+function update_certs_rust {
   API_URL=$(grep api_url ${smartlock_ini} | sed 's/api_url *= *"//; s/".*//')
   USERNAME=$(grep username ${smartlock_ini} | sed 's/username *= *"//; s/".*//')
   PASSWORD=$(cat ${BASE_PATH}/dpm_password)
@@ -98,6 +125,14 @@ function update_certs {
   cargo build --release
   cargo run $API_URL $USERNAME $PASSWORD $NONCE $cert_dir $LOCK id_ca perm_ca
   cd ..
+}
+
+function update_certs {
+  if (( $CURL_CERT_DOWNLOADER )); then
+    update_certs_curl
+  else
+    update_certs_rust
+  fi
 }
 
 PID_FILE=${BASE_PATH}/smartlock.pid
