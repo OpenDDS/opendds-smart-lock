@@ -11,8 +11,7 @@ fn main() {
         process::exit(1);
     });
 
-    let result = download_certs(&config);
-    match result {
+    match download_certs(&config) {
         Ok(_) => (),
         Err(err) => {
             eprintln!("download_certs failed: {:?}", err);

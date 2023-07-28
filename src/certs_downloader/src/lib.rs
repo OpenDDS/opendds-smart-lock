@@ -26,7 +26,7 @@ impl Config {
                                      {4: <15} Top level directory to store the docs\n\
                                      {5: <15} Subdirectory to store docs specific to this participant (optional)\n\
                                      {6: <15} Subdirectory to store identity CA doc (optional)\n\
-                                     {7: <15} Subdirectory to store permission CA doc (optional)",
+                                     {7: <15} Subdirectory to store permissions CA doc (optional)",
                                     "<url>", "<username>", "<password>", "<nonce>", "<dir>", "[part_dir]", "[id_ca_dir]", "[perm_ca_dir]");
             return Err(usage_msg);
         }
@@ -105,31 +105,41 @@ pub fn download_certs(config: &Config) -> Result<(), Box<dyn std::error::Error>>
             String::from("")
         }
     );
-    download_cert(&client, &base_url, "identity_ca.pem", None, &id_ca_dir)?;
-    download_cert(&client, &base_url, "permissions_ca.pem", None, &perm_ca_dir)?;
-    download_cert(&client, &base_url, "governance.xml.p7s", None, &config.directory)?;
-    download_cert(&client, &base_url, "key_pair", Some(&config.nonce), &config.directory)?;
-    download_cert(&client, &base_url, "permissions.xml.p7s", Some(&config.nonce), &part_dir)?;
+    download_file(&client, &base_url, "identity_ca.pem", None, &id_ca_dir)?;
+    download_file(&client, &base_url, "permissions_ca.pem", None, &perm_ca_dir)?;
+    download_file(&client, &base_url, "governance.xml.p7s", None, &config.directory)?;
+    download_file(&client, &base_url, "permissions.xml.p7s", Some(&config.nonce), &part_dir)?;
 
-    let kp_file = format!("{}/key_pair", config.directory);
-    let kp_str = fs::read_to_string(&kp_file)?;
+    let kp_str = get_body(&client, &base_url, "key_pair", Some(&config.nonce))?;
     let kp: KeyPair = serde_json::from_str(&kp_str)?;
-
     let public_file = format!("{}/identity.pem", part_dir);
     let private_file = format!("{}/identity_key.pem", part_dir);
     fs::File::create(public_file)?.write_all(kp.public.as_bytes())?;
     fs::File::create(private_file)?.write_all(kp.private.as_bytes())?;
-    fs::remove_file(&kp_file)?;
     Ok(())
 }
 
-fn download_cert(
+fn download_file(
     client: &Client,
     base_url: &str,
     filename: &str,
     nonce: Option<&str>,
     directory: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
+    let body = get_body(client, base_url, filename, nonce)?;
+    let path = format!("{}/{}", directory, filename);
+    fs::create_dir_all(directory)?;
+    let mut file = fs::File::create(path)?;
+    file.write_all(body.as_bytes())?;
+    Ok(())
+}
+
+fn get_body(
+    client: &Client,
+    base_url: &str,
+    filename: &str,
+    nonce: Option<&str>,
+) -> Result<String, Box<dyn std::error::Error>> {
     let url;
     if nonce.is_some() {
         url = format!("{}/{}?nonce={}", base_url, filename, nonce.unwrap());
@@ -137,10 +147,5 @@ fn download_cert(
         url = format!("{}/{}", base_url, filename);
     }
     let body = client.get(&url).send()?.text()?;
-
-    let path = format!("{}/{}", directory, filename);
-    fs::create_dir_all(directory)?;
-    let mut file = fs::File::create(path)?;
-    file.write_all(body.as_bytes())?;
-    Ok(())
+    Ok(body)
 }

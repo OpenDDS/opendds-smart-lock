@@ -89,20 +89,20 @@ fi
 echo "CMD: '$CMD', SECURITY: '$SECURITY', LOCK_ID: '$LOCK', SECURITY_ARGS: '$SECURITY_ARGS'"
 
 function update_certs_curl {
-  APP_PASSWORD=$(cat ${BASE_PATH}/dpm_password)
-  APP_NONCE=${LOCK}
-  API_URL=$(grep api_url ${smartlock_ini} | sed 's/api_url *= *"//; s/".*//')
-  USERNAME=$(grep username ${smartlock_ini} | sed 's/username *= *"//; s/".*//')
+  API_URL=$1
+  USERNAME=$2
+  PASSWORD=$3
+  NONCE=$4
 
   mkdir -p ${cert_dir}/id_ca ${cert_dir}/${LOCK} ${cert_dir}/perm_ca
 
-  curl -c cookies.txt -H'Content-Type: application/json' -d"{\"username\":\"${USERNAME}\",\"password\":\"$APP_PASSWORD\"}" ${API_URL}/login
+  curl -c cookies.txt -H'Content-Type: application/json' -d"{\"username\":\"${USERNAME}\",\"password\":\"${PASSWORD}\"}" ${API_URL}/login
 
   curl --silent -b cookies.txt "${API_URL}/applications/identity_ca.pem" > ${ID_CA}
   curl --silent -b cookies.txt "${API_URL}/applications/permissions_ca.pem" > ${PERM_CA}
   curl --silent -b cookies.txt "${API_URL}/applications/governance.xml.p7s" > ${PERM_GOV}
-  curl --silent -b cookies.txt "${API_URL}/applications/key_pair?nonce=${APP_NONCE}" > key-pair
-  curl --silent -b cookies.txt "${API_URL}/applications/permissions.xml.p7s?nonce=${APP_NONCE}" > ${PERM_PERMS}
+  curl --silent -b cookies.txt "${API_URL}/applications/key_pair?nonce=${NONCE}" > key-pair
+  curl --silent -b cookies.txt "${API_URL}/applications/permissions.xml.p7s?nonce=${NONCE}" > ${PERM_PERMS}
 
   jq -r '.public' key-pair > ${ID_CERT}
   jq -r '.private' key-pair > ${ID_PKEY}
@@ -111,14 +111,15 @@ function update_certs_curl {
 }
 
 function update_certs_rust {
-  API_URL=$(grep api_url ${smartlock_ini} | sed 's/api_url *= *"//; s/".*//')
-  USERNAME=$(grep username ${smartlock_ini} | sed 's/username *= *"//; s/".*//')
-  PASSWORD=$(cat ${BASE_PATH}/dpm_password)
-  NONCE=${LOCK}
+  API_URL=$1
+  USERNAME=$2
+  PASSWORD=$3
+  NONCE=$4
 
   if ! command -v rustc &> /dev/null
   then
-    curl https://sh.rustup.rs -sSf | sh -s -- -y
+    echo "ERROR: Rust is not installed! Install it and try again or use the --curl-certs-downloader option."
+    exit 1
   fi
 
   cd certs_downloader
@@ -128,10 +129,15 @@ function update_certs_rust {
 }
 
 function update_certs {
-  if (( $CURL_CERT_DOWNLOADER )); then
-    update_certs_curl
+  API_URL=$(grep api_url ${smartlock_ini} | sed 's/api_url *= *"//; s/".*//')
+  USERNAME=$(grep username ${smartlock_ini} | sed 's/username *= *"//; s/".*//')
+  PASSWORD=$(cat ${BASE_PATH}/dpm_password)
+  NONCE=${LOCK}
+
+  if (( $CURL_CERTS_DOWNLOADER )); then
+    update_certs_curl $API_URL $USERNAME $PASSWORD $NONCE
   else
-    update_certs_rust
+    update_certs_rust $API_URL $USERNAME $PASSWORD $NONCE
   fi
 }
 
