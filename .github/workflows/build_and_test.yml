@@ -119,3 +119,17 @@ jobs:
         cd opendds-smart-lock
         ./smart-lock android build-toolchain-x86
         ./smart-lock android compile
+
+  build_certs_downloader:
+
+    runs-on: ubuntu-22.04
+
+    steps:
+    - name: checkout opendds-smart-lock
+      uses: actions/checkout@v3
+      with:
+        path: opendds-smart-lock
+    - name: compile rust certs downloader
+      run: |
+        cd opendds-smart-lock/src/certs_downloader
+        cargo build --release
